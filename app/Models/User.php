@@ -698,4 +698,8 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     {
         return $this->locale;
     }
+
+    public function findForPassport($username) {
+        return $this->where('username', $username)->first();
+    }
 }
