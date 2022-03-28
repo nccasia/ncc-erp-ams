@@ -82,7 +82,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
 
         Route::get('selectlist',
             [
-                Api\AccessoriesController::class, 
+                Api\AccessoriesController::class,
                 'selectlist'
             ]
         )->name('api.accessories.selectlist');
@@ -1104,4 +1104,19 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         }); // end fallback routes
 
 
+        /**
+         * DashBoard routes
+         */
+        Route::group(['prefix' => 'dashboard'], function (){
+            Route::get('/',
+                [
+                    Api\DashboardController::class,
+                    'index'
+                ]
+            );
+        }); // end dashboards api routes
+
+
+
 }); // end API routes
+

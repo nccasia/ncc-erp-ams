@@ -1670,5 +1670,16 @@ class Asset extends Depreciable
 
     }
 
+    /**
+     * Query builder to search by status id
+     * @param Builder $query Query builder instance
+     * @param Integer $id id of status labels
+     * @return Builder Modified query builder
+     */
+    public function getByStatusId($query, $id)
+    {
+        return $query->where('status_id', $id);
+    }
+
 
 }
