@@ -44,9 +44,8 @@ class DashboardService
 
     public function addStatusToCategory($assets, $category, $status_labels)
     {
-        $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
-        $category['assets_count'] = count($assets);
-
+        $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id']);
+        $category['assets_count'] = count($assets->get());
         $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
         $category['status_labels'] = $status_labels;
 
@@ -63,7 +62,7 @@ class DashboardService
 
     public function addValueToStatusLabel($assets, $status_label)
     {
-        $assets_by_status = (new \App\Models\Asset)->getByStatusId($assets, $status_label['id']);
+        $assets_by_status = (new \App\Models\Asset)->getByStatusId($assets, $status_label['id'])->get();
         $status_label['assets_count'] = count($assets_by_status);
         return $status_label;
     }
