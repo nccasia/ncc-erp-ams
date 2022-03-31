@@ -1117,6 +1117,5 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         }); // end dashboards api routes
 
 
-
 }); // end API routes
 
