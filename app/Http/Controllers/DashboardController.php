@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Domains\Finfast\Services\FinfastService;
+use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
 
@@ -15,6 +17,16 @@ use Illuminate\Support\Facades\Artisan;
  */
 class DashboardController extends Controller
 {
+    /**
+     * @var FinfastService
+     */
+    private FinfastService $finfastService;
+
+    public function __construct(FinfastService $finfastService)
+    {
+        $this->finfastService = $finfastService;
+    }
+
     /**
      * Check authorization and display admin dashboard, otherwise display
      * the user's checked-out assets.
@@ -47,5 +59,9 @@ class DashboardController extends Controller
             // Redirect to the profile page
             return redirect()->intended('account/view-assets');
         }
+    }
+
+    public function getFinfast() {
+        return $this->finfastService->getListOutcome("2021-01-01", "2022-03-31");
     }
 }

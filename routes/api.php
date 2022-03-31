@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api;
 // use Illuminate\Http\Request;
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -1112,6 +1113,12 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 [
                     Api\DashboardController::class,
                     'index'
+                ]
+            );
+            Route::get('/finfast',
+                [
+                    DashboardController::class,
+                    'getFinfast'
                 ]
             );
         }); // end dashboards api routes
