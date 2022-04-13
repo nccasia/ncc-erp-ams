@@ -17,28 +17,40 @@ class FinfastController extends Controller
     {
         $this->finfastService = $finfastService;
     }
-    public function getFinfast(Request $request) {
+
+    public function getFinfast(Request $request)
+    {
         $from = $request->from;
         $to = $request->to;
         return $this->finfastService->getListOutcome($from, $to);
     }
-    public function getListEntryType() {
+
+    public function getListEntryType()
+    {
         return $this->finfastService->getListEntryType();
     }
-    public function saveEntryIdFilter(Request $request) {
+
+    public function saveEntryIdFilter(Request $request)
+    {
         return $this->finfastService->saveEntryIdFilter(json_decode($request->value));
     }
-    public function getEntryIdFilter() {
+
+    public function getEntryIdFilter()
+    {
         return $this->finfastService->getEntryIdFilter();
     }
-    public function getBranch() {
+
+    public function getBranch()
+    {
         $data['rows'] = $this->finfastService->getBranch()->result;
         $data['total'] = count($data['rows']);
         return $data;
     }
-    public function getSupplier() {
+    
+    public function getSupplier()
+    {
         $data['rows'] = $this->finfastService->getSupplier()->result;
         $data['total'] = count($data['rows']);
-        return $data;       
+        return $data;
     }
 }
