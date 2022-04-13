@@ -11,12 +11,13 @@ use Illuminate\Database\Eloquent\Model;
 class FinfastSetting extends Model
 {
     use FinfastSettingScope;
+    public $timestamps = false;
     public static $EntryFilterKey = "EntryFilter";
 
     /**
      * @var string[]
      */
-    protected $fillable = [];
+    protected $fillable = ['f_value'];
     protected $casts = [
         'f_value' => 'array',
     ];

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domains\Finfast\Services\FinfastService;
 use GuzzleHttp\Client;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Artisan;
 
@@ -61,7 +62,18 @@ class DashboardController extends Controller
         }
     }
 
-    public function getFinfast() {
-        return $this->finfastService->getListOutcome("2021-01-01", "2022-03-31");
+    public function getFinfast(Request $request) {
+        $from = $request->from;
+        $to = $request->to;
+        return $this->finfastService->getListOutcome($from, $to);
+    }
+    public function getListEntryType() {
+        return $this->finfastService->getListEntryType();
+    }
+    public function saveEntryIdFilter(Request $request) {
+        return $this->finfastService->saveEntryIdFilter(json_decode($request->value));
+    }
+    public function getEntryIdFilter() {
+        return $this->finfastService->getEntryIdFilter();
     }
 }

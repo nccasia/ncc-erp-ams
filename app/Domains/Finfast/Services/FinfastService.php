@@ -27,7 +27,7 @@ class FinfastService
         ];
     }
 
-    private function _getListEntryTypeFilter()
+    public function _getListEntryTypeFilter()
     {
         $data = $this->model->EntryIdFilter()->first();
 
@@ -37,7 +37,13 @@ class FinfastService
     public function saveEntryIdFilter(array $filters) {
         $model = new FinfastSetting();
         $model->setEntryFilter($filters);
-        $model->save();
+        $finfastSetting = FinfastSetting::where('f_key','EntryFilter')->first();
+        $finfastSetting->update($model->toArray());
+        return $finfastSetting;
+    }
+
+    public function getEntryIdFilter() {
+        return json_decode($this->_getListEntryTypeFilter());
     }
 
     public function getToken() {
@@ -59,7 +65,74 @@ class FinfastService
             ]
         ]);
 
-        return json_decode($res->getBody()->getContents()); // { "type": "User", ....
+        return json_decode($res->getBody()->getContents());
+    }
+
+    public  function  findEntryType($id){
+        $entryTypes = $this->getListEntryType();
+
+        foreach ($entryTypes->result as $item){
+            if ($item->id = $id) return $item;
+        }
+        return [];
+    }
+
+    public  function  getBranch(){
+        $token = $this->getToken();
+        $client = new Client();
+        $res = $client->get($this->finfast_uri . '/services/app/Branch/GetAllForDropdown', [
+            'headers' => [
+                'Authorization' => 'Bearer '. $token
+            ]
+        ]);
+
+        return json_decode($res->getBody()->getContents());
+    }
+
+    public  function  findBranch($id){
+        $branchs = $this->getBranch();
+
+        foreach ($branchs->result as $item){
+            if ($item->id = $id) return $item;
+        }
+        return [];
+    }
+
+
+    public  function  getSupplier(){
+        $token = $this->getToken();
+        $client = new Client();
+        $res = $client->get($this->finfast_uri . '/services/app/Supplier/GetAllForDropdown', [
+            'headers' => [
+                'Authorization' => 'Bearer '. $token
+            ]
+        ]);
+
+        return json_decode($res->getBody()->getContents());
+    }
+
+    public  function  findSupplier($id){
+       $suppliers = $this->getSupplier();
+
+       foreach ($suppliers->result as $item){
+           if ($item->id = $id) return $item;
+       }
+        return [];
+    }
+
+    protected function _buildTree(array $elements, int $parentId = null)
+    {
+        $branch = array();
+        foreach ($elements as $element) {
+            if ($element->parentId ==  $parentId) {
+                $children = self::_buildTree($elements, $element->id);
+                if ($children) {
+                    $element->children = $children;
+                }
+                $branch[] = $element;
+            }
+        }
+        return $branch;
     }
 
     // todo
@@ -102,7 +175,7 @@ class FinfastService
         // call api
         $data = $this->_getListOutcome($from, $to);
         // phan loai data
-        $entry_type_id = $this->_getListEntryTypeFilter();
+        $entry_type_id = json_decode($this->_getListEntryTypeFilter());
         $rs = [];
         foreach ($data->result->items as $item) {
             if (in_array($item->outcomingEntryTypeId, $entry_type_id)) {

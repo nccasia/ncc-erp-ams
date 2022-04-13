@@ -1115,13 +1115,68 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                     'index'
                 ]
             );
-            Route::get('/finfast',
+        }); // end dashboards api routes
+
+        /**
+         * Finfast routes
+         */
+        Route::group(['prefix' => 'finfast'], function (){
+            Route::get('/',
                 [
-                    DashboardController::class,
+                    Api\FinfastController::class,
                     'getFinfast'
                 ]
             );
-        }); // end dashboards api routes
+            Route::get('/entry-type',
+                [
+                    Api\FinfastController::class,
+                    'getListEntryType'
+                ]
+            );
+            Route::post('/finfast-setting',
+                [
+                    Api\FinfastController::class,
+                    'saveEntryIdFilter'
+                ]
+            );
+            Route::get('/finfast-setting',
+                [
+                    Api\FinfastController::class,
+                    'getEntryIdFilter'
+                ]
+            );
+            Route::get('/branch',
+                [
+                    Api\FinfastController::class,
+                    'getBranch'
+                ]
+            );
+            Route::get('/supplier',
+                [
+                    Api\FinfastController::class,
+                    'getSupplier'
+                ]
+            );
+
+        }); // end Finfast api routes
+
+        /**
+         * Request routes
+         */
+        Route::group(['prefix' => 'finfast-request'], function (){
+            Route::post('/',
+                [
+                    Api\FinfastRequestController::class,
+                    'store'
+                ]
+            );
+            Route::get('/',
+                [
+                    Api\FinfastRequestController::class,
+                    'index'
+                ]
+            );
+        }); // end request api routes
 
 
 }); // end API routes

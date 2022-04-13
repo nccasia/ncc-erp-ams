@@ -331,7 +331,6 @@ class AssetsController extends Controller
         }
 
 
-        $total = $assets->count();
         $assets = $assets->skip($offset)->take($limit)->get();
         
 
@@ -345,10 +344,27 @@ class AssetsController extends Controller
         }
 
 
+        if (isset($request->from)){
+            $from = Carbon::createFromFormat('Y-m-d', $request->from)->startOfDay()->toDateTimeString();
+            $assets = $assets->toQuery()->where('created_at', '>=',$from)->get();
+        }
+        if (isset($request->to)){
+            $to = Carbon::createFromFormat('Y-m-d', $request->to)->endOfDay()->toDateTimeString();
+            $assets = $assets->toQuery()->where('created_at', '<=',$to)->get();
+        }
+
+        if ($request->notRequest == 1){
+            $assets = $assets->toQuery()->with('finfast_request_asset')->doesntHave('finfast_request_asset')->get();
+        }
+
+
+        $total = $assets->count();
+
         /**
          * Here we're just determining which Transformer (via $transformer) to use based on the 
          * variables we set earlier on in this method - we default to AssetsTransformer.
          */
+
         return (new $transformer)->transformAssets($assets, $total, $request);
     }
 
