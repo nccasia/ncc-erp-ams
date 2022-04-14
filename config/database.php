@@ -119,7 +119,15 @@ return [
             'charset'  => 'utf8',
             'prefix'   => '',
         ],
-
+        'sql_finfast' => [
+            'driver'   => 'sqlsrv',
+            'host'     => env('FINFAST_DB_HOST', 'localhost'),
+            'database' => env('FINFAST_DB_DATABASE', 'forge'),
+            'username' => env('FINFAST_DB_USERNAME', 'forge'),
+            'password' => env('FINFAST_DB_PASSWORD', ''),
+            'charset'  => 'utf8',
+            'prefix'   => '',
+        ],
     ],
 
     /*

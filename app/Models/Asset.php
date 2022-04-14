@@ -241,6 +241,11 @@ class Asset extends Depreciable
         return $this->belongsTo(\App\Models\Company::class, 'company_id');
     }
 
+
+    public function finfast_request_asset(){
+        return $this->hasOne(FinfastRequestAsset::class);
+    }
+
     /**
      * Determines if an asset is available for checkout.
      * This checks to see if the it's checked out to an invalid (deleted) user
