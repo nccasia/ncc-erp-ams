@@ -20,16 +20,16 @@ class FinfastRequestService
         $this->finfastService = $finfastService;
     }
 
-    public function list($payload){
+    public function getList(){
 
         $requests = FinfastRequest::orderBy('created_at','DESC')->with('finfast_request_assets')->get();
         return $this->mapValueInListRequest($requests);
     }
 
-    public function create($request, $asset_ids){
-        return DB::transaction(function () use (&$request, $asset_ids) {
-            $request->save();
-            $this->saveListRequestAsset($request->id, $asset_ids);
+    public function create($requestModel, $asset_ids){
+        return DB::transaction(function () use ($requestModel, $asset_ids) {
+            $requestModel->save();
+            $this->saveListRequestAsset($requestModel->id, $asset_ids);
         });
     }
 

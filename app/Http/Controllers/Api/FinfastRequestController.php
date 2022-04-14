@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Domains\Finfast\Services\FinfastService;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\FinFastRequestRequest;
 use App\Services\FinfastRequestService;
 use Illuminate\Http\Request;
 
@@ -20,9 +21,9 @@ class FinfastRequestController extends Controller
     }
 
 
-    public function index(Request $request)
+    public function index()
     {
-        $data['rows'] =  $this->finfastRequestService->list($request->all());
+        $data['rows'] =  $this->finfastRequestService->getList();
         $data['total'] = count($data['rows']);
 
         return $data;
@@ -41,10 +42,10 @@ class FinfastRequestController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param  FinfastRequestService  $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(FinFastRequestRequest $request)
     {
 
         $requestModel = new \App\Models\FinfastRequest();
