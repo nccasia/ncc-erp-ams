@@ -1157,6 +1157,12 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                     'getSupplier'
                 ]
             );
+            Route::post('/outcome',
+                [
+                    Api\FinfastController::class,
+                    'createOutcome'
+                ]
+            );
 
         }); // end Finfast api routes
 

@@ -3,6 +3,8 @@
 namespace App\Domains\Finfast\Services;
 
 use App\Domains\Finfast\Models\FinfastSetting;
+use App\Models\FinfastRequest;
+use App\Models\FinfastRequestAsset;
 use GuzzleHttp\Client;
 
 /**
@@ -185,5 +187,34 @@ class FinfastService
         // todo fake for now
 
         return $rs;
+    }
+
+    public function createOutcome($finfast_request_id){
+        $finfast_request = FinfastRequest::find($finfast_request_id);
+        $finfast_request_assets = FinfastRequestAsset::where("finfast_request_id", $finfast_request_id)->with('asset')->get();
+        $value = 0;
+        foreach ($finfast_request_assets as $item){
+            $value = $value + $item->asset->purchase_cost;
+        }
+        $token = $this->getToken();
+        $client = new Client();
+        $res = $client->post($this->finfast_uri . '/services/app/OutcomingEntry/Create', [
+            'headers' => [
+                'Authorization' => 'Bearer '. $token
+            ],
+            'json' =>
+                [
+                    //todo must update currencyId = 10004 accountId = 10007
+                    "currencyId" => 10004,
+                    "accountId" => 10007,
+                    "name" => $finfast_request->name,
+                    "outcomingEntryTypeId" => $finfast_request->entry_id,
+                    "branchId" => $finfast_request->branch_id,
+                    "supplierId" => $finfast_request->supplier_id,
+                    "value" => $value
+                ]
+        ]);
+
+        return json_decode($res->getBody()->getContents());
     }
 }
