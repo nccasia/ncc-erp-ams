@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Finfast\Services\FinfastService;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\CreateOutComeRequest;
 use Illuminate\Http\Request;
 
 class FinfastController extends Controller
@@ -52,5 +53,11 @@ class FinfastController extends Controller
         $data['rows'] = $this->finfastService->getSupplier()->result;
         $data['total'] = count($data['rows']);
         return $data;
+    }
+
+    public function createOutcome(CreateOutComeRequest $request)
+    {
+        return $this->finfastService->createOutcome($request->finfast_request_id);
+
     }
 }
