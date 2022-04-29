@@ -108,6 +108,7 @@ class AssetsController extends Controller
             $filter = json_decode($request->input('filter'), true);
         }
 
+
         $all_custom_fields = CustomField::all(); //used as a 'cache' of custom fields throughout this page load
         foreach ($all_custom_fields as $field) {
             $allowed_columns[] = $field->db_column_name();
@@ -184,11 +185,12 @@ class AssetsController extends Controller
 
         $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
 
+
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
         // case we override with the actual count, so we should return 0 items.
         $offset = (($assets) && ($request->get('offset') > $assets->count())) ? $assets->count() : $request->get('offset', 0);
 
-
+        
         // Check to make sure the limit is not higher than the max allowed
         ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit'))) ? $limit = $request->input('limit') : $limit = config('app.max_results');
 
@@ -330,9 +332,23 @@ class AssetsController extends Controller
                 break;
         }
 
+        if ($request->notRequest == 1){
+            $assets = $assets->with('finfast_request_asset')->doesntHave('finfast_request_asset');
+        }
+
+        if (isset($request->from)){
+            $from = Carbon::createFromFormat('Y-m-d', $request->from)->startOfDay()->toDateTimeString();
+            $assets = $assets->where('created_at', '>=',$from);
+        }
+        if (isset($request->to)){
+            $to = Carbon::createFromFormat('Y-m-d', $request->to)->endOfDay()->toDateTimeString();
+            $assets = $assets->where('created_at', '<=',$to);
+        }
+
+        $total = $assets->count();
 
         $assets = $assets->skip($offset)->take($limit)->get();
-        
+
 
         /**
          * Include additional associated relationships
@@ -343,22 +359,6 @@ class AssetsController extends Controller
             }]);
         }
 
-
-        if (isset($request->from)){
-            $from = Carbon::createFromFormat('Y-m-d', $request->from)->startOfDay()->toDateTimeString();
-            $assets = $assets->toQuery()->where('created_at', '>=',$from)->get();
-        }
-        if (isset($request->to)){
-            $to = Carbon::createFromFormat('Y-m-d', $request->to)->endOfDay()->toDateTimeString();
-            $assets = $assets->toQuery()->where('created_at', '<=',$to)->get();
-        }
-
-        if ($request->notRequest == 1){
-            $assets = $assets->toQuery()->with('finfast_request_asset')->doesntHave('finfast_request_asset')->get();
-        }
-
-
-        $total = $assets->count();
 
         /**
          * Here we're just determining which Transformer (via $transformer) to use based on the 
@@ -1016,5 +1016,19 @@ class AssetsController extends Controller
         $assets = $assets->skip($offset)->take($limit)->get();
 
         return (new AssetsTransformer)->transformRequestedAssets($assets, $total);
+    }
+
+
+    public function clone(Request $request){
+        $asset = Asset::find($request->id);
+        $new_asset = $asset->replicate();
+
+        $new_asset->created_at = Carbon::now();
+        $new_asset->name = $new_asset->name."(copy)";
+        $new_asset->asset_tag = $new_asset->asset_tag.Carbon::now()->toDateTimeString();
+
+        $new_asset = $new_asset->save();
+
+        return response()->json(Helper::formatStandardApiResponse('error', $new_asset, 'Asset with tag '.e($request->input('asset_tag')).' not found'));
     }
 }

@@ -6,6 +6,7 @@ use App\Domains\Finfast\Models\FinfastSetting;
 use App\Models\FinfastRequest;
 use App\Models\FinfastRequestAsset;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Class AnnouncementService.
@@ -191,6 +192,7 @@ class FinfastService
 
     public function createOutcome($finfast_request_id){
         $finfast_request = FinfastRequest::find($finfast_request_id);
+        if ($finfast_request->status !== config('enum.request_status.PENDING')) return false;
         $finfast_request_assets = FinfastRequestAsset::where("finfast_request_id", $finfast_request_id)->with('asset')->get();
         $value = 0;
         foreach ($finfast_request_assets as $item){
@@ -198,6 +200,7 @@ class FinfastService
         }
         $token = $this->getToken();
         $client = new Client();
+
         $res = $client->post($this->finfast_uri . '/services/app/OutcomingEntry/Create', [
             'headers' => [
                 'Authorization' => 'Bearer '. $token
@@ -213,6 +216,10 @@ class FinfastService
                     "supplierId" => $finfast_request->supplier_id,
                     "value" => $value
                 ]
+        ]);
+
+        $finfast_request->update([
+            "status" => config('enum.request_status.SENT'),
         ]);
 
         return json_decode($res->getBody()->getContents());

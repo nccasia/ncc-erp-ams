@@ -21,12 +21,9 @@ class FinfastRequestController extends Controller
     }
 
 
-    public function index()
+    public function index(Request $request)
     {
-        $data['rows'] =  $this->finfastRequestService->getList();
-        $data['total'] = count($data['rows']);
-
-        return $data;
+        return $this->finfastRequestService->getList($request);
     }
 
     /**
@@ -71,9 +68,9 @@ class FinfastRequestController extends Controller
      */
     public function show($id)
     {
-        //
+        $finfast_request = $this->finfastRequestService->show($id);
+        return response()->json(Helper::formatStandardApiResponse('success', $finfast_request, trans('admin/hardware/message.create.success')));
     }
-
     /**
      * Show the form for editing the specified resource.
      *
@@ -105,6 +102,9 @@ class FinfastRequestController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $finfast_request = $this->finfastRequestService->delete($id);
+        if ($finfast_request)  return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/hardware/message.create.success')));
+        else   return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/hardware/message.create.success')));
+
     }
 }

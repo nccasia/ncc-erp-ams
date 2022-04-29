@@ -482,6 +482,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             'checkout'
         ]
         )->name('api.asset.checkout');
+
+        Route::post('clone',
+              [
+                  Api\AssetsController::class,
+                  'clone'
+              ]
+        );
       }); 
 
 
@@ -497,7 +504,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             ],
         'except' => ['create', 'edit'],
         'parameters' => ['asset' => 'asset_id'],
-        ]
+        ],
+
+
         ); // end assets API routes
 
         /**
@@ -1180,6 +1189,18 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 [
                     Api\FinfastRequestController::class,
                     'index'
+                ]
+            );
+            Route::delete('/{id}',
+                [
+                    Api\FinfastRequestController::class,
+                    'destroy'
+                ]
+            );
+            Route::get('/{id}',
+                [
+                    Api\FinfastRequestController::class,
+                    'show'
                 ]
             );
         }); // end request api routes

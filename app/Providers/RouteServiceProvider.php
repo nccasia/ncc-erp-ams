@@ -70,6 +70,13 @@ class RouteServiceProvider extends ServiceProvider
         ], function ($router) {
             require base_path('routes/api.php');
         });
+
+        Route::group([
+            'namespace' => $this->namespace,
+            'prefix' => 'api',
+        ], function ($router) {
+            require base_path('routes/api-guest.php');
+        });
     }
 
     /**
