@@ -199,7 +199,6 @@ class FinfastService
         }
         $token = $this->getToken();
         $client = new Client();
-
         $res = $client->post($this->finfast_uri . '/services/app/OutcomingEntry/Create', [
             'headers' => [
                 'Authorization' => 'Bearer '. $token
