@@ -191,6 +191,7 @@ class FinfastService
 
     public function createOutcome($finfast_request_id){
         $finfast_request = FinfastRequest::find($finfast_request_id);
+        if ($finfast_request->status !== config('enum.request_status.PENDING')) return false;
         $finfast_request_assets = FinfastRequestAsset::where("finfast_request_id", $finfast_request_id)->with('asset')->get();
         $value = 0;
         foreach ($finfast_request_assets as $item){
@@ -213,6 +214,10 @@ class FinfastService
                     "supplierId" => $finfast_request->supplier_id,
                     "value" => $value
                 ]
+        ]);
+
+        $finfast_request->update([
+            "status" => config('enum.request_status.SENT'),
         ]);
 
         return json_decode($res->getBody()->getContents());

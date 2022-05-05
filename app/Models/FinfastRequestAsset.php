@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Traits\Searchable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class FinfastRequestAsset extends Model
 {
     use HasFactory;
+    use Searchable;
+
 
     protected $fillable = ['asset_id', 'finfast_request_id'];
 

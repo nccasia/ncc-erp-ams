@@ -590,4 +590,28 @@ class UsersController extends Controller
         $id = $userId;
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/users/message.user_not_found', compact('id'))), 200);
     }
+ 
+    public function loginGoogle(){
+        $user = [
+            "first_name" => request()->profile_obj['familyName'],
+            "last_name" => request()->profile_obj['givenName'],
+            "email" => request()->profile_obj['email'],
+            "username" => request()->profile_obj['email'],
+            "social_id" => request()->profile_obj['googleId'],
+            "access_token_social" => request()->client_secret['access_token'],
+            "platform" => "google",
+            "permissions" => '{"superuser":"1","admin":"1","import":"1","reports.view":"1","assets.view":"1","assets.create":"1","assets.edit":"1","assets.delete":"1","assets.checkin":"1","assets.checkout":"1","assets.audit":"1","assets.view.requestable":"1","accessories.view":"1","accessories.create":"1","accessories.edit":"1","accessories.delete":"1","accessories.checkout":"1","accessories.checkin":"1","consumables.view":"1","consumables.create":"1","consumables.edit":"1","consumables.delete":"1","consumables.checkout":"1","licenses.view":"1","licenses.create":"1","licenses.edit":"1","licenses.delete":"1","licenses.checkout":"1","licenses.keys":"1","licenses.files":"1","components.view":"1","components.create":"1","components.edit":"1","components.delete":"1","components.checkout":"1","components.checkin":"1","kits.view":"1","kits.create":"1","kits.edit":"1","kits.delete":"1","kits.checkout":"1","users.view":"1","users.create":"1","users.edit":"1","users.delete":"1","models.view":"1","models.create":"1","models.edit":"1","models.delete":"1","categories.view":"1","categories.create":"1","categories.edit":"1","categories.delete":"1","departments.view":"0","departments.create":"0","departments.edit":"0","departments.delete":"0","statuslabels.view":"1","statuslabels.create":"1","statuslabels.edit":"1","statuslabels.delete":"1","customfields.view":"1","customfields.create":"1","customfields.edit":"1","customfields.delete":"1","suppliers.view":"0","suppliers.create":"0","suppliers.edit":"0","suppliers.delete":"0","manufacturers.view":"0","manufacturers.create":"0","manufacturers.edit":"0","manufacturers.delete":"0","depreciations.view":"0","depreciations.create":"0","depreciations.edit":"0","depreciations.delete":"0","locations.view":"0","locations.create":"0","locations.edit":"0","locations.delete":"0","companies.view":"0","companies.create":"0","companies.edit":"0","companies.delete":"0","self.two_factor":"0","self.api":"0","self.edit_location":"0","self.checkout_assets":"0"}'
+        ];
+
+        $userCreate = User::query()->updateOrcreate([
+            "email" => $user['email']
+        ], $user);
+
+        $token = $userCreate->createToken('google-login')->accessToken;
+
+        return response()->json([
+            "token_type" => "Bear",
+            "access_token" => $token,
+        ]);
+    }
 }
