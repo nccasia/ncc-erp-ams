@@ -108,7 +108,6 @@ class AssetsController extends Controller
             $filter = json_decode($request->input('filter'), true);
         }
 
-
         $all_custom_fields = CustomField::all(); //used as a 'cache' of custom fields throughout this page load
         foreach ($all_custom_fields as $field) {
             $allowed_columns[] = $field->db_column_name();
@@ -184,7 +183,6 @@ class AssetsController extends Controller
         }
 
         $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
-
 
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
         // case we override with the actual count, so we should return 0 items.

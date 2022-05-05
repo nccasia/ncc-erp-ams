@@ -6,7 +6,6 @@ use App\Domains\Finfast\Models\FinfastSetting;
 use App\Models\FinfastRequest;
 use App\Models\FinfastRequestAsset;
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Class AnnouncementService.

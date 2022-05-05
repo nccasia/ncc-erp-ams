@@ -31,6 +31,5 @@ class FinfastRequestAsset extends Model
         return $this->belongsTo(Asset::class, 'asset_id');
     }
 
-
 }
 
