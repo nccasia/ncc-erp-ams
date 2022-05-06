@@ -95,7 +95,7 @@ class FinfastService
         $branchs = $this->getBranch();
 
         foreach ($branchs->result as $item){
-            if ($item->id = $id) return $item;
+            if ($item->id == $id) return $item;
         }
         return [];
     }
