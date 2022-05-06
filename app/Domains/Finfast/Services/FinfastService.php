@@ -74,7 +74,7 @@ class FinfastService
         $entryTypes = $this->getListEntryType();
 
         foreach ($entryTypes->result as $item){
-            if ($item->id = $id) return $item;
+            if ($item->id == $id) return $item;
         }
         return [];
     }
@@ -117,7 +117,7 @@ class FinfastService
        $suppliers = $this->getSupplier();
 
        foreach ($suppliers->result as $item){
-           if ($item->id = $id) return $item;
+           if ($item->id == $id) return $item;
        }
         return [];
     }
