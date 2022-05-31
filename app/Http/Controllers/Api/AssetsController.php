@@ -96,6 +96,7 @@ class AssetsController extends Controller
             'purchase_cost',
             'last_audit_date',
             'next_audit_date',
+            'requestable',
             'warranty_months',
             'checkout_counter',
             'checkin_counter',
@@ -431,10 +432,10 @@ class AssetsController extends Controller
             ->withCount('checkins as checkins_count', 'checkouts as checkouts_count', 'userRequests as user_requests_count')->findOrFail($id)) {
             $this->authorize('view', $asset);
 
-            return (new AssetsTransformer)->transformAsset($asset, $request->input('components') );
-        }
-
-
+            return (new AssetsTransformer)->transformAsset($asset, $request->input('components') );         
+        } 
+        
+        
     }
 
     public function licenses(Request $request, $id)
@@ -761,6 +762,7 @@ class AssetsController extends Controller
      */
     public function checkout(AssetCheckoutRequest $request, $asset_id)
     {
+        
         $this->authorize('checkout', Asset::class);
         $asset = Asset::findOrFail($asset_id);
 
