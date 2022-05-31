@@ -440,7 +440,7 @@ class AssetsController extends Controller
 
     public function assign(Request $request, $audit = null)
     {
-        $user_id = FacadesAuth::id();
+        $user_id = Auth::id();
         \Log::debug(Route::currentRouteName());
         $filter_non_deprecable_assets = false;
 
