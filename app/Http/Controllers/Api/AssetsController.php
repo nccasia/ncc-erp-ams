@@ -22,7 +22,7 @@ use App\Models\Setting;
 use App\Models\User;
 use Auth;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use DB;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
 use Input;
