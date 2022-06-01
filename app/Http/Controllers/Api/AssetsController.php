@@ -32,6 +32,7 @@ use Str;
 use TCPDF;
 use Validator;
 use Route;
+use App\Jobs\SendCheckoutMail;
 
 /**
  * This class controls all actions related to assets for
@@ -1149,7 +1150,18 @@ class AssetsController extends Controller
 
 
 
+        $user = User::find($asset->user_id);
+        $user_email = $user->email;
+        $user_name = $user->first_name . ' ' . $user->last_name;
+        $mytime = Carbon::now();
         if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id)) {
+            $data = [
+                'user_name' => $user_name,
+                'asset_name' => $asset->name,
+                'time' => $mytime->format('d-m-Y'),
+                'link' => env('APP_URL_CLIENT') . '/user',
+            ];
+            SendCheckoutMail::dispatch($data, $user_email);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
 
