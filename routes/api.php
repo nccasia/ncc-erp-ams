@@ -410,6 +410,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
       * Assets API routes
       */
       Route::group(['prefix' => 'hardware'], function () {
+
+        Route::get('assign',
+            [
+                Api\AssetsController::class,
+                'assign'
+            ]
+        );
         
         Route::get('selectlist',
             [
