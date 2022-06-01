@@ -1155,13 +1155,13 @@ class AssetsController extends Controller
         $user_name = $user->first_name . ' ' . $user->last_name;
         $mytime = Carbon::now();
         if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id)) {
-            $message = [
+            $data = [
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
                 'time' => $mytime->format('d-m-Y'),
                 'link' => env('APP_URL_CLIENT') . '/user',
             ];
-            SendCheckoutMail::dispatch($message, $user_email);
+            SendCheckoutMail::dispatch($data, $user_email);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
 

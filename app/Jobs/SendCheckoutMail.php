@@ -14,7 +14,7 @@ use App\Mail\CheckoutMail;
 class SendCheckoutMail implements ShouldQueue
 {
     protected $data;
-    protected $user;
+    protected $user_email;
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
@@ -22,10 +22,10 @@ class SendCheckoutMail implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($data, $user)
+    public function __construct($data, $user_email)
     {
         $this->data = $data;
-        $this->user = $user;
+        $this->user_email = $user_email;
     }
 
     /**
@@ -35,6 +35,6 @@ class SendCheckoutMail implements ShouldQueue
      */
     public function handle()
     {
-        Mail::to($this->user)->send(new CheckoutMail($this->data));
+        Mail::to($this->user_email)->send(new CheckoutMail($this->data));
     }
 }
