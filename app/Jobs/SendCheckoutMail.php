@@ -11,10 +11,10 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\CheckoutMail;
 
-class SendMail implements ShouldQueue
+class SendCheckoutMail implements ShouldQueue
 {
     protected $data;
-    protected $users;
+    protected $user;
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
@@ -22,10 +22,10 @@ class SendMail implements ShouldQueue
      *
      * @return void
      */
-    public function __construct($data, $users)
+    public function __construct($data, $user)
     {
         $this->data = $data;
-        $this->users = $users;
+        $this->user = $user;
     }
 
     /**
@@ -35,6 +35,6 @@ class SendMail implements ShouldQueue
      */
     public function handle()
     {
-        Mail::to($this->users)->send(new CheckoutMail($this->data));
+        Mail::to($this->user)->send(new CheckoutMail($this->data));
     }
 }

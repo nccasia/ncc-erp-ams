@@ -29,7 +29,7 @@ class CheckoutMail extends Mailable
      */
     public function build()
     {
-        return $this->from('ngomyhanhqb224@gmail.com')
+        return $this->from(env('MAIL_FROM_ADDR'))
             ->view('mails.checkout-mail')
             ->subject('Mail bàn giao thiết bị');
     }
