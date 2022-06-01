@@ -96,6 +96,7 @@ class AssetsController extends Controller
             'purchase_cost',
             'last_audit_date',
             'next_audit_date',
+            'assigned_status',
             'requestable',
             'warranty_months',
             'checkout_counter',
@@ -485,6 +486,7 @@ class AssetsController extends Controller
             'purchase_cost',
             'last_audit_date',
             'next_audit_date',
+            'assigned_status',
             'requestable',
             'warranty_months',
             'checkout_counter',
@@ -946,6 +948,8 @@ class AssetsController extends Controller
 
             ($request->filled('model_id')) ?
                 $asset->model()->associate(AssetModel::find($request->get('model_id'))) : null;
+            ($request->filled('assigned_status')) ?
+                $asset->assigned_status = $request->get('assigned_status') : '';
             ($request->filled('rtd_location_id')) ?
                 $asset->location_id = $request->get('rtd_location_id') : '';
             ($request->filled('company_id')) ?

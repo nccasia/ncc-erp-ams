@@ -90,6 +90,7 @@ class Asset extends Depreciable
         'next_audit_date' => 'datetime',
         'model_id'       => 'integer',
         'status_id'      => 'integer',
+        'assigned_status'=> 'integer',
         'company_id'     => 'integer',
         'location_id'    => 'integer',
         'rtd_company_id' => 'integer',
