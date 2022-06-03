@@ -411,6 +411,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
       */
       Route::group(['prefix' => 'hardware'], function () {
 
+        Route::get('me',
+            [
+                Api\AssetsController::class,
+                'me'
+            ]
+        );
+
         Route::get('assign',
             [
                 Api\AssetsController::class,
