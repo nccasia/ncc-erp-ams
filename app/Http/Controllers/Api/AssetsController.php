@@ -760,6 +760,17 @@ class AssetsController extends Controller
         return (new $transformer)->transformAssets($assets, $total, $request);
     }
 
+    public function me()
+    {
+        $user = Auth::user();
+        if(Auth::user()->isAdmin()){            
+            $user->is_admin = true;   
+        } else {
+            $user->is_admin = false;
+        }
+        return $user;
+     }
+
     public function licenses(Request $request, $id)
     {
         $this->authorize('view', Asset::class);

@@ -185,6 +185,10 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     {
         return $this->checkPermissionSection('superuser');
     }
+    public function isAdmin()
+    {
+        return $this->checkPermissionSection('admin');
+    }
 
 
     /**
