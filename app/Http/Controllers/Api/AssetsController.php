@@ -740,7 +740,7 @@ class AssetsController extends Controller
             $assets = $assets->where('created_at', '<=', $to);
         }
         
-        $assets = $assets->where('assets.status_id', '=', 4)->where('assets.user_id', '=', $user_id)->skip($offset)->take($limit)->get();
+        $assets = $assets->where('assets.assigned_to', '=', $user_id)->skip($offset)->take($limit)->get();
         $total = $assets->count();
 
         /**
@@ -1161,7 +1161,7 @@ class AssetsController extends Controller
 
 
 
-        $user = User::find($asset->user_id);
+        $user = User::find($request->assigned_user);
         $user_email = $user->email;
         $user_name = $user->first_name . ' ' . $user->last_name;
         $mytime = Carbon::now();
@@ -1170,7 +1170,7 @@ class AssetsController extends Controller
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
                 'time' => $mytime->format('d-m-Y'),
-                'link' => env('APP_URL_CLIENT') . '/user',
+                'link' => env('APP_URL_CLIENT') . '/Users',
             ];
             SendCheckoutMail::dispatch($data, $user_email);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
