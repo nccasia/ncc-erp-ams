@@ -690,9 +690,10 @@ class AssetsController extends Controller
 
         // This handles all of the pivot sorting (versus the assets.* fields
         // in the allowed_columns array)
-        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
+        $column_sort1 = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.assigned_status';
+        $column_sort2 = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
 
-      
+        
         switch ($sort_override) {
             case 'model':
                 $assets->OrderModels($order);
@@ -724,9 +725,9 @@ class AssetsController extends Controller
                 $assets->OrderAssigned($order);
                 break;
             default:
-                $assets->orderBy($column_sort, $order);
+                $assets->orderBy($column_sort1, "asc")->orderBy($column_sort2, "desc");
                 break;
-        }
+        }       
       
         if ($request->notRequest == 1) {
             $assets = $assets->with('finfast_request_asset')->doesntHave('finfast_request_asset');
