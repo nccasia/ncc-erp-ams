@@ -690,8 +690,7 @@ class AssetsController extends Controller
 
         // This handles all of the pivot sorting (versus the assets.* fields
         // in the allowed_columns array)
-        $column_sort1 = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.assigned_status';
-        $column_sort2 = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
+        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
 
         
         switch ($sort_override) {
@@ -724,8 +723,14 @@ class AssetsController extends Controller
             case 'assigned_to':
                 $assets->OrderAssigned($order);
                 break;
+            case 'assigned_status':
+                $assets->OrderAssignedStatus("asc");
+                break;
+            case 'updated_at':
+                $assets->OrderUpdatedAt($order);
+                break;
             default:
-                $assets->orderBy($column_sort1, "asc")->orderBy($column_sort2, "desc");
+                $assets->orderBy($column_sort, $order);
                 break;
         }       
       
@@ -758,7 +763,7 @@ class AssetsController extends Controller
          * Here we're just determining which Transformer (via $transformer) to use based on the 
          * variables we set earlier on in this method - we default to AssetsTransformer.
          */
-        
+
         return (new $transformer)->transformAssets($assets, $total, $request);
     }
 

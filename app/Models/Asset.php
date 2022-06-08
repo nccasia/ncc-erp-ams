@@ -1437,6 +1437,12 @@ class Asset extends Depreciable
                         });
                     });
                 }
+                if ($fieldname == 'assigned_status') {
+                    $query->where('assets.assigned_status', 'LIKE', '%'.$search_val.'%');
+                }
+                if ($fieldname == 'updated_at') {
+                    $query->where('assets.updated_at', 'LIKE', '%'.$search_val.'%');
+                }
             
 
             /**
@@ -1487,6 +1493,14 @@ class Asset extends Depreciable
     public function scopeOrderModels($query, $order)
     {
         return $query->join('models as asset_models', 'assets.model_id', '=', 'asset_models.id')->orderBy('asset_models.name', $order);
+    }
+    public function scopeOrderAssignedStatus($query, $order)
+    {
+        return $query->orderBy('assets.assigned_status', $order);
+    }
+    public function scopeOrderUpdatedAt($query, $order)
+    {
+        return $query->orderBy('assets.updated_at', $order);
     }
 
     /**
