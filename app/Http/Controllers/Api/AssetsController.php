@@ -33,6 +33,7 @@ use TCPDF;
 use Validator;
 use Route;
 use App\Jobs\SendCheckoutMail;
+use App\Jobs\SendConfirmMail;
 
 /**
  * This class controls all actions related to assets for
@@ -957,7 +958,7 @@ class AssetsController extends Controller
 
         if ($asset = Asset::find($id)) {
             $asset->fill($request->all());
-
+            $assigned_status = $asset->assigned_status;
             ($request->filled('model_id')) ?
                 $asset->model()->associate(AssetModel::find($request->get('model_id'))) : null;
             ($request->filled('assigned_status')) ?
@@ -994,7 +995,24 @@ class AssetsController extends Controller
                     }
                 }
             }
-
+            if ($assigned_status !== $request->get('assigned_status')) {
+                $it_email = Setting::first()->admin_cc_email;
+                $user = User::find($asset->assigned_to);
+                $user_name = $user->first_name . ' ' . $user->last_name;
+                $mytime = Carbon::now();
+                $data = [
+                    'user_name' => $user_name,
+                    'is_confirm' => '',
+                    'asset_name' => $asset->name,
+                    'time' => $mytime->format('d-m-Y')
+                ];
+                if ($asset->assigned_status === 1) {
+                    $data['is_confirm'] = 'đã nhận được';
+                } elseif ($asset->assigned_status === 2) {
+                    $data['is_confirm'] = 'chưa nhận được';
+                }
+                SendConfirmMail::dispatch($data, $it_email);
+            }          
 
             if ($asset->save()) {
                 if (($request->filled('assigned_user')) && ($target = User::find($request->get('assigned_user')))) {
@@ -1170,7 +1188,7 @@ class AssetsController extends Controller
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
                 'time' => $mytime->format('d-m-Y'),
-                'link' => env('APP_URL_CLIENT') . '/Users',
+                'link' => config('client.client.link'),
             ];
             SendCheckoutMail::dispatch($data, $user_email);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
