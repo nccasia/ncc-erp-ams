@@ -1437,12 +1437,6 @@ class Asset extends Depreciable
                         });
                     });
                 }
-                if ($fieldname == 'assigned_status') {
-                    $query->where('assets.assigned_status', 'LIKE', '%'.$search_val.'%');
-                }
-                if ($fieldname == 'updated_at') {
-                    $query->where('assets.updated_at', 'LIKE', '%'.$search_val.'%');
-                }
             
 
             /**
