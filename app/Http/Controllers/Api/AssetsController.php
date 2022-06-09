@@ -775,6 +775,7 @@ class AssetsController extends Controller
         } else {
             $user->is_admin = false;
         }
+        $user->permissions = json_decode($user->permissions);         
         return $user;
      }
 
