@@ -1195,7 +1195,7 @@ class AssetsController extends Controller
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
                 'time' => $mytime->format('d-m-Y'),
-                'link' => config('client.client.link'),
+                'link' => config('client.my_assets.link'),
             ];
             SendCheckoutMail::dispatch($data, $user_email);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
@@ -1230,6 +1230,8 @@ class AssetsController extends Controller
         $asset->assigned_to = null;
         $asset->assignedTo()->disassociate($asset);
         $asset->accepted = null;
+        $asset->assigned_status = null;
+
 
         if ($request->filled('name')) {
             $asset->name = $request->input('name');

@@ -30,6 +30,6 @@ class ConfirmMail extends Mailable
     {
         return $this->from(env('MAIL_FROM_ADDR'))
             ->view('mails.confirm-mail')
-            ->subject('Mail xác nhận bàn giao thiết bị');
+            ->subject(trans('mail.confirm_mail_subject', [], 'vi'));
     }
 }

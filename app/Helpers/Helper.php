@@ -1059,4 +1059,15 @@ class Helper
 
         return $file_name;
     }
+
+    /**
+     * Check the valid email when login by Google.
+     */
+    public static function checkValidEmail($email)
+    {
+        if(substr($email, strpos($email, "@") + 1) === "ncc.asia"){
+            return true;
+        }
+        return false;
+    }
 }
