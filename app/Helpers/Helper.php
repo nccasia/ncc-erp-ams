@@ -1059,4 +1059,16 @@ class Helper
 
         return $file_name;
     }
+
+    /**
+     * Check the valid email when login by Google.
+     */
+    public static function checkValidEmail($email)
+    {
+        $it_ncc_email = Setting::first()->email_domain;
+        if(substr($email, strpos($email, "@") + 1) === $it_ncc_email){
+            return true;
+        }
+        return false;
+    }
 }

@@ -1490,6 +1490,32 @@ class Asset extends Depreciable
     }
 
     /**
+    * Query builder scope to order on assigned status
+    *
+    * @param  \Illuminate\Database\Query\Builder  $query  Query builder instance
+    * @param  text                              $order       Order
+    *
+    * @return \Illuminate\Database\Query\Builder          Modified query builder
+    */
+    public function scopeOrderAssignedStatus($query, $order)
+    {
+        return $query->orderBy('assets.assigned_status', $order);
+    }
+
+    /**
+    * Query builder scope to order on updated at
+    *
+    * @param  \Illuminate\Database\Query\Builder  $query  Query builder instance
+    * @param  text                              $order       Order
+    *
+    * @return \Illuminate\Database\Query\Builder          Modified query builder
+    */
+    public function scopeOrderUpdatedAt($query, $order)
+    {
+        return $query->orderBy('assets.updated_at', $order);
+    }
+
+    /**
     * Query builder scope to order on model number
     *
     * @param  \Illuminate\Database\Query\Builder  $query  Query builder instance

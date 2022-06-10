@@ -33,6 +33,7 @@ use TCPDF;
 use Validator;
 use Route;
 use App\Jobs\SendCheckoutMail;
+use App\Jobs\SendConfirmMail;
 
 /**
  * This class controls all actions related to assets for
@@ -691,7 +692,7 @@ class AssetsController extends Controller
         // in the allowed_columns array)
         $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
 
-      
+        
         switch ($sort_override) {
             case 'model':
                 $assets->OrderModels($order);
@@ -722,10 +723,16 @@ class AssetsController extends Controller
             case 'assigned_to':
                 $assets->OrderAssigned($order);
                 break;
+            case 'assigned_status':
+                $assets->OrderAssignedStatus($order);
+                break;
+            case 'updated_at':
+                $assets->OrderUpdatedAt($order);
+                break;
             default:
                 $assets->orderBy($column_sort, $order);
                 break;
-        }
+        }       
       
         if ($request->notRequest == 1) {
             $assets = $assets->with('finfast_request_asset')->doesntHave('finfast_request_asset');
@@ -740,7 +747,7 @@ class AssetsController extends Controller
             $assets = $assets->where('created_at', '<=', $to);
         }
         
-        $assets = $assets->where('assets.status_id', '=', 4)->where('assets.user_id', '=', $user_id)->skip($offset)->take($limit)->get();
+        $assets = $assets->where('assets.assigned_to', '=', $user_id)->skip($offset)->take($limit)->get();
         $total = $assets->count();
 
         /**
@@ -756,7 +763,7 @@ class AssetsController extends Controller
          * Here we're just determining which Transformer (via $transformer) to use based on the 
          * variables we set earlier on in this method - we default to AssetsTransformer.
          */
-        
+
         return (new $transformer)->transformAssets($assets, $total, $request);
     }
 
@@ -768,6 +775,7 @@ class AssetsController extends Controller
         } else {
             $user->is_admin = false;
         }
+        $user->permissions = json_decode($user->permissions);         
         return $user;
      }
 
@@ -957,7 +965,7 @@ class AssetsController extends Controller
 
         if ($asset = Asset::find($id)) {
             $asset->fill($request->all());
-
+            $assigned_status = $asset->assigned_status;
             ($request->filled('model_id')) ?
                 $asset->model()->associate(AssetModel::find($request->get('model_id'))) : null;
             ($request->filled('assigned_status')) ?
@@ -994,7 +1002,24 @@ class AssetsController extends Controller
                     }
                 }
             }
-
+            if ($assigned_status !== $request->get('assigned_status')) {
+                $it_ncc_email = Setting::first()->admin_cc_email;
+                $user = User::find($asset->assigned_to);
+                $user_name = $user->first_name . ' ' . $user->last_name;
+                $current_time = Carbon::now();
+                $data = [
+                    'user_name' => $user_name,
+                    'is_confirm' => '',
+                    'asset_name' => $asset->name,
+                    'time' => $current_time->format('d-m-Y')
+                ];
+                if ($asset->assigned_status === 1) {
+                    $data['is_confirm'] = 'đã nhận được';
+                } elseif ($asset->assigned_status === 2) {
+                    $data['is_confirm'] = 'chưa nhận được';
+                }
+                SendConfirmMail::dispatch($data, $it_ncc_email);
+            }          
 
             if ($asset->save()) {
                 if (($request->filled('assigned_user')) && ($target = User::find($request->get('assigned_user')))) {
@@ -1161,16 +1186,16 @@ class AssetsController extends Controller
 
 
 
-        $user = User::find($asset->user_id);
+        $user = User::find($request->assigned_user);
         $user_email = $user->email;
         $user_name = $user->first_name . ' ' . $user->last_name;
-        $mytime = Carbon::now();
+        $current_time = Carbon::now();
         if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id)) {
             $data = [
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
-                'time' => $mytime->format('d-m-Y'),
-                'link' => env('APP_URL_CLIENT') . '/user',
+                'time' => $current_time->format('d-m-Y'),
+                'link' => config('client.my_assets.link'),
             ];
             SendCheckoutMail::dispatch($data, $user_email);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
@@ -1205,6 +1230,8 @@ class AssetsController extends Controller
         $asset->assigned_to = null;
         $asset->assignedTo()->disassociate($asset);
         $asset->accepted = null;
+        $asset->assigned_status = null;
+
 
         if ($request->filled('name')) {
             $asset->name = $request->input('name');

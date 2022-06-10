@@ -7,7 +7,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
 
-class CheckoutMail extends Mailable
+class ConfirmMail extends Mailable
 {
     use Queueable, SerializesModels;
     public $data;
@@ -21,7 +21,6 @@ class CheckoutMail extends Mailable
     {
         $this->data = $data;
     }
-
     /**
      * Build the message.
      *
@@ -30,8 +29,7 @@ class CheckoutMail extends Mailable
     public function build()
     {
         return $this->from(env('MAIL_FROM_ADDR'))
-            ->view('mails.checkout-mail')
-            //todo update later
-            ->subject('Mail bàn giao thiết bị');
+            ->view('mails.confirm-mail')
+            ->subject('Mail xác nhận bàn giao thiết bị');
     }
 }
