@@ -1002,9 +1002,9 @@ class AssetsController extends Controller
                     }
                 }
             }
-            if ($assigned_status !== $request->get('assigned_status')) {
+            $user = User::find($asset->assigned_to);
+            if ($user && $assigned_status !== $request->get('assigned_status')) {
                 $it_ncc_email = Setting::first()->admin_cc_email;
-                $user = User::find($asset->assigned_to);
                 $user_name = $user->first_name . ' ' . $user->last_name;
                 $current_time = Carbon::now();
                 $data = [
@@ -1019,8 +1019,8 @@ class AssetsController extends Controller
                     $data['is_confirm'] = 'chưa nhận được';
                 }
                 SendConfirmMail::dispatch($data, $it_ncc_email);
-            }          
-
+            }
+                      
             if ($asset->save()) {
                 if (($request->filled('assigned_user')) && ($target = User::find($request->get('assigned_user')))) {
                         $location = $target->location_id;
