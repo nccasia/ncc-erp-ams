@@ -724,7 +724,7 @@ class AssetsController extends Controller
                 $assets->OrderAssigned($order);
                 break;
             case 'assigned_status':
-                $assets->OrderAssignedStatus("asc");
+                $assets->OrderAssignedStatus($order);
                 break;
             case 'updated_at':
                 $assets->OrderUpdatedAt($order);
@@ -1003,22 +1003,22 @@ class AssetsController extends Controller
                 }
             }
             if ($assigned_status !== $request->get('assigned_status')) {
-                $it_email = Setting::first()->admin_cc_email;
+                $it_ncc_email = Setting::first()->admin_cc_email;
                 $user = User::find($asset->assigned_to);
                 $user_name = $user->first_name . ' ' . $user->last_name;
-                $mytime = Carbon::now();
+                $current_time = Carbon::now();
                 $data = [
                     'user_name' => $user_name,
                     'is_confirm' => '',
                     'asset_name' => $asset->name,
-                    'time' => $mytime->format('d-m-Y')
+                    'time' => $current_time->format('d-m-Y')
                 ];
                 if ($asset->assigned_status === 1) {
                     $data['is_confirm'] = 'đã nhận được';
                 } elseif ($asset->assigned_status === 2) {
                     $data['is_confirm'] = 'chưa nhận được';
                 }
-                SendConfirmMail::dispatch($data, $it_email);
+                SendConfirmMail::dispatch($data, $it_ncc_email);
             }          
 
             if ($asset->save()) {
@@ -1189,12 +1189,12 @@ class AssetsController extends Controller
         $user = User::find($request->assigned_user);
         $user_email = $user->email;
         $user_name = $user->first_name . ' ' . $user->last_name;
-        $mytime = Carbon::now();
+        $current_time = Carbon::now();
         if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id)) {
             $data = [
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
-                'time' => $mytime->format('d-m-Y'),
+                'time' => $current_time->format('d-m-Y'),
                 'link' => config('client.my_assets.link'),
             ];
             SendCheckoutMail::dispatch($data, $user_email);

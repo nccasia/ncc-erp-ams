@@ -14,17 +14,17 @@ use App\Mail\ConfirmMail;
 class SendConfirmMail implements ShouldQueue
 {
     protected $data;
-    protected $it_email;
+    protected $it_ncc_email;
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($data, $it_email)
+    public function __construct($data, $it_ncc_email)
     {
         $this->data = $data;
-        $this->it_email = $it_email;
+        $this->it_ncc_email = $it_ncc_email;
     }
 
     /**
@@ -34,6 +34,6 @@ class SendConfirmMail implements ShouldQueue
      */
     public function handle()
     {
-        Mail::to($this->it_email)->send(new ConfirmMail($this->data));
+        Mail::to($this->it_ncc_email)->send(new ConfirmMail($this->data));
     }
 }

@@ -31,6 +31,7 @@ class CheckoutMail extends Mailable
     {
         return $this->from(env('MAIL_FROM_ADDR'))
             ->view('mails.checkout-mail')
-            ->subject(trans('mail.checkout_mail_subject', [], 'vi'));
+            //todo update later
+            ->subject('Mail bàn giao thiết bị');
     }
 }
