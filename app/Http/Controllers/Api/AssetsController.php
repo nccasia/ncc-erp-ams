@@ -771,9 +771,9 @@ class AssetsController extends Controller
     {
         $user = Auth::user();
         if(Auth::user()->isAdmin()){            
-            $user->is_admin = true;   
-        } else {
-            $user->is_admin = false;
+            $user->role = "admin";   
+        } elseif(Auth::user()->isSuperUser()){
+            $user->role = "user"; 
         }
         $user->permissions = json_decode($user->permissions);         
         return $user;
