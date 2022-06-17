@@ -881,6 +881,7 @@ class AssetsController extends Controller
         $asset->requestable             = $request->get('requestable', 0);
         $asset->rtd_location_id         = $request->get('rtd_location_id', null);
         $asset->location_id             = $request->get('rtd_location_id', null);
+        $asset->assigned_status         = 0;
 
         /**
         * this is here just legacy reasons. Api\AssetController
@@ -1013,9 +1014,9 @@ class AssetsController extends Controller
                     'asset_name' => $asset->name,
                     'time' => $current_time->format('d-m-Y')
                 ];
-                if ($asset->assigned_status === 1) {
+                if ($asset->assigned_status === 2) {
                     $data['is_confirm'] = 'đã nhận được';
-                } elseif ($asset->assigned_status === 2) {
+                } elseif ($asset->assigned_status === 3) {
                     $data['is_confirm'] = 'chưa nhận được';
                 }
                 SendConfirmMail::dispatch($data, $it_ncc_email);
@@ -1190,7 +1191,7 @@ class AssetsController extends Controller
         $user_email = $user->email;
         $user_name = $user->first_name . ' ' . $user->last_name;
         $current_time = Carbon::now();
-        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id)) {
+        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id, 1)) {
             $data = [
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
@@ -1230,7 +1231,7 @@ class AssetsController extends Controller
         $asset->assigned_to = null;
         $asset->assignedTo()->disassociate($asset);
         $asset->accepted = null;
-        $asset->assigned_status = null;
+        $asset->assigned_status = 0;
 
 
         if ($request->filled('name')) {
