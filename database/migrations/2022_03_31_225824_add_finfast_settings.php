@@ -13,7 +13,7 @@ class AddFinfastSettings extends Migration
      */
     public function up()
     {
-        Schema::table('finfast_settings', function (Blueprint $table) {
+        Schema::create('finfast_settings', function (Blueprint $table) {
             $table->string("f_key");
             $table->text("f_value");
         });

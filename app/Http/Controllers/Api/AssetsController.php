@@ -1012,12 +1012,16 @@ class AssetsController extends Controller
                     'user_name' => $user_name,
                     'is_confirm' => '',
                     'asset_name' => $asset->name,
-                    'time' => $current_time->format('d-m-Y')
+                    'time' => $current_time->format('d-m-Y'),
+                    'reason' => '',
                 ];
                 if ($asset->assigned_status === 2) {
                     $data['is_confirm'] = 'đã nhận được';
+                    $asset->status_id = 4;
                 } elseif ($asset->assigned_status === 3) {
                     $data['is_confirm'] = 'chưa nhận được';
+                    $asset->status_id = 5;
+                    $data['reason'] = 'Lý do: ' . $request->get('reason');
                 }
                 SendConfirmMail::dispatch($data, $it_ncc_email);
             }

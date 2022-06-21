@@ -259,6 +259,12 @@ class Asset extends Depreciable
      */
     public function availableForCheckout()
     {
+        if($this->finfast_request_asset){
+            $finfast_request = FinfastRequest::find($this->finfast_request_asset->finfast_request_id);
+            if($finfast_request->status == 'Approved'){
+                return true;
+            }
+        }
 
         // This asset is not currently assigned to anyone and is not deleted...
         if ((! $this->assigned_to) && (! $this->deleted_at)) {
