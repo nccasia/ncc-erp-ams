@@ -259,16 +259,22 @@ class Asset extends Depreciable
      */
     public function availableForCheckout()
     {
+        // The asset is requested
+        if($this->finfast_request_asset){
+            $finfast_request = FinfastRequest::find($this->finfast_request_asset->finfast_request_id);
+            // The status of the finfast request is Approved
+            if($finfast_request->status == 'Approved'){
+                // This asset is not currently assigned to anyone and is not deleted...
+                if ((! $this->assigned_to) && (! $this->deleted_at)) {
 
-        // This asset is not currently assigned to anyone and is not deleted...
-        if ((! $this->assigned_to) && (! $this->deleted_at)) {
+                    // The asset status is not archived and is deployable
+                    if (($this->assetstatus) && ($this->assetstatus->archived == '0')
+                        && ($this->assetstatus->deployable == '1')) 
+                    {
+                        return true;
 
-            // The asset status is not archived and is deployable
-            if (($this->assetstatus) && ($this->assetstatus->archived == '0')
-                && ($this->assetstatus->deployable == '1')) 
-            {
-                return true;
-
+                    }
+                }
             }
         }
         return false;
