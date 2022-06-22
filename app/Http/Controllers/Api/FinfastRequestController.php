@@ -6,6 +6,7 @@ use App\Domains\Finfast\Services\FinfastService;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\FinFastRequestRequest;
+use App\Models\FinfastRequest;
 use App\Services\FinfastRequestService;
 use Illuminate\Http\Request;
 
@@ -91,7 +92,8 @@ class FinfastRequestController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        FinfastRequest::where('id', $id)->update(['status' => $request->status]);
+        return $request->status;
     }
 
     /**

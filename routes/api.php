@@ -1199,6 +1199,12 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                     'store'
                 ]
             );
+            Route::put('/{id}',
+                [
+                    Api\FinfastRequestController::class,
+                    'update'
+                ]
+            );
             Route::get('/',
                 [
                     Api\FinfastRequestController::class,
