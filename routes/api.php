@@ -873,12 +873,6 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         * Users API routes
         */
         Route::group(['prefix' => 'users'], function () {
-            Route::get('info',
-                [
-                    Api\UsersController::class,
-                    'info'
-                ]
-            );
 
             Route::get('selectlist',
                 [

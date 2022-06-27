@@ -564,7 +564,13 @@ class UsersController extends Controller
      */
     public function getCurrentUserInfo(Request $request)
     {
-        return (new UsersTransformer)->transformUser($request->user());
+        $user = (new UsersTransformer)->transformUser($request->user());
+        if (Auth::user()->isAdmin()) {
+            $user['role'] = "admin";
+        } elseif (Auth::user()->isSuperUser()) {
+            $user['role'] = "user";
+        }
+        return $user;
     }
 
     /**
@@ -619,16 +625,5 @@ class UsersController extends Controller
                 "message" => "Unauthorized",
             ], 401);
         }
-    }
-    public function info()
-    {
-        $user = Auth::user();
-        if (Auth::user()->isAdmin()) {
-            $user->role = "admin";
-        } elseif (Auth::user()->isSuperUser()) {
-            $user->role = "user";
-        }
-        $user->permissions = json_decode($user->permissions);
-        return $user;
     }
 }

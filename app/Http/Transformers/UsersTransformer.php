@@ -43,6 +43,9 @@ class UsersTransformer
                 'state' => ($user->state) ? e($user->state) : null,
                 'country' => ($user->country) ? e($user->country) : null,
                 'zip' => ($user->zip) ? e($user->zip) : null,
+                'social_id' => ($user->social_id) ? e($user->social_id) : null,
+                'access_token_social' => ($user->access_token_social) ? e($user->access_token_social) : null,
+                'platform' => ($user->platform) ? e($user->platform) : null,
                 'email' => e($user->email),
                 'department' => ($user->department) ? [
                     'id' => (int) $user->department->id,
