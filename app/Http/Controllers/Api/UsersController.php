@@ -564,7 +564,13 @@ class UsersController extends Controller
      */
     public function getCurrentUserInfo(Request $request)
     {
-        return (new UsersTransformer)->transformUser($request->user());
+        $user = (new UsersTransformer)->transformUser($request->user());
+        if (Auth::user()->isAdmin()) {
+            $user['role'] = "admin";
+        } elseif (Auth::user()->isSuperUser()) {
+            $user['role'] = "user";
+        }
+        return $user;
     }
 
     /**
