@@ -767,18 +767,6 @@ class AssetsController extends Controller
         return (new $transformer)->transformAssets($assets, $total, $request);
     }
 
-    public function me()
-    {
-        $user = Auth::user();
-        if(Auth::user()->isAdmin()){            
-            $user->role = "admin";   
-        } elseif(Auth::user()->isSuperUser()){
-            $user->role = "user"; 
-        }
-        $user->permissions = json_decode($user->permissions);         
-        return $user;
-     }
-
     public function licenses(Request $request, $id)
     {
         $this->authorize('view', Asset::class);

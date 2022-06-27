@@ -620,4 +620,15 @@ class UsersController extends Controller
             ], 401);
         }
     }
+    public function info()
+    {
+        $user = Auth::user();
+        if (Auth::user()->isAdmin()) {
+            $user->role = "admin";
+        } elseif (Auth::user()->isSuperUser()) {
+            $user->role = "user";
+        }
+        $user->permissions = json_decode($user->permissions);
+        return $user;
+    }
 }
