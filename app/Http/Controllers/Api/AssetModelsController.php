@@ -117,6 +117,7 @@ class AssetModelsController extends Controller
         $assetmodel = new AssetModel;
         $assetmodel->fill($request->all());
         $assetmodel = $request->handleImages($assetmodel);
+        $assetmodel->requestable = $request->requestable;
 
         if ($assetmodel->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $assetmodel, trans('admin/models/message.create.success')));
@@ -174,6 +175,7 @@ class AssetModelsController extends Controller
         $assetmodel = AssetModel::findOrFail($id);
         $assetmodel->fill($request->all());
         $assetmodel = $request->handleImages($assetmodel);
+        $assetmodel->requestable = $request->requestable;
         
         /**
          * Allow custom_fieldset_id to override and populate fieldset_id.
