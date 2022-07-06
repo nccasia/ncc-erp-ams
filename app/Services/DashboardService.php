@@ -16,7 +16,7 @@ class DashboardService
             'name',
         ])->get();
         return $locations->map(function ($location) use ($categories) {
-            return $this->addCategoriesToLocation($location, $categories);
+                return $this->addCategoriesToLocation($location, $categories);
         });
     }
 
@@ -43,6 +43,7 @@ class DashboardService
         $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
         $category['assets_count'] = count($assets);
 
+        dd( $category);
         $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
         $category['status_labels'] = $status_labels;
 
