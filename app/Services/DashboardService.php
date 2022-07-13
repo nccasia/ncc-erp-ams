@@ -43,7 +43,7 @@ class DashboardService
         $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
         $category['assets_count'] = count($assets);
 
-        dd( $category);
+        // dd( $category);
         $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
         $category['status_labels'] = $status_labels;
 
@@ -75,12 +75,21 @@ class DashboardService
         $counts['grand_total'] = $counts['asset'] + $counts['accessory'] + $counts['license'] + $counts['consumable'];
     }
 
-    public function getAllLocaltions()
+    public function getAllLocaltions($from, $to)
     {
+        // dd($from, $to);
+        // assets depend to from - to -> select asset where between from to 
+
+        // assets -> phu thuoc vo from va to
         $locations = Location::select([
-            'id',
-            'name',
-        ])->with('assets')->withCount('assets as assets_count')->get();
+            'locations.id',
+            'locations.name',
+        ])
+        ->join('assets','assets.location_id', '=', 'locations.id')
+        ->whereBetween('assets.purchase_date', [$from, $to])
+        ->withCount('assets as assets_count')->get();
+
+        // dd($locations);
 
         return $locations;
     }
