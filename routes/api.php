@@ -1125,7 +1125,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
          * DashBoard routes
          */
         Route::group(['prefix' => 'dashboard'], function (){
-            Route::get('/',
+            Route::post('/',
                 [
                     Api\DashboardController::class,
                     'index'
