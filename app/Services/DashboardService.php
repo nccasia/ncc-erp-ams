@@ -5,10 +5,6 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\Statuslabel;
-use Carbon\Carbon;
-use Exception;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class DashboardService
 {
