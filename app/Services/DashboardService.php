@@ -75,18 +75,29 @@ class DashboardService
 
     public function getAllLocaltions($purchase_date_from, $purchase_date_to)
     {
-        $locations = Location::select([
-            'locations.id',
-            'locations.name'
-        ])
-        ->with('assets', function($query) use($purchase_date_from, $purchase_date_to) {
-            return $query->where('purchase_date', '>=', $purchase_date_from)
-                ->where('purchase_date', '<=', $purchase_date_to);
-        })
-        ->withCount(['assets as assets_count' => function($query) use($purchase_date_from, $purchase_date_to) {
-            return $query->where('purchase_date', '>=', $purchase_date_from)
-            ->where('purchase_date', '<=', $purchase_date_to);
-        }])->get();
+        $locations = Location::select(['id', 'name']);
+        if ($purchase_date_from == null && $purchase_date_to == null) {
+            $locations = $locations->with('assets')->withCount('assets as assets_count')->get();
+        } else {
+            $locations =  $locations->with('assets', function($query) use($purchase_date_from, $purchase_date_to) {
+                if (!is_null($purchase_date_from)) {
+                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                }
+                if (!is_null($purchase_date_to)) {
+                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                }
+                return $query;
+            })
+            ->withCount(['assets as assets_count' => function($query) use($purchase_date_from, $purchase_date_to) {
+                if (!is_null($purchase_date_from)) {
+                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                }
+                if (!is_null($purchase_date_to)) {
+                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                }
+                return $query;
+            }])->get();
+        }
 
         return $locations;
     }
