@@ -1227,7 +1227,6 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:' . config('ap
         );
     }); // end fallback routes
 
-
     /**
      * DashBoard routes
      */

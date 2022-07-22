@@ -23,14 +23,14 @@ class DashboardController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    public function index(Request $request)
     {
         // Show the page
 
         if (Auth::user()->hasAccess('admin')) {
 
             // get all location
-            $locations = $this->dashboardService->getAllLocaltions();
+            $locations = $this->dashboardService->getAllLocaltions($request->purchaseDateFrom, $request->purchaseDateTo);
 
             // Calculate total devices by location
             $locations = $this->dashboardService->mapCategoryToLocation($locations);

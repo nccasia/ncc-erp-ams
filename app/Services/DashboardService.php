@@ -23,8 +23,7 @@ class DashboardService
 
     public function addCategoriesToLocation($location, $categories)
     {
-        $categories = $this->mapStatusToCategory($location['assets'], $categories);
-        $location['categories'] = $categories;
+        $location['categories'] = !$location['assets']->isEmpty() ? $this->mapStatusToCategory($location['assets'], $categories) : [];
         return $location;
     }
 
@@ -44,7 +43,6 @@ class DashboardService
         $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
         $category['assets_count'] = count($assets);
 
-        // dd( $category);
         $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
         $category['status_labels'] = $status_labels;
 
@@ -61,7 +59,7 @@ class DashboardService
     public function addValueToStatusLabel($assets, $status_label)
     {
         $assets_by_status = (new \App\Models\Asset)->getByStatusId($assets, $status_label['id']);
-        $status_label['assets_count'] = count($assets_by_status);
+        $status_label['assets_count'] = count($assets_by_status->toArray());
         return $status_label;
     }
 
@@ -76,12 +74,31 @@ class DashboardService
         $counts['grand_total'] = $counts['asset'] + $counts['accessory'] + $counts['license'] + $counts['consumable'];
     }
 
-    public function getAllLocaltions()
+    public function getAllLocaltions($purchase_date_from, $purchase_date_to)
     {
-        $locations = Location::select([
-            'id',
-            'name',
-        ])->with('assets')->withCount('assets as assets_count')->get();
+        $locations = Location::select(['id', 'name']);
+        if ($purchase_date_from == null && $purchase_date_to == null) {
+            $locations = $locations->with('assets')->withCount('assets as assets_count')->get();
+        } else {
+            $locations =  $locations->with('assets', function ($query) use ($purchase_date_from, $purchase_date_to) {
+                if (!is_null($purchase_date_from)) {
+                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                }
+                if (!is_null($purchase_date_to)) {
+                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                }
+                return $query;
+            })
+                ->withCount(['assets as assets_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
+                    return $query;
+                }])->get();
+        }
 
         return $locations;
     }
