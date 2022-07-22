@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\Statuslabel;
+use DB;
 
 class DashboardService
 {
@@ -16,7 +17,7 @@ class DashboardService
             'name',
         ])->get();
         return $locations->map(function ($location) use ($categories) {
-                return $this->addCategoriesToLocation($location, $categories);
+            return $this->addCategoriesToLocation($location, $categories);
         });
     }
 
@@ -75,21 +76,12 @@ class DashboardService
         $counts['grand_total'] = $counts['asset'] + $counts['accessory'] + $counts['license'] + $counts['consumable'];
     }
 
-    public function getAllLocaltions($from, $to)
+    public function getAllLocaltions()
     {
-        // dd($from, $to);
-        // assets depend to from - to -> select asset where between from to 
-
-        // assets -> phu thuoc vo from va to
         $locations = Location::select([
-            'locations.id',
-            'locations.name',
-        ])
-        ->join('assets','assets.location_id', '=', 'locations.id')
-        ->whereBetween('assets.purchase_date', [$from, $to])
-        ->withCount('assets as assets_count')->get();
-
-        // dd($locations);
+            'id',
+            'name',
+        ])->with('assets')->withCount('assets as assets_count')->get();
 
         return $locations;
     }
