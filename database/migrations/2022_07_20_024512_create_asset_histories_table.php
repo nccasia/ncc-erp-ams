@@ -15,8 +15,8 @@ class CreateAssetHistoriesTable extends Migration
     {
         Schema::create('asset_histories', function (Blueprint $table) {
             $table->increments('id');
+            $table->integer('assigned_to')->nullable();
             $table->integer('user_id')->nullable();
-            $table->integer('creator_id')->nullable();
             $table->tinyInteger('type')->nullable();
             $table->timestamps();
             $table->engine = 'InnoDB';

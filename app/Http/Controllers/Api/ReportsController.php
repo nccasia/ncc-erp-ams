@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\ActionlogsTransformer;
 use App\Models\Actionlog;
+use App\Models\AssetHistoryDetail;
 use Illuminate\Http\Request;
 
 class ReportsController extends Controller
@@ -62,5 +63,19 @@ class ReportsController extends Controller
         $actionlogs = $actionlogs->orderBy($sort, $order)->skip($offset)->take($limit)->get();
 
         return response()->json((new ActionlogsTransformer)->transformActionlogs($actionlogs, $total), 200, ['Content-Type' => 'application/json;charset=utf8'], JSON_UNESCAPED_UNICODE);
+    }
+
+    public function reportAccessHistory(Request $request)
+    {   
+        $type = $request->assetHistoryType;
+        if($type != null) {
+            $assetAllocated = AssetHistoryDetail::whereHas('asset_history', function ($query) use ($type) {
+                return $query->where('type', $type);
+            })->with(['asset', 'asset_history'])->get();
+        } else {
+            $assetAllocated = AssetHistoryDetail::with(['asset', 'asset_history'])->get();
+        }
+        
+        return $assetAllocated;
     }
 }

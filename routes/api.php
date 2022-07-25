@@ -1108,6 +1108,14 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 'index'
             ]
             )->name('api.activity.index');
+
+            // api cấp phát - thu hồi
+            Route::get('/',
+            [
+                Api\ReportsController::class, 
+                'reportAccessHistory'
+            ]
+            );
         }); // end reports api routes
 
 
