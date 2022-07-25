@@ -17,7 +17,6 @@ class CreateAssetHistoryDetailsTable extends Migration
             $table->increments('id');
             $table->integer('asset_histories_id')->nullable();
             $table->integer('asset_id')->nullable();
-            $table->integer('quantity')->nullable();
             $table->timestamps();
             $table->engine = 'InnoDB';
         });

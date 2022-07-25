@@ -17,6 +17,7 @@ class CreateAssetHistoriesTable extends Migration
             $table->increments('id');
             $table->integer('user_id')->nullable();
             $table->integer('creator_id')->nullable();
+            $table->tinyInteger('type')->nullable();
             $table->timestamps();
             $table->engine = 'InnoDB';
         });
