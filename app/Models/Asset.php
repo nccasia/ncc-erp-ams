@@ -1320,6 +1320,7 @@ class Asset extends Depreciable
                 ->where('assets.assigned_type', '=', User::class);
         })->where(function ($query) use ($search) {
             $query->where('assets_dept_users.department_id', '=', $search);
+            
         })->withTrashed()->whereNull('assets.deleted_at'); //workaround for laravel bug
     }
 
