@@ -65,21 +65,26 @@ class DashboardController extends Controller
         $from = $request->from;
         $to = $request->to;
 
-        if ($from && $to) {
-            $query .= "   WHERE history.created_at >= :from
-                             AND history.created_at <= :to
-                            GROUP BY assets.location_id,
-                                    history.type) AS g
-                        GROUP BY g.location_id) AS g
-                        JOIN locations l ON l.id = g.location_id";
+        $where = ' WHERE true ';
 
+        if ($from && $to) {
+            $where .= " AND history.created_at >= :from
+                             AND history.created_at <= :to";
             $bind = ['from' => $from, 'to' => $to];
-        } else {
-            $query .= " GROUP BY assets.location_id,
-                                history.type) AS g
-                    GROUP BY g.location_id) AS g
-                    JOIN locations l ON l.id = g.location_id";
         }
+
+        if($request->asset_id){
+            $where .= " AND history_details.asset_id = :asset_id";
+            $bind['asset_id'] = $request->asset_id;
+        }
+
+
+        $query .= $where;
+    
+        $query .= " GROUP BY assets.location_id,
+                history.type) AS g
+        GROUP BY g.location_id) AS g
+        JOIN locations l ON l.id = g.location_id";
 
         if (Auth::user()->hasAccess('admin')) {
 
@@ -87,6 +92,21 @@ class DashboardController extends Controller
                 $query,
                 $bind
             );
+            $total = [
+                'id' => 99,
+                'name' => 'Total',
+                'checkout' => 0,
+                'checkin' => 0
+            ];
+
+            forEach($assets_statistic as $value){
+                $total['checkout'] += $value->checkout;
+                $total['checkin'] += $value->checkin;
+            }
+
+            $assets_statistic[] =  $total;
+
+
             return response()->json(Helper::formatStandardApiResponse('success', $assets_statistic, trans('admin/dashboard/message.success')));
         } else {
             return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/dashboard/message.not_permission')), 401);
