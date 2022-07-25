@@ -16,7 +16,7 @@ class DashboardService
             'name',
         ])->get();
         return $locations->map(function ($location) use ($categories) {
-                return $this->addCategoriesToLocation($location, $categories);
+            return $this->addCategoriesToLocation($location, $categories);
         });
     }
 
@@ -89,14 +89,14 @@ class DashboardService
                 return $query;
             })
             ->withCount(['assets as assets_count' => function($query) use($purchase_date_from, $purchase_date_to) {
-                if (!is_null($purchase_date_from)) {
-                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
-                }
-                if (!is_null($purchase_date_to)) {
-                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
-                }
-                return $query;
-            }])->get();
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
+                    return $query;
+                }])->get();
         }
 
         return $locations;
