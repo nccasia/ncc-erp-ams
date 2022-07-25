@@ -64,18 +64,4 @@ class ReportsController extends Controller
 
         return response()->json((new ActionlogsTransformer)->transformActionlogs($actionlogs, $total), 200, ['Content-Type' => 'application/json;charset=utf8'], JSON_UNESCAPED_UNICODE);
     }
-
-    public function reportAccessHistory(Request $request)
-    {   
-        $type = $request->assetHistoryType;
-        if($type != null) {
-            $assetAllocated = AssetHistoryDetail::whereHas('asset_history', function ($query) use ($type) {
-                return $query->where('type', $type);
-            })->with(['asset', 'asset_history'])->get();
-        } else {
-            $assetAllocated = AssetHistoryDetail::with(['asset', 'asset_history'])->get();
-        }
-        
-        return $assetAllocated;
-    }
 }
