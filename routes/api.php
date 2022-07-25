@@ -1131,6 +1131,23 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                     'index'
                 ]
             );
+            Route::get(
+                '/reportAsset',
+                [
+                    Api\DashboardController::class,
+                    'reportAssetByType'
+                ]
+            );
+        }); // end dashboards api routes
+
+        Route::group(['prefix' => 'all_dashboard'], function () {
+            Route::get(
+                '/',
+                [
+                    Api\DashboardController::class,
+                    'test'
+                ]
+            );
         }); // end dashboards api routes
 
         /**
