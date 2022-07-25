@@ -44,6 +44,10 @@ use App\Models\AssetHistoryDetail;
  * @version    v1.0
  * @author [A. Gianotto] [<snipe@snipe.net>]
  */
+
+const CHECK_IN_TYPE = 0;
+const CHECK_OUT_TYPE = 1;
+
 class AssetsController extends Controller
 {
     /**
@@ -1202,6 +1206,7 @@ class AssetsController extends Controller
                 'time' => $current_time->format('d-m-Y'),
                 'link' => config('client.my_assets.link'),
             ];
+            $this->saveAssetHistory($asset_id,CHECK_OUT_TYPE);
             SendCheckoutMail::dispatch($data, $user_email);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
@@ -1218,12 +1223,11 @@ class AssetsController extends Controller
      * @since [v4.0]
      * @return JsonResponse
      */
-    public function checkin(Request $request, $asset_id, $type)
+    public function checkin(Request $request, $asset_id, $type = null)
     {
         $this->authorize('checkin', Asset::class);
         $asset = Asset::findOrFail($asset_id);
         $this->authorize('checkin', $asset);
-
 
         $target = $asset->assignedTo;
         if (is_null($target)) {
@@ -1257,18 +1261,10 @@ class AssetsController extends Controller
             $checkin_at = $request->input('checkin_at');
         }
 
-        $history = AssetHistory::create([
-            'creator_id' => Auth::user()->id,
-            'type' => $type
-        ]);
-        AssetHistoryDetail::create([
-            'asset_histories_id' => $history->id,
-            'asset_id' => $asset_id
-        ]);
 
         if ($asset->save()) {
+            $this->saveAssetHistory($asset_id,CHECK_IN_TYPE);
             event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
-
             return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
         }
 
@@ -1429,4 +1425,25 @@ class AssetsController extends Controller
 
         return response()->json(Helper::formatStandardApiResponse('error', $new_asset, 'Asset with tag ' . e($request->input('asset_tag')) . ' not found'));
     }
+
+
+    #Region "saveAssetHistory"
+    
+    /**
+     * Save asset history
+     */
+
+    private function saveAssetHistory($asset_id, $type){
+        $history = AssetHistory::create([
+            'creator_id' => Auth::user()->id,
+            'type' => CHECK_IN_TYPE
+        ]);
+        AssetHistoryDetail::create([
+            'asset_histories_id' => $history->id,
+            'asset_id' => $asset_id
+        ]);
+    }
+
+    #End Region
+
 }
