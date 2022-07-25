@@ -36,7 +36,8 @@ class DashboardController extends Controller
             $locations = $this->dashboardService->mapCategoryToLocation($locations);
 
             return response()->json(Helper::formatStandardApiResponse('success', $locations, trans('admin/dashboard/message.success')));
-        } else  return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/dashboard/message.not_permission')), 401);
+        }
+        else  return response()->json(Helper::formatStandardApiResponse('error', null , trans('admin/dashboard/message.not_permission')),401);
     }
 
     public function reportAssetByType(Request $request)

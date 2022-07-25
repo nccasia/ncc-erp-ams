@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\Statuslabel;
-use DB;
 
 class DashboardService
 {
@@ -80,7 +79,7 @@ class DashboardService
         if ($purchase_date_from == null && $purchase_date_to == null) {
             $locations = $locations->with('assets')->withCount('assets as assets_count')->get();
         } else {
-            $locations =  $locations->with('assets', function ($query) use ($purchase_date_from, $purchase_date_to) {
+            $locations =  $locations->with('assets', function($query) use($purchase_date_from, $purchase_date_to) {
                 if (!is_null($purchase_date_from)) {
                     $query = $query->where('purchase_date', '>=', $purchase_date_from);
                 }
@@ -89,7 +88,7 @@ class DashboardService
                 }
                 return $query;
             })
-                ->withCount(['assets as assets_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+            ->withCount(['assets as assets_count' => function($query) use($purchase_date_from, $purchase_date_to) {
                     if (!is_null($purchase_date_from)) {
                         $query = $query->where('purchase_date', '>=', $purchase_date_from);
                     }
