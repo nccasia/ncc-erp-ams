@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccessHistoriesController;
 use App\Http\Controllers\Api;
 // use Illuminate\Http\Request;
 use App\Http\Controllers\DashboardController;
@@ -1094,6 +1095,20 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             )->name('api.kits.consumables.destroy');
 
         }); // end consumable routes
+
+        /**
+         * accessHistory API routes
+         */
+        
+        Route::group(['prefix' => 'accessHistory'], function () {
+            // api cấp phát - thu hồi
+            Route::get('/',
+            [
+                AccessHistoriesController::class, 
+                'index'
+            ]
+            );
+        }); // end accessHistory api routes
     
         
         /**
@@ -1108,6 +1123,14 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 'index'
             ]
             )->name('api.activity.index');
+
+            // api cấp phát - thu hồi
+            Route::get('/',
+            [
+                Api\ReportsController::class, 
+                'reportAccessHistory'
+            ]
+            );
         }); // end reports api routes
 
 

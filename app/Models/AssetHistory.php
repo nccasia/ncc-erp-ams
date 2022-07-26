@@ -11,8 +11,18 @@ class AssetHistory extends Model
 
     protected $table = 'asset_histories';
     protected $fillable = [
-        'creator_id',
+        'assigned_to',
         'user_id',
         'type'
     ];
+
+    public function assigned()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'assigned_to');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'user_id');
+    }
 }

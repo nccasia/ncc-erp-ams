@@ -19,4 +19,9 @@ class AssetHistoryDetail extends Model
     {
         return $this->belongsTo(\App\Models\AssetHistory::class, 'asset_histories_id');
     }
+
+    public function asset()
+    {
+        return $this->belongsTo(\App\Models\Asset::class, 'asset_id');
+    }
 }
