@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\ActionlogsTransformer;
 use App\Models\Actionlog;
-use App\Models\AssetHistoryDetail;
 use Illuminate\Http\Request;
 
 class ReportsController extends Controller
