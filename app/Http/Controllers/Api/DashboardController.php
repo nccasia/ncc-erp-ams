@@ -42,9 +42,9 @@ class DashboardController extends Controller
 
     public function reportAssetByType(Request $request)
     {
-        $query = 'SELECT g.*, l.name
+        $query = 'SELECT g.*, l.name as locationName
         FROM
-          (SELECT g.location_id,
+          (SELECT g.location_id, g.name,
             sum(CASE
                 WHEN g.type = 0 THEN g.total            
                 ELSE 0
@@ -56,30 +56,37 @@ class DashboardController extends Controller
            FROM
              (SELECT assets.location_id,
                      history.type,
+                     c.name,
                      COUNT(*) AS total
               FROM asset_histories AS history
               JOIN asset_history_details AS history_details ON history.id = history_details.asset_histories_id
-              JOIN assets ON assets.id = history_details.asset_id';
+              JOIN assets ON assets.id = history_details.asset_id
+              JOIN models m ON m.id = assets.model_id
+	          JOIN categories c ON c.id = m.category_id';
 
         $bind = [];
         $from = $request->from;
         $to = $request->to;
 
-        if ($from && $to) {
-            $query .= "   WHERE history.created_at >= :from
-                             AND history.created_at <= :to
-                            GROUP BY assets.location_id,
-                                    history.type) AS g
-                        GROUP BY g.location_id) AS g
-                        JOIN locations l ON l.id = g.location_id";
+        $where = ' WHERE true ';
 
+        if ($from && $to) {
+            $where .= " AND history.created_at >= :from
+                             AND history.created_at <= :to";
             $bind = ['from' => $from, 'to' => $to];
-        } else {
-            $query .= " GROUP BY assets.location_id,
-                                history.type) AS g
-                    GROUP BY g.location_id) AS g
-                    JOIN locations l ON l.id = g.location_id";
         }
+
+        if($request->asset_id){
+            $where .= " AND history_details.asset_id = :asset_id";
+            $bind['asset_id'] = $request->asset_id;
+        }
+
+
+        $query .= $where;
+    
+        $query .= " GROUP BY assets.location_id, c.name, history.type) AS g
+        GROUP BY g.location_id) AS g
+        JOIN locations l ON l.id = g.location_id";
 
         if (Auth::user()->hasAccess('admin')) {
 
@@ -87,6 +94,8 @@ class DashboardController extends Controller
                 $query,
                 $bind
             );
+
+
             return response()->json(Helper::formatStandardApiResponse('success', $assets_statistic, trans('admin/dashboard/message.success')));
         } else {
             return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/dashboard/message.not_permission')), 401);
