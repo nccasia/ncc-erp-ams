@@ -42,9 +42,9 @@ class DashboardController extends Controller
 
     public function reportAssetByType(Request $request)
     {
-        $query = 'SELECT g.*, l.name
+        $query = 'SELECT g.*, l.name as locationName
         FROM
-          (SELECT g.location_id,
+          (SELECT g.location_id, g.name,
             sum(CASE
                 WHEN g.type = 0 THEN g.total            
                 ELSE 0
@@ -56,10 +56,13 @@ class DashboardController extends Controller
            FROM
              (SELECT assets.location_id,
                      history.type,
+                     c.name,
                      COUNT(*) AS total
               FROM asset_histories AS history
               JOIN asset_history_details AS history_details ON history.id = history_details.asset_histories_id
-              JOIN assets ON assets.id = history_details.asset_id';
+              JOIN assets ON assets.id = history_details.asset_id
+              JOIN models m ON m.id = assets.model_id
+	          JOIN categories c ON c.id = m.category_id';
 
         $bind = [];
         $from = $request->from;
@@ -81,8 +84,7 @@ class DashboardController extends Controller
 
         $query .= $where;
     
-        $query .= " GROUP BY assets.location_id,
-                history.type) AS g
+        $query .= " GROUP BY assets.location_id, c.name, history.type) AS g
         GROUP BY g.location_id) AS g
         JOIN locations l ON l.id = g.location_id";
 
@@ -92,19 +94,6 @@ class DashboardController extends Controller
                 $query,
                 $bind
             );
-            $total = [
-                'id' => 99,
-                'name' => 'Total',
-                'checkout' => 0,
-                'checkin' => 0
-            ];
-
-            forEach($assets_statistic as $value){
-                $total['checkout'] += $value->checkout;
-                $total['checkin'] += $value->checkin;
-            }
-
-            $assets_statistic[] =  $total;
 
 
             return response()->json(Helper::formatStandardApiResponse('success', $assets_statistic, trans('admin/dashboard/message.success')));
