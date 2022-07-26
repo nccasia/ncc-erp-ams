@@ -85,7 +85,7 @@ class DashboardController extends Controller
         $query .= $where;
     
         $query .= " GROUP BY assets.location_id, c.name, history.type) AS g
-        GROUP BY g.location_id) AS g
+        GROUP BY g.location_id, g.name) AS g
         JOIN locations l ON l.id = g.location_id";
 
         if (Auth::user()->hasAccess('admin')) {
