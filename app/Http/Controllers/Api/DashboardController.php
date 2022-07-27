@@ -30,7 +30,7 @@ class DashboardController extends Controller
         if (Auth::user()->hasAccess('admin')) {
 
             // get all location
-            $locations = $this->dashboardService->getAllLocaltions($request->purchaseDateFrom, $request->purchaseDateTo);
+            $locations = $this->dashboardService->getAllLocaltions($request->purchase_date_from, $request->purchase_date_to);
 
             // Calculate total devices by location
             $locations = $this->dashboardService->mapCategoryToLocation($locations);
