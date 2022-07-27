@@ -7,7 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\DB; 
+use App\Models\Location;
+use App\Models\Category;
+
 
 class DashboardController extends Controller
 {
@@ -42,9 +45,9 @@ class DashboardController extends Controller
 
     public function reportAssetByType(Request $request)
     {
-        $query = 'SELECT  l.name AS locationName, g.*
+        $query = 'SELECT g.*, l.name as locationName
         FROM
-          (SELECT g.location_id, g.name, g.category_id,
+          (SELECT g.location_id, g.name, g.id,
             sum(CASE
                 WHEN g.type = 0 THEN g.total            
                 ELSE 0
@@ -57,7 +60,7 @@ class DashboardController extends Controller
              (SELECT assets.location_id,
                      history.type,
                      c.name,
-                     c.id as category_id,
+                     c.id,
                      COUNT(*) AS total
               FROM asset_histories AS history
               JOIN asset_history_details AS history_details ON history.id = history_details.asset_histories_id
@@ -85,9 +88,14 @@ class DashboardController extends Controller
 
         $query .= $where;
     
-        $query .= " GROUP BY assets.location_id, c.name, c.id, history.type) AS g
-        GROUP BY g.location_id, g.name) AS g
+        $query .= " GROUP BY assets.location_id, c.name, c.id , history.type) AS g
+        GROUP BY g.location_id, g.name , g.id) AS g
         JOIN locations l ON l.id = g.location_id";
+
+        $locations = Location::select('id','name')->get();
+        $categories = Category::select('id','name')->get();
+
+     
 
         if (Auth::user()->hasAccess('admin')) {
 
@@ -97,7 +105,14 @@ class DashboardController extends Controller
             );
 
 
-            return response()->json(Helper::formatStandardApiResponse('success', $assets_statistic, trans('admin/dashboard/message.success')));
+            return response()->json(
+                Helper::formatStandardApiResponse('success',
+                [
+                    'locations' => $locations,
+                    'categories' => $categories,
+                    'assets_statistic' => $assets_statistic
+                ]
+                , trans('admin/dashboard/message.success')));
         } else {
             return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/dashboard/message.not_permission')), 401);
         }
