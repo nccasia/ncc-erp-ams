@@ -1099,7 +1099,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
          * assetHistory API routes
          */
         
-        Route::group(['prefix' => 'assetHistory'], function () {
+        Route::group(['prefix' => 'asset-history'], function () {
             // api cấp phát - thu hồi
             Route::get('/',
             [

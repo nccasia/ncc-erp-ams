@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AssetHistoryDetail;
 use Illuminate\Http\Request;
-use PhpOffice\PhpSpreadsheet\Calculation\LookupRef\Offset;
 
 class AssetHistoriesController extends Controller
 {
@@ -13,21 +12,14 @@ class AssetHistoriesController extends Controller
     {   
         // for search
         $type = $request->assetHistoryType;
-        $purchaseDateFrom = $request->purchaseDateFrom;
-        $purchaseDateTo = $request->purchaseDateTo;
+        $from = $request->purchaseDateFrom;
+        $to = $request->purchaseDateTo;
         $location = $request->location;
 
         // for paginate
         $offset = $request->offset;
         $limit = $request->limit;
 
-        // get all asset histories
-        $histories = $this->getAssetHistories($type, $purchaseDateFrom, $purchaseDateTo, $location, $offset, $limit);
-        
-        return $histories;
-    }
-
-    public function getAssetHistories($type, $from, $to, $location, $offset, $limit) {
         // show all when api have NO params
         $histories = AssetHistoryDetail::with(['asset', 'asset_history']);
 
@@ -82,6 +74,7 @@ class AssetHistoriesController extends Controller
         $limit = ((config('app.max_results') >= $limit) && $limit) ? $limit : config('app.max_results');
 
         $histories = (!is_null($offset) && !is_null($limit)) ? $histories->skip($offset)->take($limit)->get() : $histories->get();
+        
         return $histories;
     }
 }
