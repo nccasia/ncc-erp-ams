@@ -101,4 +101,43 @@ class DashboardService
 
         return $locations;
     }
+
+    public function countCategoryOfNCC($locations)
+    {
+        $totalData = [];
+        $totalData['id'] = 6;
+        $totalData['name'] = 'TONG';
+        $totalData['assets_count'] = 0;
+        $totalData['categories'] = [];
+        $totalData['assets'] = [];
+        foreach ($locations as $location) {
+            $totalData['assets_count'] += $location->assets_count;
+
+            // map total categories
+            $test = [];
+            foreach ($location->categories as $category) {
+                $index = -1;
+                foreach ($totalData['categories'] as $key => $item) {
+                    if ($item->id == $category->id) {
+                        $index = $key;
+                    }
+                }
+                if ($index != -1) {
+                    $totalData['categories'][$index]['assets_count'] +=
+                        $category->assets_count;
+                    foreach ($category->status_labels as $key => $status) {
+                        $totalData['categories'][$index]['status_labels'][$key][
+                            'assets_count'
+                        ] += $status['assets_count'];
+                    }
+                } else {
+                    $totalData['categories'][] = clone $category;
+                }
+            }
+        }
+
+        $locations[] = $totalData;
+
+        return $locations;
+    }
 }
