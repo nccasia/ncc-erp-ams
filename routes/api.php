@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\AccessHistoriesController;
 use App\Http\Controllers\Api;
 // use Illuminate\Http\Request;
 use App\Http\Controllers\DashboardController;
@@ -1097,18 +1096,18 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         }); // end consumable routes
 
         /**
-         * accessHistory API routes
+         * assetHistory API routes
          */
         
-        Route::group(['prefix' => 'accessHistory'], function () {
+        Route::group(['prefix' => 'asset-history'], function () {
             // api cấp phát - thu hồi
             Route::get('/',
             [
-                AccessHistoriesController::class, 
+                Api\AssetHistoriesController::class, 
                 'index'
             ]
             );
-        }); // end accessHistory api routes
+        }); // end assetHistory api routes
     
         
         /**
