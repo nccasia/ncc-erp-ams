@@ -23,21 +23,45 @@ class DashboardController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
+
     public function index(Request $request)
     {
         // Show the page
-
         if (Auth::user()->hasAccess('admin')) {
-
             // get all location
-            $locations = $this->dashboardService->getAllLocaltions($request->purchaseDateFrom, $request->purchaseDateTo);
+
+            $locations = $this->dashboardService->getAllLocaltions(
+                $request->purchase_date_from,
+                $request->purchase_date_to
+            );
 
             // Calculate total devices by location
-            $locations = $this->dashboardService->mapCategoryToLocation($locations);
+            $locations = $this->dashboardService->mapCategoryToLocation(
+                $locations
+            );
 
-            return response()->json(Helper::formatStandardApiResponse('success', $locations, trans('admin/dashboard/message.success')));
+            // Calculate total devices NCC
+            $locations = $this->dashboardService->countCategoryOfNCC(
+                $locations
+            );
+
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    $locations,
+                    trans('admin/dashboard/message.success')
+                )
+            );
+        } else {
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'error',
+                    null,
+                    trans('admin/dashboard/message.not_permission')
+                ),
+                401
+            );
         }
-        else  return response()->json(Helper::formatStandardApiResponse('error', null , trans('admin/dashboard/message.not_permission')),401);
     }
 
     public function reportAssetByType(Request $request)
@@ -76,32 +100,38 @@ class DashboardController extends Controller
             $bind = ['from' => $from, 'to' => $to];
         }
 
-        if($request->asset_id){
-            $where .= " AND history_details.asset_id = :asset_id";
+        if ($request->asset_id) {
+            $where .= ' AND history_details.asset_id = :asset_id';
             $bind['asset_id'] = $request->asset_id;
         }
 
-
         $query .= $where;
-    
+
         $query .= " GROUP BY assets.location_id, c.name, history.type) AS g
         GROUP BY g.location_id, g.name) AS g
         JOIN locations l ON l.id = g.location_id";
 
         if (Auth::user()->hasAccess('admin')) {
+            $assets_statistic = DB::select($query, $bind);
 
-            $assets_statistic = DB::select(
-                $query,
-                $bind
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    $assets_statistic,
+                    trans('admin/dashboard/message.success')
+                )
             );
-
-
-            return response()->json(Helper::formatStandardApiResponse('success', $assets_statistic, trans('admin/dashboard/message.success')));
         } else {
-            return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/dashboard/message.not_permission')), 401);
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'error',
+                    null,
+                    trans('admin/dashboard/message.not_permission')
+                ),
+                401
+            );
         }
     }
-
 
     /**
      * Show the form for creating a new resource.
