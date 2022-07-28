@@ -260,10 +260,10 @@ class Asset extends Depreciable
     public function availableForCheckout()
     {
         // The asset is requested
-        if($this->finfast_request_asset){
-            $finfast_request = FinfastRequest::find($this->finfast_request_asset->finfast_request_id);
-            // The status of the finfast request is Approved
-            if($finfast_request->status == 'Approved'){
+        // if($this->finfast_request_asset){
+        //     $finfast_request = FinfastRequest::find($this->finfast_request_asset->finfast_request_id);
+        //     // The status of the finfast request is Approved
+        //     if($finfast_request->status == 'Approved'){
                 // This asset is not currently assigned to anyone and is not deleted...
                 if ((! $this->assigned_to) && (! $this->deleted_at)) {
 
@@ -275,8 +275,8 @@ class Asset extends Depreciable
 
                     }
                 }
-            }
-        }
+            // }
+        // }
         return false;
     }
 
