@@ -48,14 +48,16 @@ class DashboardController extends Controller
         $query = 'SELECT g.*, l.name as locationName
         FROM
           (SELECT g.location_id, g.name, g.id,
+            CAST(
             sum(CASE
                 WHEN g.type = 0 THEN g.total            
                 ELSE 0
-            end) AS checkout,
+            end) AS SIGNED ) AS checkout,
+            CAST(
             sum(CASE
                 WHEN g.type = 1 THEN g.total
                 ELSE 0
-            end) AS checkin
+            end) AS SIGNED ) AS checkin
            FROM
              (SELECT assets.location_id,
                      history.type,
