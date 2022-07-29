@@ -1071,4 +1071,18 @@ class Helper
         }
         return false;
     }
+
+    public static function translateStatusLabel($labels)
+    {
+        $vi_labels = [
+            'Pending' => 'Check Lại - Bảo Hành',
+            'Ready to Deploy' => 'Trong Kho',
+            'Broken' => 'Hỏng',
+            'Assign' => 'Bàn Giao',
+        ];
+        foreach($labels as $label){
+            $label['name'] = $vi_labels[$label['name']];
+        }
+        return $labels;
+    }
 }

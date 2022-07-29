@@ -952,6 +952,21 @@ class AssetsController extends Controller
                 $asset->image = $asset->getImageUrl();
             }
 
+            if($asset->isStatusAssign($asset->status_id)) {
+                $this->saveAssetHistory($asset->id,CHECK_OUT_TYPE);
+                $user = User::find($asset->assigned_to);
+                if($user){
+                    $data = [
+                        'user_name' => $$user->first_name . ' ' . $user->last_name,
+                        'asset_name' => $asset->name,
+                        'time' => Carbon::now()->format('d-m-Y'),
+                        'link' => config('client.my_assets.link'),
+                    ];
+                    SendCheckoutMail::dispatch($data, $user->email);
+                }
+        
+            } 
+
             return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.create.success')));
         }
 
@@ -1052,6 +1067,20 @@ class AssetsController extends Controller
                 if ($asset->image) {
                     $asset->image = $asset->getImageUrl();
                 }
+
+                if($asset->isStatusAssign($asset->status_id)) {
+                    $this->saveAssetHistory($asset->id,CHECK_OUT_TYPE);
+                    $user = User::find($asset->assigned_to);
+                    if($user){
+                        $data = [
+                            'user_name' => $$user->first_name . ' ' . $user->last_name,
+                            'asset_name' => $asset->name,
+                            'time' => Carbon::now()->format('d-m-Y'),
+                            'link' => config('client.my_assets.link'),
+                        ];
+                        SendCheckoutMail::dispatch($data, $user->email);
+                    }
+                } 
 
                 return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.update.success')));
             }
