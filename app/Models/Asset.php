@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Watson\Validating\ValidatingTrait;
+use App\Models\Statuslabel;
 
 /**
  * Model for Assets.
@@ -1725,5 +1726,11 @@ class Asset extends Depreciable
     public function asset_history_details()
     {
         return $this->hasMany(\App\Models\AssetHistoryDetail::class, 'asset_id');
+    }
+
+    public function isStatusAssign($status_id){
+        $found = Statuslabel::where('id',$status_id)->where('name','Assign')->first();
+        if($found != null) return true;
+        return false;
     }
 }

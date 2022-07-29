@@ -17,6 +17,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// Route::get('/test',  [
+//     Api\TestController::class, 
+//     'index'
+// ]);
+
 Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.api_throttle_per_minute').',1']], function () {
 
 
