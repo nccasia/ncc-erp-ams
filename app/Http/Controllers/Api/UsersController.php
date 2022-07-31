@@ -626,4 +626,19 @@ class UsersController extends Controller
             ], 401);
         }
     }
+
+    public function loginGoogleV2(){
+        $found = User::where('email', request()->profile_obj['email'])->first();
+        if(Helper::checkValidEmail(request()->profile_obj['email']) && $found){
+            $token = $userCreate->createToken('google-login')->accessToken;
+            return response()->json([
+                "token_type" => "Bear",
+                "access_token" => $token,
+            ]);
+        } else {
+            return response()->json([
+                "message" => "Unauthorized",
+            ], 401);
+        }
+    }
 }
