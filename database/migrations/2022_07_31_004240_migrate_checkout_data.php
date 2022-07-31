@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\Asset;
+use App\Models\AssetHistory;
+use App\Models\AssetHistoryDetail;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -14,22 +17,24 @@ class MigrateCheckoutData extends Migration
      */
     public function up()
     {
-           $sql1 = "INSERT INTO asset_histories (created_at, updated_at, type)
-            SELECT '2022-6-1', '2022-6-1', 0 
-            FROM assets a 
-            where EXISTS (
-                SELECT 1 
-                from status_labels  s
-                where a.status_id = s.id and s.name = 'ASSIGN'
-            );";
+        $assets = Asset::all();
+        foreach ($assets as $asset) {
+            $assetHistory = AssetHistory::create([
+                "assigned_to" => $asset->assigned_to,
+                "type" => 0,
+                "created_at" => "2022-6-1",
+                "updated_at" => "2022-6-1"
+            ]);
 
-
-            $sql2 = "INSERT INTO asset_history_details (asset_id , created_at, updated_at)
-            SELECT a.id , a.created_at , a.updated_at  
-            FROM asset_histories a";
-            
-            DB::insert($sql1);
-            DB::insert($sql2);
+            if ($assetHistory) {
+                AssetHistoryDetail::create([
+                    "asset_histories_id" => $assetHistory->id,
+                    "asset_id" => $asset->id,
+                    "created_at" => "2022-6-1",
+                    "updated_at" => "2022-6-1"
+                ]);
+            }
+        }
     }
 
     /**
