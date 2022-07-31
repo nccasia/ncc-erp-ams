@@ -154,6 +154,10 @@ class AssetsController extends Controller
         }
 
 
+        if ($request->filled('assigned_status')) {
+            $assets->where('assets.assigned_status', '=', $request->input('assigned_status'));
+        }
+
         if ($request->filled('status_id')) {
             $assets->where('assets.status_id', '=', $request->input('status_id'));
         }
@@ -709,7 +713,7 @@ class AssetsController extends Controller
 
         // This handles all of the pivot sorting (versus the assets.* fields
         // in the allowed_columns array)
-        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
+        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : ' assets.created_at';
 
 
         switch ($sort_override) {
@@ -749,6 +753,10 @@ class AssetsController extends Controller
                 $assets->OrderUpdatedAt($order);
                 break;
             default:
+                $priority_assign_status = config('enum.assigned_status.WAITING');
+                $assets->orderByRaw(
+                    "CASE WHEN assets.assigned_status = $priority_assign_status THEN 1 ELSE 0 END DESC"
+                );
                 $assets->orderBy($column_sort, $order);
                 break;
         }
@@ -945,27 +953,20 @@ class AssetsController extends Controller
                 $target = Location::find(request('assigned_location'));
             }
             if (isset($target)) {
-                $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')));
+                $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
+                $this->saveAssetHistory($asset->id,CHECK_OUT_TYPE);
+                $data = [
+                    'user_name' => $target->first_name . ' ' . $target->last_name,
+                    'asset_name' => $asset->name,
+                    'time' => Carbon::now()->format('d-m-Y'),
+                    'link' => config('client.my_assets.link'),
+                ];
+                SendCheckoutMail::dispatch($data, $target->email);
             }
 
             if ($asset->image) {
                 $asset->image = $asset->getImageUrl();
             }
-
-            if($asset->isStatusAssign($asset->status_id)) {
-                $this->saveAssetHistory($asset->id,CHECK_OUT_TYPE);
-                $user = User::find($asset->assigned_to);
-                if($user){
-                    $data = [
-                        'user_name' => $$user->first_name . ' ' . $user->last_name,
-                        'asset_name' => $asset->name,
-                        'time' => Carbon::now()->format('d-m-Y'),
-                        'link' => config('client.my_assets.link'),
-                    ];
-                    SendCheckoutMail::dispatch($data, $user->email);
-                }
-        
-            } 
 
             return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.create.success')));
         }
@@ -1061,26 +1062,20 @@ class AssetsController extends Controller
                 }
 
                 if (isset($target)) {
-                    $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset update', e($request->get('name')), $location);
+                    $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
+                    $this->saveAssetHistory($asset->id,CHECK_OUT_TYPE);
+                    $data = [
+                            'user_name' => $target->first_name . ' ' . $target->last_name,
+                            'asset_name' => $asset->name,
+                            'time' => Carbon::now()->format('d-m-Y'),
+                            'link' => config('client.my_assets.link'),
+                    ];
+                    SendCheckoutMail::dispatch($data, $target->email);
                 }
 
                 if ($asset->image) {
                     $asset->image = $asset->getImageUrl();
                 }
-
-                if($asset->isStatusAssign($asset->status_id)) {
-                    $this->saveAssetHistory($asset->id,CHECK_OUT_TYPE);
-                    $user = User::find($asset->assigned_to);
-                    if($user){
-                        $data = [
-                            'user_name' => $$user->first_name . ' ' . $user->last_name,
-                            'asset_name' => $asset->name,
-                            'time' => Carbon::now()->format('d-m-Y'),
-                            'link' => config('client.my_assets.link'),
-                        ];
-                        SendCheckoutMail::dispatch($data, $user->email);
-                    }
-                } 
 
                 return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.update.success')));
             }
@@ -1163,7 +1158,6 @@ class AssetsController extends Controller
      */
     public function checkout(AssetCheckoutRequest $request, $asset_id)
     {
-
         $this->authorize('checkout', Asset::class);
         $asset = Asset::findOrFail($asset_id);
 
@@ -1225,12 +1219,12 @@ class AssetsController extends Controller
         //            $asset->location_id = $target->rtd_location_id;
         //        }
 
-        // anh xem chi day 
         $user = User::find($request->assigned_user);
         $user_email = $user->email;
         $user_name = $user->first_name . ' ' . $user->last_name;
         $current_time = Carbon::now();
-        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id, 1)) {
+
+        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
             $data = [
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
@@ -1456,7 +1450,7 @@ class AssetsController extends Controller
     private function saveAssetHistory($asset_id, $type){
         $history = AssetHistory::create([
             'creator_id' => Auth::user()->id,
-            'type' => CHECK_IN_TYPE
+            'type' => $type
         ]);
         AssetHistoryDetail::create([
             'asset_histories_id' => $history->id,

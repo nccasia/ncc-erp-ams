@@ -22,7 +22,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['throttle:'.config('app.api_thr
     Route::post('auth/google',
     [
         Api\UsersController::class,
-        'loginGoogle'
+        'loginGoogleV2'
     ]
 );
 
