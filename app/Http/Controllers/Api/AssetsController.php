@@ -45,8 +45,8 @@ use App\Models\AssetHistoryDetail;
  * @author [A. Gianotto] [<snipe@snipe.net>]
  */
 
-const CHECK_IN_TYPE = 0;
-const CHECK_OUT_TYPE = 1;
+const CHECK_IN_TYPE = 1;
+const CHECK_OUT_TYPE = 0;
 
 class AssetsController extends Controller
 {
