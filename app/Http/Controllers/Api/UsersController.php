@@ -630,6 +630,9 @@ class UsersController extends Controller
     public function loginGoogleV2(){
         $found = User::where('email', request()->profile_obj['email'])->first();
         if(Helper::checkValidEmail(request()->profile_obj['email']) && $found){
+            $found->access_token_social = request()->client_secret['access_token'];
+            $found->social_id = request()->profile_obj['googleId'];
+            $found->save();
             $token = $userCreate->createToken('google-login')->accessToken;
             return response()->json([
                 "token_type" => "Bear",
