@@ -1102,21 +1102,42 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
 
         }); // end consumable routes
     
+        /**
+         * assetHistory API routes
+         */
+        
+        Route::group(['prefix' => 'asset-history'], function () {
+            // api cấp phát - thu hồi
+            Route::get('/',
+            [
+                Api\AssetHistoriesController::class, 
+                'index'
+            ]
+            );
+        }); // end assetHistory api routes
+    
         
         /**
          * Reports API routes
          */
-        
+
+        Route::get('activity', [Api\ReportsController::class, 'index'])->name(
+            'api.activity.index'
+        );
+
+        // api cấp phát - thu hồi
+        Route::get('/', [
+            Api\ReportsController::class, 
+            'reportAccessHistory'
+        ]);
         Route::group(['prefix' => 'reports'], function () {
-
-            Route::get('activity',
-            [
-                Api\ReportsController::class, 
-                'index'
-            ]
-            )->name('api.activity.index');
+            Route::get('activity', [
+                Api\ReportsController::class,
+                'index',
+            ])->name('api.activity.index');
         }); // end reports api routes
-
+        
+       
 
         Route::fallback(function () {
             return response()->json(
@@ -1241,6 +1262,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 ]
             );
         }); // end request api routes
+
+        // Route::group(['prefix' => 'dashboard'], function () {
+        //     Route::get('/', [Api\DashboardController::class, 'index1']);
+        // });
 
 
 }); // end API routes
