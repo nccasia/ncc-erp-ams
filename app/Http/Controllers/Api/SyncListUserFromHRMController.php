@@ -42,15 +42,18 @@ class SyncListUserFromHRMController extends Controller
             if (!$response) continue;
             $userName = explode("@",  $value->email);
             $user = User::where('username', $userName[0])->first();
-            if ($user == '') {
+            //if ($user) {
                 $user = [
                     'username' => $userName[0],
                     'first_name' => $value->firstName,
                     'last_name' => $value->lastName,
                     'email' => $value->email,
                 ];
-                User::insert($user);
-            }
+            //    User::insert($user);
+	    //}
+	    User::query()->updateOrcreate([
+                "username" => $userName[0]
+            ], $user);
         }
     }
 }
