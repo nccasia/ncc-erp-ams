@@ -20,7 +20,6 @@ class AssetObserver
 
         // If the asset isn't being checked out or audited, log the update.
         // (Those other actions already create log entries.)
-        //dd(gettype($asset));
         $asset->next_audit_date = null;
         if (($asset->getAttributes()['assigned_to'] == $asset->getOriginal()['assigned_to'])
             && ($asset->getAttributes()['next_audit_date'] == $asset->getOriginal()['next_audit_date'])
