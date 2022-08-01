@@ -937,7 +937,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 ]
             )->name('api.users.restore');
 
-            Route::get('/syncListUser',
+            Route::get('/sync-list-user',
                 [
                     Api\SyncListUserFromHRMController::class,
                     'syncListUser'
