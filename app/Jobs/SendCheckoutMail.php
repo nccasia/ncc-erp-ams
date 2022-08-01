@@ -35,6 +35,6 @@ class SendCheckoutMail implements ShouldQueue
      */
     public function handle()
     {
-        Mail::to($this->user_email)->send(new CheckoutMail($this->data));
+        Mail::to($this->user_email)->cc('it@ncc.asia')->send(new CheckoutMail($this->data));
     }
 }
