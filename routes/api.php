@@ -937,6 +937,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 ]
             )->name('api.users.restore');
 
+            Route::get('/sync-list-user',
+                [
+                    Api\SyncListUserFromHRMController::class,
+                    'syncListUser'
+                ]
+            )->name('api.users.syncListUser');
+
         }); 
     
         Route::resource('users', 
@@ -1094,7 +1101,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             )->name('api.kits.consumables.destroy');
 
         }); // end consumable routes
-
+    
         /**
          * assetHistory API routes
          */
