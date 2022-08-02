@@ -2,7 +2,7 @@
     <div>
         <p>Hôm nay, ngày {{ $data['time'] }}.</p>
         <p>Tại: Công Ty Cổ Phần NCC Plus Việt Nam</p>
-        <p>Địa chỉ: 58 Tố Hữu - Trung Văn - Nam Từ Liêm - Hà Nội</p>
+        <p>Địa chỉ: {{ $data['location_address'] }}</p>
         <p>Bộ phận IT có giao cho bạn <b>{{ $data['user_name'] }}</b> thiết bị <b>{{ $data['asset_name'] }}</b></p>
         <p><b>Quy định về việc sử dụng thiết bị</b></p>
         <p> - Không được tự ý mang thiết bị được bàn giao ra khỏi công ty nếu chưa có sự đồng ý bằng văn bản của bộ phận IT.</p>

@@ -1156,87 +1156,99 @@ class AssetsController extends Controller
      * @since [v4.0]
      * @return JsonResponse
      */
-    public function checkout(AssetCheckoutRequest $request, $asset_id)
+    public function checkout(AssetCheckoutRequest $request)
     {
         $this->authorize('checkout', Asset::class);
-        $asset = Asset::findOrFail($asset_id);
 
-        if (! $asset->availableForCheckout()) {
-            return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.not_available')));
+        $assets = request('assets');
+        $asset_name = request('name', null);
+        $asset_tag = null;
+
+        // variables for check if it is the last element of the arrays
+        $numItems = count($assets);
+        $i = 0;
+
+        foreach ($assets as $asset_id) {
+            // dd(++$i);
+            $asset_id = $asset_id;
+            $asset = Asset::findOrFail($asset_id);
+
+            if (! $asset->availableForCheckout()) {
+                return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.not_available')));
+            }
+
+            $this->authorize('checkout', $asset);
+
+            $error_payload = [];
+            $error_payload['asset'] = [
+                'id' => $asset->id,
+                'asset_tag' => $asset->asset_tag,
+            ];
+    
+            // This item is checked out to a location
+            if (request('checkout_to_type') == 'location') {
+                $target = Location::find(request('assigned_location'));
+                $asset->location_id = ($target) ? $target->id : '';
+                $error_payload['target_id'] = $request->input('assigned_location');
+                $error_payload['target_type'] = 'location';
+        
+            } elseif (request('checkout_to_type') == 'asset') {
+                $target = Asset::where('id', '!=', $asset_id)->find(request('assigned_asset'));
+                $asset->location_id = $target->rtd_location_id;
+                // Override with the asset's location_id if it has one
+                $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
+                $error_payload['target_id'] = $request->input('assigned_asset');
+                $error_payload['target_type'] = 'asset';
+            
+            } elseif (request('checkout_to_type') == 'user') {
+                // Fetch the target and set the asset's new location_id
+                $target = User::find(request('assigned_user'));
+                $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
+                $error_payload['target_id'] = $request->input('assigned_user');
+                $error_payload['target_type'] = 'user';
+            }
+    
+            if (! isset($target)) {
+                return response()->json(Helper::formatStandardApiResponse('error', $error_payload, 'Checkout target for asset ' . e($asset->asset_tag) . ' is invalid - ' . $error_payload['target_type'] . ' does not exist.'));
+            }
+
+            $checkout_at = request('checkout_at', date('Y-m-d H:i:s'));
+            $expected_checkin = request('expected_checkin', null);
+            $note = request('note', null);
+
+            // Set the location ID to the RTD location id if there is one
+            // Wait, why are we doing this? This overrides the stuff we set further up, which makes no sense.
+            // TODO: Follow up here. WTF. Commented out for now. 
+
+            $user = User::find($request->assigned_user);
+            $user_email = $user->email;
+            $user_name = $user->first_name . ' ' . $user->last_name;
+            $current_time = Carbon::now();
+            $location = Location::find($user->location_id);
+
+            if(++$i === $numItems) {
+                $asset_name .= $asset->name;
+                $asset_tag .= $asset->asset_tag;
+            } else {
+                $asset_name .= $asset->name . ", ";
+                $asset_tag .= $asset->asset_tag . ", ";
+            }
+
+            if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
+                $this->saveAssetHistory($asset_id,CHECK_OUT_TYPE);
+            }
         }
 
-        $this->authorize('checkout', $asset);
-
-        $error_payload = [];
-        $error_payload['asset'] = [
-            'id' => $asset->id,
-            'asset_tag' => $asset->asset_tag,
+        $data = [
+            'user_name' => $user_name,
+            'asset_name' => $asset_name,
+            'location_address' => $location->address,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
         ];
 
-
-        // This item is checked out to a location
-        if (request('checkout_to_type') == 'location') {
-            $target = Location::find(request('assigned_location'));
-            $asset->location_id = ($target) ? $target->id : '';
-            $error_payload['target_id'] = $request->input('assigned_location');
-            $error_payload['target_type'] = 'location';
-        
-        } elseif (request('checkout_to_type') == 'asset') {
-            $target = Asset::where('id', '!=', $asset_id)->find(request('assigned_asset'));
-            $asset->location_id = $target->rtd_location_id;
-            // Override with the asset's location_id if it has one
-            $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
-            $error_payload['target_id'] = $request->input('assigned_asset');
-            $error_payload['target_type'] = 'asset';
-        
-        } elseif (request('checkout_to_type') == 'user') {
-            // Fetch the target and set the asset's new location_id
-            $target = User::find(request('assigned_user'));
-            $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
-            $error_payload['target_id'] = $request->input('assigned_user');
-            $error_payload['target_type'] = 'user';
-        }
-
-
-
-        if (! isset($target)) {
-            return response()->json(Helper::formatStandardApiResponse('error', $error_payload, 'Checkout target for asset ' . e($asset->asset_tag) . ' is invalid - ' . $error_payload['target_type'] . ' does not exist.'));
-        }
-
-
-
-        $checkout_at = request('checkout_at', date('Y-m-d H:i:s'));
-        $expected_checkin = request('expected_checkin', null);
-        $note = request('note', null);
-        $asset_name = request('name', null);
-
-        // Set the location ID to the RTD location id if there is one
-        // Wait, why are we doing this? This overrides the stuff we set further up, which makes no sense.
-        // TODO: Follow up here. WTF. Commented out for now. 
-
-
-        //        if ((isset($target->rtd_location_id)) && ($asset->rtd_location_id!='')) {
-        //            $asset->location_id = $target->rtd_location_id;
-        //        }
-
-        $user = User::find($request->assigned_user);
-        $user_email = $user->email;
-        $user_name = $user->first_name . ' ' . $user->last_name;
-        $current_time = Carbon::now();
-
-        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
-            $data = [
-                'user_name' => $user_name,
-                'asset_name' => $asset->name,
-                'time' => $current_time->format('d-m-Y'),
-                'link' => config('client.my_assets.link'),
-            ];
-            $this->saveAssetHistory($asset_id,CHECK_OUT_TYPE);
-            SendCheckoutMail::dispatch($data, $user_email);
-            return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
-        }
-
-        return response()->json(Helper::formatStandardApiResponse('error', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkout.error')));
+        SendCheckoutMail::dispatch($data, $user_email);
+        return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset_tag)], trans('admin/hardware/message.checkout.success')));
     }
 
 

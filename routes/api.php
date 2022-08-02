@@ -483,7 +483,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             ]
         )->name('api.asset.checkinbytag');
 
-        Route::post('{id}/checkout',
+        Route::post('checkout',
         [
             Api\AssetsController::class, 
             'checkout'
