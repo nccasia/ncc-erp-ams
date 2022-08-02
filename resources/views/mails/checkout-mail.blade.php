@@ -3,7 +3,7 @@
         <p>Hôm nay, ngày {{ $data['time'] }}.</p>
         <p>Tại: Công Ty Cổ Phần NCC Plus Việt Nam</p>
         <p>Địa chỉ: {{ $data['location_address'] }}</p>
-        <p>Bộ phận IT có giao cho bạn <b>{{ $data['user_name'] }}</b> thiết bị <b>{{ $data['asset_name'] }}</b></p>
+        <p>Bộ phận IT có giao cho bạn <b>{{ $data['user_name'] }}</b> {{ $data['count'] }} thiết bị <b>{{ $data['asset_name'] }}</b></p>
         <p><b>Quy định về việc sử dụng thiết bị</b></p>
         <p> - Không được tự ý mang thiết bị được bàn giao ra khỏi công ty nếu chưa có sự đồng ý bằng văn bản của bộ phận IT.</p>
         <p> - Trường hợp thiết bị lỗi do nhà sản xuất, vui lòng báo lại bộ phận IT để được hỗ trợ bảo hành.</p>

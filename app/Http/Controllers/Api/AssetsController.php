@@ -1163,13 +1163,14 @@ class AssetsController extends Controller
         $assets = request('assets');
         $asset_name = request('name', null);
         $asset_tag = null;
+        $location_address = null;
 
         // variables for check if it is the last element of the arrays
         $numItems = count($assets);
         $i = 0;
 
         foreach ($assets as $asset_id) {
-            // dd(++$i);
+            
             $asset_id = $asset_id;
             $asset = Asset::findOrFail($asset_id);
 
@@ -1224,8 +1225,26 @@ class AssetsController extends Controller
             $user_email = $user->email;
             $user_name = $user->first_name . ' ' . $user->last_name;
             $current_time = Carbon::now();
-            $location = Location::find($user->location_id);
+            $location = Location::find($asset->location_id);
 
+            // concat asset's address information
+            if ($location->address2) {
+                $location_address = $location->address2 . ', ';
+            }
+
+            if ($location->address) {
+                $location_address .= $location->address . ', ';
+            }
+
+            if ($location->state) {
+                $location_address .= $location->state . ', ';
+            }
+
+            if ($location->city) {
+                $location_address .= $location->city . '.';
+            }
+
+            // concat assets' names and assets' tags
             if(++$i === $numItems) {
                 $asset_name .= $asset->name;
                 $asset_tag .= $asset->asset_tag;
@@ -1242,7 +1261,8 @@ class AssetsController extends Controller
         $data = [
             'user_name' => $user_name,
             'asset_name' => $asset_name,
-            'location_address' => $location->address,
+            'count' => $numItems,
+            'location_address' => $location_address,
             'time' => $current_time->format('d-m-Y'),
             'link' => config('client.my_assets.link'),
         ];
