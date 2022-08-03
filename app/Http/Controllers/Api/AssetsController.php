@@ -895,7 +895,7 @@ class AssetsController extends Controller
         $asset->supplier_id             = $request->get('supplier_id', 0);
         $asset->requestable             = $request->get('requestable', 0);
         $asset->rtd_location_id         = $request->get('rtd_location_id', null);
-        $asset->location_id             = $request->get('rtd_location_id', null);
+        $asset->location_id             = $request->get('location_id', null);
         $asset->assigned_status         = 0;
 
         /**
@@ -1156,87 +1156,127 @@ class AssetsController extends Controller
      * @since [v4.0]
      * @return JsonResponse
      */
-    public function checkout(AssetCheckoutRequest $request, $asset_id)
+    public function checkout(AssetCheckoutRequest $request)
     {
         $this->authorize('checkout', Asset::class);
-        $asset = Asset::findOrFail($asset_id);
 
-        if (! $asset->availableForCheckout()) {
-            return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.not_available')));
+        $assets = request('assets');
+        $asset_name = null;
+        $asset_tag = null;
+
+        foreach ($assets as $asset_id) {
+            
+            $asset_id = $asset_id;
+            $asset = Asset::findOrFail($asset_id);
+
+            if (! $asset->availableForCheckout()) {
+                return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.not_available')));
+            }
+
+            $this->authorize('checkout', $asset);
+
+            $error_payload = [];
+            $error_payload['asset'] = [
+                'id' => $asset->id,
+                'asset_tag' => $asset->asset_tag,
+            ];
+    
+            // This item is checked out to a location
+            if (request('checkout_to_type') == 'location') {
+                $target = Location::find(request('assigned_location'));
+                $asset->location_id = ($target) ? $target->id : '';
+                $error_payload['target_id'] = $request->input('assigned_location');
+                $error_payload['target_type'] = 'location';
+        
+            } elseif (request('checkout_to_type') == 'asset') {
+                $target = Asset::where('id', '!=', $asset_id)->find(request('assigned_asset'));
+                $asset->location_id = $target->rtd_location_id;
+                // Override with the asset's location_id if it has one
+                $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
+                $error_payload['target_id'] = $request->input('assigned_asset');
+                $error_payload['target_type'] = 'asset';
+            
+            } elseif (request('checkout_to_type') == 'user') {
+                // Fetch the target and set the asset's new location_id
+                $target = User::find(request('assigned_user'));
+                // $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
+                $error_payload['target_id'] = $request->input('assigned_user');
+                $error_payload['target_type'] = 'user';
+            }
+    
+            if (! isset($target)) {
+                return response()->json(Helper::formatStandardApiResponse('error', $error_payload, 'Checkout target for asset ' . e($asset->asset_tag) . ' is invalid - ' . $error_payload['target_type'] . ' does not exist.'));
+            }
+
+            $checkout_at = request('checkout_at', date('Y-m-d H:i:s'));
+            $expected_checkin = request('expected_checkin', null);
+            $note = request('note', null);
+
+            // Set the location ID to the RTD location id if there is one
+            // Wait, why are we doing this? This overrides the stuff we set further up, which makes no sense.
+            // TODO: Follow up here. WTF. Commented out for now. 
+
+            $user = User::find($request->assigned_user);
+            $user_email = $user->email;
+            $user_name = $user->first_name . ' ' . $user->last_name;
+            $current_time = Carbon::now();
+            $location = Location::find($asset->location_id);
+            $location_address = null;
+
+            // concat asset's address information
+            $location_arr = array();
+
+            if (!is_null($location)) {
+                if (!is_null($location->address2)) {
+                    array_push($location_arr, $location->address2);
+                }
+    
+                if (!is_null($location->address)) {
+                    array_push($location_arr, $location->address);
+                }
+    
+                if (!is_null($location->state)) {
+                    array_push($location_arr, $location->state);
+                }
+    
+                if (!is_null($location->city)) {
+                    array_push($location_arr, $location->city);
+                }
+            }
+
+            foreach ($location_arr as $value) {
+                if ( $value === end($location_arr)) {
+                    $location_address .= $value . '.';
+                } else {
+                    $location_address .= $value . ', ';
+                }
+            }
+
+            // concat assets' names and assets' tags
+            if($asset_id === end($assets)) {
+                $asset_name .= $asset->name;
+                $asset_tag .= $asset->asset_tag;
+            } else {
+                $asset_name .= $asset->name . ", ";
+                $asset_tag .= $asset->asset_tag . ", ";
+            }
+
+            if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
+                $this->saveAssetHistory($asset_id,CHECK_OUT_TYPE);
+            }
         }
 
-        $this->authorize('checkout', $asset);
-
-        $error_payload = [];
-        $error_payload['asset'] = [
-            'id' => $asset->id,
-            'asset_tag' => $asset->asset_tag,
+        $data = [
+            'user_name' => $user_name,
+            'asset_name' => $asset_name,
+            'count' => count($assets),
+            'location_address' => $location_address,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
         ];
 
-
-        // This item is checked out to a location
-        if (request('checkout_to_type') == 'location') {
-            $target = Location::find(request('assigned_location'));
-            $asset->location_id = ($target) ? $target->id : '';
-            $error_payload['target_id'] = $request->input('assigned_location');
-            $error_payload['target_type'] = 'location';
-        
-        } elseif (request('checkout_to_type') == 'asset') {
-            $target = Asset::where('id', '!=', $asset_id)->find(request('assigned_asset'));
-            $asset->location_id = $target->rtd_location_id;
-            // Override with the asset's location_id if it has one
-            $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
-            $error_payload['target_id'] = $request->input('assigned_asset');
-            $error_payload['target_type'] = 'asset';
-        
-        } elseif (request('checkout_to_type') == 'user') {
-            // Fetch the target and set the asset's new location_id
-            $target = User::find(request('assigned_user'));
-            $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
-            $error_payload['target_id'] = $request->input('assigned_user');
-            $error_payload['target_type'] = 'user';
-        }
-
-
-
-        if (! isset($target)) {
-            return response()->json(Helper::formatStandardApiResponse('error', $error_payload, 'Checkout target for asset ' . e($asset->asset_tag) . ' is invalid - ' . $error_payload['target_type'] . ' does not exist.'));
-        }
-
-
-
-        $checkout_at = request('checkout_at', date('Y-m-d H:i:s'));
-        $expected_checkin = request('expected_checkin', null);
-        $note = request('note', null);
-        $asset_name = request('name', null);
-
-        // Set the location ID to the RTD location id if there is one
-        // Wait, why are we doing this? This overrides the stuff we set further up, which makes no sense.
-        // TODO: Follow up here. WTF. Commented out for now. 
-
-
-        //        if ((isset($target->rtd_location_id)) && ($asset->rtd_location_id!='')) {
-        //            $asset->location_id = $target->rtd_location_id;
-        //        }
-
-        $user = User::find($request->assigned_user);
-        $user_email = $user->email;
-        $user_name = $user->first_name . ' ' . $user->last_name;
-        $current_time = Carbon::now();
-
-        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
-            $data = [
-                'user_name' => $user_name,
-                'asset_name' => $asset->name,
-                'time' => $current_time->format('d-m-Y'),
-                'link' => config('client.my_assets.link'),
-            ];
-            $this->saveAssetHistory($asset_id,CHECK_OUT_TYPE);
-            SendCheckoutMail::dispatch($data, $user_email);
-            return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
-        }
-
-        return response()->json(Helper::formatStandardApiResponse('error', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkout.error')));
+        SendCheckoutMail::dispatch($data, $user_email);
+        return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset_tag)], trans('admin/hardware/message.checkout.success')));
     }
 
 
@@ -1248,53 +1288,65 @@ class AssetsController extends Controller
      * @since [v4.0]
      * @return JsonResponse
      */
-    public function checkin(Request $request, $asset_id, $type = null)
+    public function checkin(Request $request, $type = null)
     {
-        $this->authorize('checkin', Asset::class);
-        $asset = Asset::findOrFail($asset_id);
-        $this->authorize('checkin', $asset);
+        $assets = $request->assets;
+        $asset_tag = null;
+
+        // variables for check if it is the last element of the arrays
+        $numItems = count($assets);
+        $i = 0;
+
+        foreach ($assets as $asset_id) {
+
+            $this->authorize('checkin', Asset::class);
+            $asset = Asset::findOrFail($asset_id);
+            $this->authorize('checkin', $asset);
 
 
-        $target = $asset->assignedTo;
-        if (is_null($target)) {
-            return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
+            $target = $asset->assignedTo;
+            if (is_null($target)) {
+                return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
+            }
+
+            $asset->expected_checkin = null;
+            $asset->last_checkout = null;
+            $asset->assigned_to = null;
+            $asset->assignedTo()->disassociate($asset);
+            $asset->accepted = null;
+            $asset->assigned_status = 0;
+
+
+            if ($request->filled('name')) {
+                $asset->name = $request->input('name');
+            }
+
+            if ($request->filled('location_id')) {
+                $asset->location_id = $request->input('location_id');
+            }
+
+            if ($request->has('status_id')) {
+                $asset->status_id = $request->input('status_id');
+            }
+
+            $checkin_at = null;
+            if ($request->filled('checkin_at')) {
+                $checkin_at = $request->input('checkin_at');
+            }
+
+            if(++$i === $numItems) {
+                $asset_tag .= $asset->asset_tag;
+            } else {
+                $asset_tag .= $asset->asset_tag . ", ";
+            }
+
+            if ($asset->save()) {
+                $this->saveAssetHistory($asset_id,CHECK_IN_TYPE);
+                event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
+            }
         }
 
-        $asset->expected_checkin = null;
-        $asset->last_checkout = null;
-        $asset->assigned_to = null;
-        $asset->assignedTo()->disassociate($asset);
-        $asset->accepted = null;
-        $asset->assigned_status = 0;
-
-
-        if ($request->filled('name')) {
-            $asset->name = $request->input('name');
-        }
-
-        $asset->location_id = $asset->rtd_location_id;
-
-        if ($request->filled('location_id')) {
-            $asset->location_id = $request->input('location_id');
-        }
-
-        if ($request->has('status_id')) {
-            $asset->status_id = $request->input('status_id');
-        }
-
-        $checkin_at = null;
-        if ($request->filled('checkin_at')) {
-            $checkin_at = $request->input('checkin_at');
-        }
-
-
-        if ($asset->save()) {
-            $this->saveAssetHistory($asset_id,CHECK_IN_TYPE);
-            event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
-            return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
-        }
-
-        return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.error')));
+        return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset_tag)], trans('admin/hardware/message.checkin.success')));
     }
 
     /**
