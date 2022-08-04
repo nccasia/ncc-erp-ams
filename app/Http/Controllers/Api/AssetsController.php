@@ -1293,10 +1293,6 @@ class AssetsController extends Controller
         $assets = $request->assets;
         $asset_tag = null;
 
-        // variables for check if it is the last element of the arrays
-        $numItems = count($assets);
-        $i = 0;
-
         foreach ($assets as $asset_id) {
 
             $this->authorize('checkin', Asset::class);
@@ -1334,7 +1330,7 @@ class AssetsController extends Controller
                 $checkin_at = $request->input('checkin_at');
             }
 
-            if(++$i === $numItems) {
+            if($asset_id === end($assets)) {
                 $asset_tag .= $asset->asset_tag;
             } else {
                 $asset_tag .= $asset->asset_tag . ", ";
@@ -1500,13 +1496,17 @@ class AssetsController extends Controller
      */
 
     private function saveAssetHistory($asset_id, $type){
+        $asset = Asset::find($asset_id);
+
         $history = AssetHistory::create([
             'creator_id' => Auth::user()->id,
-            'type' => $type
+            'type' => $type,
+            'assigned_to' => $asset->assigned_to,
+            'user_id' => $asset->user_id
         ]);
         AssetHistoryDetail::create([
             'asset_histories_id' => $history->id,
-            'asset_id' => $asset_id
+            'asset_id' => $asset_id,
         ]);
     }
 
