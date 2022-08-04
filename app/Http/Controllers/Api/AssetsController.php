@@ -1506,7 +1506,7 @@ class AssetsController extends Controller
         ]);
         AssetHistoryDetail::create([
             'asset_histories_id' => $history->id,
-            'asset_id' => $asset_id,
+            'asset_id' => $asset_id
         ]);
     }
 
