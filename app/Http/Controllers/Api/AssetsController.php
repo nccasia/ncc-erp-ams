@@ -1393,7 +1393,6 @@ class AssetsController extends Controller
 
     public function checkout(AssetCheckoutRequest $request, $asset_id)
     {
-        // dd($asset_id);
         $this->authorize('checkout', Asset::class);
         $asset = Asset::findOrFail($asset_id);
 
