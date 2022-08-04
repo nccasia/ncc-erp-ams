@@ -1367,7 +1367,7 @@ class AssetsController extends Controller
             $asset->name = $request->input('name');
         }
         
-        $asset->location_id =  $asset->rtd_location_id;
+        // $asset->location_id =  $asset->rtd_location_id;
 
         if ($request->filled('location_id')) {
             $asset->location_id =  $request->input('location_id');
@@ -1383,9 +1383,9 @@ class AssetsController extends Controller
         }
 
         if ($asset->save()) {
+            $this->saveAssetHistory($asset_id,CHECK_IN_TYPE);
             event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
-
-            return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
+            return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.error')));
@@ -1449,15 +1449,59 @@ class AssetsController extends Controller
         // Wait, why are we doing this? This overrides the stuff we set further up, which makes no sense.
         // TODO: Follow up here. WTF. Commented out for now. 
 
+        $user = User::find($request->assigned_user);
+        $user_email = $user->email;
+        $user_name = $user->first_name . ' ' . $user->last_name;
+        $current_time = Carbon::now();
+        $location = Location::find($asset->location_id);
+        $location_address = null;
+
+        // concat asset's address information
+        $location_arr = array();
+
+        if (!is_null($location)) {
+            if (!is_null($location->address2)) {
+                array_push($location_arr, $location->address2);
+            }
+
+            if (!is_null($location->address)) {
+                array_push($location_arr, $location->address);
+            }
+
+            if (!is_null($location->state)) {
+                array_push($location_arr, $location->state);
+            }
+
+            if (!is_null($location->city)) {
+                array_push($location_arr, $location->city);
+            }
+        }
+
+        foreach ($location_arr as $value) {
+            if ( $value === end($location_arr)) {
+                $location_address .= $value . '.';
+            } else {
+                $location_address .= $value . ', ';
+            }
+        }
 
 //        if ((isset($target->rtd_location_id)) && ($asset->rtd_location_id!='')) {
 //            $asset->location_id = $target->rtd_location_id;
 //        }
 
+        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
+            $this->saveAssetHistory($asset_id,CHECK_OUT_TYPE);  
+            $data = [
+                'user_name' => $user_name,
+                'asset_name' => $asset->name,
+                'count' => 1,
+                'location_address' => $location_address,
+                'time' => $current_time->format('d-m-Y'),
+                'link' => config('client.my_assets.link'),
+            ];
 
-
-        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id)) {
-            return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
+            SendCheckoutMail::dispatch($data, $user_email);
+            return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.error')));
