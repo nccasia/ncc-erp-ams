@@ -510,6 +510,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                   'clone'
               ]
         );
+
+        Route::put('',
+              [
+                  Api\AssetsController::class,
+                  'multiUpdate'
+              ]
+        );
       }); 
 
 
