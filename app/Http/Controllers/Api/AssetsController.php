@@ -1086,6 +1086,127 @@ class AssetsController extends Controller
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/hardware/message.does_not_exist')), 200);
     }
 
+    public function multiUpdate(ImageUploadRequest $request)
+    {
+        $this->authorize('update', Asset::class);
+        $asset_ids = $request->assets;
+        $asset_names = null;
+        $assets = array();
+
+        foreach ($asset_ids as $id) {
+            if ($asset = Asset::find($id)) {
+                $asset->fill($request->all());
+                $assigned_status = $asset->assigned_status;
+                ($request->filled('model_id')) ?
+                    $asset->model()->associate(AssetModel::find($request->get('model_id'))) : null;
+                ($request->filled('assigned_status')) ?
+                    $asset->assigned_status = $request->get('assigned_status') : '';
+                ($request->filled('rtd_location_id')) ?
+                    $asset->location_id = $request->get('rtd_location_id') : '';
+                ($request->filled('company_id')) ?
+                    $asset->company_id = Company::getIdForCurrentUser($request->get('company_id')) : '';
+    
+                ($request->filled('rtd_location_id')) ?
+                    $asset->location_id = $request->get('rtd_location_id') : null;
+    
+                /**
+                 * this is here just legacy reasons. Api\AssetController
+                 * used image_source  once to allow encoded image uploads.
+                 */
+                if ($request->has('image_source')) {
+                    $request->offsetSet('image', $request->offsetGet('image_source'));
+                }
+    
+                $asset = $request->handleImages($asset);
+    
+                // Update custom fields
+                if (($model = AssetModel::find($asset->model_id)) && (isset($model->fieldset))) {
+                    foreach ($model->fieldset->fields as $field) {
+                        if ($request->has($field->convertUnicodeDbSlug())) {
+                            if ($field->field_encrypted == '1') {
+                                if (Gate::allows('admin')) {
+                                    $asset->{$field->convertUnicodeDbSlug()} = \Crypt::encrypt($request->input($field->convertUnicodeDbSlug()));
+                                }
+                            } else {
+                                $asset->{$field->convertUnicodeDbSlug()} = $request->input($field->convertUnicodeDbSlug());
+                            }
+                        }
+                    }
+                }
+                $user = User::find($asset->assigned_to);
+
+                if ($id === end($asset_ids)) {
+                    $asset_names .= $asset->name;
+                } else {
+                    $asset_names .= $asset->name . ", ";
+                }
+
+                if ($user && $assigned_status !== $request->get('assigned_status')) {
+                    $it_ncc_email = Setting::first()->admin_cc_email;
+                    $user_name = $user->first_name . ' ' . $user->last_name;
+                    $current_time = Carbon::now();
+                    $data = [
+                        'user_name' => $user_name,
+                        'is_confirm' => '',
+                        'asset_name' => $asset_names,
+                        'time' => $current_time->format('d-m-Y'),
+                        'reason' => '',
+                        'asset_count' => count($asset_ids)
+                    ];
+                    if ($asset->assigned_status === 2) {
+                        $data['is_confirm'] = 'đã nhận được';
+                        $asset->status_id = 4;
+                    } elseif ($asset->assigned_status === 3) {
+                        $data['is_confirm'] = 'chưa nhận được';
+                        $asset->status_id = 5;
+                        $data['reason'] = 'Lý do: ' . $request->get('reason');
+                    }
+                    if ($id === end($asset_ids)) {
+                        SendConfirmMail::dispatch($data, $it_ncc_email);
+                    }
+                }
+    
+                if ($asset->save()) {
+                    if (($request->filled('assigned_user')) && ($target = User::find($request->get('assigned_user')))) {
+                        $location = $target->location_id;
+                    } elseif (($request->filled('assigned_asset')) && ($target = Asset::find($request->get('assigned_asset')))) {
+                        $location = $target->location_id;
+    
+                        Asset::where('assigned_type', \App\Models\Asset::class)->where('assigned_to', $id)
+                            ->update(['location_id' => $target->location_id]);
+                    } elseif (($request->filled('assigned_location')) && ($target = Location::find($request->get('assigned_location')))) {
+                        $location = $target->id;
+                    }
+
+                    if (isset($target)) {
+                        $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
+                        $this->saveAssetHistory($asset->id,CHECK_OUT_TYPE);
+                        $data = [
+                                'user_name' => $target->first_name . ' ' . $target->last_name,
+                                'asset_name' => $asset->name,
+                                'time' => Carbon::now()->format('d-m-Y'),
+                                'link' => config('client.my_assets.link'),
+                        ];
+                        SendCheckoutMail::dispatch($data, $target->email);
+                    }
+    
+                    if ($asset->image) {
+                        $asset->image = $asset->getImageUrl();
+                    }
+
+                    array_push($assets, $asset);
+                    if ($id === end($asset_ids)) {
+                        return response()->json(Helper::formatStandardApiResponse('success', $assets, trans('admin/hardware/message.update.success')));
+                    }
+                } else {
+                    return response()->json(Helper::formatStandardApiResponse('error', null, $asset->getErrors()), 200);
+                }
+            } else {
+                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/hardware/message.does_not_exist')), 200);
+            }
+        }
+    }
+
 
     /**
      * Delete a given asset (mark as deleted).
