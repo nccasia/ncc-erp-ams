@@ -951,7 +951,7 @@ class AssetsController extends Controller
             }
             if (isset($target)) {
                 $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
-                $this->saveAssetHistory($asset->id,config('enum.asset_history.CHECK_OUT_TYPE'));
+                $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                 $data = [
                     'user_name' => $target->first_name . ' ' . $target->last_name,
                     'asset_name' => $asset->name,
@@ -1060,7 +1060,7 @@ class AssetsController extends Controller
 
                 if (isset($target)) {
                     $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
-                    $this->saveAssetHistory($asset->id,config('enum.asset_history.CHECK_OUT_TYPE'));
+                    $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                     $data = [
                             'user_name' => $target->first_name . ' ' . $target->last_name,
                             'asset_name' => $asset->name,
@@ -1177,7 +1177,7 @@ class AssetsController extends Controller
 
                     if (isset($target)) {
                         $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
-                        $this->saveAssetHistory($asset->id,config('enum.asset_history.CHECK_OUT_TYPE'));
+                        $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                         $data = [
                                 'user_name' => $target->first_name . ' ' . $target->last_name,
                                 'asset_name' => $asset->name,
@@ -1382,7 +1382,7 @@ class AssetsController extends Controller
             $asset->status_id = config('enum.status_id.ASSIGN');
 
             if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
-                $this->saveAssetHistory($asset_id,config('enum.asset_history.CHECK_OUT_TYPE'));
+                $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_OUT_TYPE'));
             }
         }
 
@@ -1456,7 +1456,7 @@ class AssetsController extends Controller
             }
 
             if ($asset->save()) {
-                $this->saveAssetHistory($asset_id,config('enum.asset_history.CHECK_IN_TYPE'));
+                $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
                 event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
             }
         }
@@ -1502,7 +1502,7 @@ class AssetsController extends Controller
         }
 
         if ($asset->save()) {
-            $this->saveAssetHistory($asset_id,config('enum.asset_history.CHECK_IN_TYPE'));
+            $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
             event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
             return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
         }
@@ -1611,7 +1611,7 @@ class AssetsController extends Controller
         $asset->status_id = config('enum.status_id.ASSIGN');
 
         if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
-            $this->saveAssetHistory($asset_id,config('enum.asset_history.CHECK_OUT_TYPE'));  
+            $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_OUT_TYPE'));  
             $data = [
                 'user_name' => $user_name,
                 'asset_name' => $asset->name,
