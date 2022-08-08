@@ -469,10 +469,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         ]
         )->name('api.asset.audit');
 
-        Route::post('{id}/checkin',
+        Route::post('checkin',
         [
             Api\AssetsController::class, 
-            'checkin'
+            'multiCheckin'
         ]
         )->name('api.asset.checkin');
 
@@ -483,10 +483,24 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             ]
         )->name('api.asset.checkinbytag');
 
-        Route::post('{id}/checkout',
+        Route::post('{asset_id}/checkout',
         [
             Api\AssetsController::class, 
             'checkout'
+        ]
+        );
+
+        Route::post('{asset_id}/checkin',
+        [
+            Api\AssetsController::class, 
+            'checkin'
+        ]
+        );
+
+        Route::post('checkout',
+        [
+            Api\AssetsController::class, 
+            'multiCheckout'
         ]
         )->name('api.asset.checkout');
 
@@ -494,6 +508,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
               [
                   Api\AssetsController::class,
                   'clone'
+              ]
+        );
+
+        Route::put('',
+              [
+                  Api\AssetsController::class,
+                  'multiUpdate'
               ]
         );
       }); 
@@ -937,6 +958,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 ]
             )->name('api.users.restore');
 
+            Route::get('/sync-list-user',
+                [
+                    Api\SyncListUserFromHRMController::class,
+                    'syncListUser'
+                ]
+            )->name('api.users.syncListUser');
+
         }); 
     
         Route::resource('users', 
@@ -1094,7 +1122,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             )->name('api.kits.consumables.destroy');
 
         }); // end consumable routes
-
+    
         /**
          * assetHistory API routes
          */

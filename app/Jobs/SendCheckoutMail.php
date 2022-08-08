@@ -9,6 +9,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
+use App\Models\Setting;
 use App\Mail\CheckoutMail;
 
 class SendCheckoutMail implements ShouldQueue
@@ -35,6 +36,6 @@ class SendCheckoutMail implements ShouldQueue
      */
     public function handle()
     {
-        Mail::to($this->user_email)->send(new CheckoutMail($this->data));
+        Mail::to($this->user_email)->cc(Setting::first()->admin_cc_email)->send(new CheckoutMail($this->data));
     }
 }

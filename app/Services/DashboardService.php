@@ -105,7 +105,7 @@ class DashboardService
     public function countCategoryOfNCC($locations)
     {
         $totalData = [];
-        $totalData['id'] = 6;
+        $totalData['id'] = 99999;
         $totalData['name'] = 'TONG';
         $totalData['assets_count'] = 0;
         $totalData['categories'] = [];
