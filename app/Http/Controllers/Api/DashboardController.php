@@ -52,7 +52,7 @@ class DashboardController extends Controller
     {
         $query = 'SELECT g.*, l.name as locationName
         FROM
-          (SELECT g.location_id, g.name, g.id,
+          (SELECT g.rtd_location_id, g.name, g.id,
             CAST(
             sum(CASE
                 WHEN g.type = 0 THEN g.total            
@@ -64,7 +64,7 @@ class DashboardController extends Controller
                 ELSE 0
             end) AS SIGNED ) AS checkin
            FROM
-             (SELECT assets.location_id,
+             (SELECT assets.rtd_location_id,
                      history.type,
                      c.name,
                      c.id,
@@ -95,14 +95,14 @@ class DashboardController extends Controller
 
         $query .= $where;
     
-        $query .= " GROUP BY assets.location_id, c.name, c.id , history.type) AS g
-        GROUP BY g.location_id, g.name , g.id) AS g
-        JOIN locations l ON l.id = g.location_id";
+        $query .= " GROUP BY assets.rtd_location_id, c.name, c.id , history.type) AS g
+        GROUP BY g.rtd_location_id, g.name , g.id) AS g
+        JOIN locations l ON l.id = g.rtd_location_id";
 
         $locations = Location::select('id','name')->get();
         $categories = Category::select('id','name')->get();
 
-     
+
 
         if (Auth::user()->hasAccess('admin')) {
 
