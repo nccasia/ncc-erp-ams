@@ -22,7 +22,7 @@ class DashboardService
 
     public function addCategoriesToLocation($location, $categories)
     {
-        $location['categories'] = !$location['assets']->isEmpty() ? $this->mapStatusToCategory($location['assets'], $categories) : [];
+        $location['categories'] = !$location['rtd_assets']->isEmpty() ? $this->mapStatusToCategory($location['rtd_assets'], $categories) : [];
         return $location;
     }
 
@@ -77,9 +77,9 @@ class DashboardService
     {
         $locations = Location::select(['id', 'name']);
         if ($purchase_date_from == null && $purchase_date_to == null) {
-            $locations = $locations->with('assets')->withCount('assets as assets_count')->get();
+            $locations = $locations->with('rtd_assets')->withCount('rtd_assets as assets_count')->get();
         } else {
-            $locations =  $locations->with('assets', function($query) use($purchase_date_from, $purchase_date_to) {
+            $locations =  $locations->with('rtd_assets', function($query) use($purchase_date_from, $purchase_date_to) {
                 if (!is_null($purchase_date_from)) {
                     $query = $query->where('purchase_date', '>=', $purchase_date_from);
                 }
@@ -88,7 +88,7 @@ class DashboardService
                 }
                 return $query;
             })
-            ->withCount(['assets as assets_count' => function($query) use($purchase_date_from, $purchase_date_to) {
+            ->withCount(['rtd_assets as assets_count' => function($query) use($purchase_date_from, $purchase_date_to) {
                     if (!is_null($purchase_date_from)) {
                         $query = $query->where('purchase_date', '>=', $purchase_date_from);
                     }
