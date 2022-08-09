@@ -15,7 +15,7 @@ class AssetHistoriesController extends Controller
         $from = $request->purchaseDateFrom;
         $to = $request->purchaseDateTo;
         $location = $request->location;
-        $category = $request->category;
+        $category = $request->category_id;
 
         // for paginate
         $offset = $request->offset;
