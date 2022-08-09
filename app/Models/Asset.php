@@ -281,6 +281,14 @@ class Asset extends Depreciable
         return false;
     }
 
+    public function availableForCheckin()
+    {
+        if (($this->assigned_to) && (! $this->deleted_at) && ($this->status_id === config('enum.status_id.ASSIGN'))) {
+                return true;
+        }
+        return false;
+    }
+
 
     /**
      * Checks the asset out to the target
