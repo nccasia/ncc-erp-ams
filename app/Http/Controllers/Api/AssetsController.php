@@ -893,7 +893,7 @@ class AssetsController extends Controller
         $asset->requestable             = $request->get('requestable', 0);
         $asset->rtd_location_id         = $request->get('rtd_location_id', null);
         $asset->location_id             = $request->get('location_id', null);
-        $asset->assigned_status         = config('enum.assigned_status.DEFAULT');
+        $asset->assigned_status         = $request->get('assigned_status', 0);
 
         /**
          * this is here just legacy reasons. Api\AssetController
@@ -950,6 +950,37 @@ class AssetsController extends Controller
                 $target = Location::find(request('assigned_location'));
             }
             if (isset($target)) {
+                
+                $location = Location::find($asset->location_id);
+                $location_address = null;
+                // concat asset's address information
+                $location_arr = array();
+                if (!is_null($location)) {
+                    if (!is_null($location->address2)) {
+                        array_push($location_arr, $location->address2);
+                    }
+        
+                    if (!is_null($location->address)) {
+                        array_push($location_arr, $location->address);
+                    }
+        
+                    if (!is_null($location->state)) {
+                        array_push($location_arr, $location->state);
+                    }
+        
+                    if (!is_null($location->city)) {
+                        array_push($location_arr, $location->city);
+                    }
+                }
+
+                foreach ($location_arr as $value) {
+                    if ( $value === end($location_arr)) {
+                        $location_address .= $value . '.';
+                    } else {
+                        $location_address .= $value . ', ';
+                    }
+                }
+
                 $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
                 $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                 $data = [
@@ -957,6 +988,8 @@ class AssetsController extends Controller
                     'asset_name' => $asset->name,
                     'time' => Carbon::now()->format('d-m-Y'),
                     'link' => config('client.my_assets.link'),
+                    'location_address' => $location_address,
+                    'count' => 1,
                 ];
                 SendCheckoutMail::dispatch($data, $target->email);
             }
@@ -1059,6 +1092,37 @@ class AssetsController extends Controller
                 }
 
                 if (isset($target)) {
+
+                    $location = Location::find($asset->location_id);
+                    $location_address = null;
+                    // concat asset's address information
+                    $location_arr = array();
+                    if (!is_null($location)) {
+                        if (!is_null($location->address2)) {
+                            array_push($location_arr, $location->address2);
+                        }
+            
+                        if (!is_null($location->address)) {
+                            array_push($location_arr, $location->address);
+                        }
+            
+                        if (!is_null($location->state)) {
+                            array_push($location_arr, $location->state);
+                        }
+            
+                        if (!is_null($location->city)) {
+                            array_push($location_arr, $location->city);
+                        }
+                    }
+    
+                    foreach ($location_arr as $value) {
+                        if ( $value === end($location_arr)) {
+                            $location_address .= $value . '.';
+                        } else {
+                            $location_address .= $value . ', ';
+                        }
+                    }
+
                     $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
                     $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                     $data = [
@@ -1066,6 +1130,8 @@ class AssetsController extends Controller
                             'asset_name' => $asset->name,
                             'time' => Carbon::now()->format('d-m-Y'),
                             'link' => config('client.my_assets.link'),
+                            'location_address' => $location_address,
+                            'count' => 1,
                     ];
                     SendCheckoutMail::dispatch($data, $target->email);
                 }
@@ -1176,6 +1242,37 @@ class AssetsController extends Controller
                     }
 
                     if (isset($target)) {
+
+                        $location = Location::find($asset->location_id);
+                        $location_address = null;
+                        // concat asset's address information
+                        $location_arr = array();
+                        if (!is_null($location)) {
+                            if (!is_null($location->address2)) {
+                                array_push($location_arr, $location->address2);
+                            }
+                
+                            if (!is_null($location->address)) {
+                                array_push($location_arr, $location->address);
+                            }
+                
+                            if (!is_null($location->state)) {
+                                array_push($location_arr, $location->state);
+                            }
+                
+                            if (!is_null($location->city)) {
+                                array_push($location_arr, $location->city);
+                            }
+                        }
+        
+                        foreach ($location_arr as $value) {
+                            if ( $value === end($location_arr)) {
+                                $location_address .= $value . '.';
+                            } else {
+                                $location_address .= $value . ', ';
+                            }
+                        }
+
                         $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
                         $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                         $data = [
@@ -1183,6 +1280,8 @@ class AssetsController extends Controller
                                 'asset_name' => $asset->name,
                                 'time' => Carbon::now()->format('d-m-Y'),
                                 'link' => config('client.my_assets.link'),
+                                'location_address' => $location_address,
+                                'count' => count($asset_ids),
                         ];
                         SendCheckoutMail::dispatch($data, $target->email);
                     }
@@ -1470,7 +1569,7 @@ class AssetsController extends Controller
         $asset = Asset::findOrFail($asset_id);
         $this->authorize('checkin', $asset);
 
-
+        
         $user = $asset->assignedUser;
         if (is_null($target = $asset->assignedTo)) {
             return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
