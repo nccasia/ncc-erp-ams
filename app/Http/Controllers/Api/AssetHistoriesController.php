@@ -50,8 +50,8 @@ class AssetHistoriesController extends Controller
 
                             if (!is_null($category)) {
                                 $query->join('models', 'assets.model_id', '=', 'models.id')
-                                ->select('category_id')
-                                ->where('category_id', $category);
+                                    ->select('category_id')
+                                    ->where('category_id', $category);
                             }
                         })->with(['asset', 'asset_history']);
                 }
@@ -72,8 +72,8 @@ class AssetHistoriesController extends Controller
 
                     if (!is_null($category)) {
                         $query->join('models', 'assets.model_id', '=', 'models.id')
-                        ->select('category_id')
-                        ->where('category_id', $category);
+                            ->select('category_id')
+                            ->where('category_id', $category);
                     }
                 })->with(['asset', 'asset_history']);
             }
