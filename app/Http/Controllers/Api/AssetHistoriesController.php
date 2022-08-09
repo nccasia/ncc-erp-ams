@@ -67,7 +67,7 @@ class AssetHistoriesController extends Controller
                     }
 
                     if (!is_null($location)) {
-                        $query->where('location_id', $location);
+                        $query->where('rtd_location_id', $location);
                     }
 
                     if (!is_null($category)) {
