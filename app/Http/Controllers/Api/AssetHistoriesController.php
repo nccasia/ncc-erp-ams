@@ -23,10 +23,17 @@ class AssetHistoriesController extends Controller
 
         // show all when api have NO params
         $histories = AssetHistoryDetail::with(['asset', 'asset_history']);
-
+        
         if (!is_null($type) || !is_null($from) || !is_null($to) || !is_null($location) || !is_null($category)) {
-            $assetHistoryQuery = AssetHistoryDetail::whereHas('asset_history', function ($query) use ($type) {
+            $assetHistoryQuery = AssetHistoryDetail::whereHas('asset_history', function ($query) use ($type,$from, $to) {
                 $query->where('type', $type);
+                if (!is_null($from)) {
+                    $query->where('created_at', '>=', $from);
+                }
+
+                if (!is_null($to)) {
+                    $query->where('created_at', '<=', $to);
+                }
             });
 
             if (!is_null($type)) {
@@ -35,15 +42,7 @@ class AssetHistoriesController extends Controller
 
                 if (!is_null($from) || !is_null($to) || !is_null($location) || !is_null($category)) {
                     $histories = $assetHistoryQuery
-                        ->whereHas('asset', function ($query) use ($from, $to, $location, $category) {
-                            if (!is_null($from)) {
-                                $query->where('purchase_date', '>=', $from);
-                            }
-
-                            if (!is_null($to)) {
-                                $query->where('purchase_date', '<=', $to);
-                            }
-
+                        ->whereHas('asset', function ($query) use ( $location, $category) {
                             if (!is_null($location)) {
                                 $query->where('rtd_location_id', $location);
                             }
