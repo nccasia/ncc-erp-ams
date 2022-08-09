@@ -82,8 +82,8 @@ class DashboardController extends Controller
         $where = ' WHERE true ';
 
         if ($from && $to) {
-            $where .= " AND history.created_at >= :from
-                             AND history.created_at <= :to";
+            $where .= " AND cast(history.created_at as date) >= cast(:from as date)
+                             AND cast(history.created_at as date) <=  cast(:to as date)";
             $bind = ['from' => $from, 'to' => $to];
         }
 
@@ -92,7 +92,7 @@ class DashboardController extends Controller
             $bind['asset_id'] = $request->asset_id;
         }
 
-
+        
         $query .= $where;
     
         $query .= " GROUP BY assets.rtd_location_id, c.name, c.id , history.type) AS g
