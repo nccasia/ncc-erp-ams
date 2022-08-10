@@ -38,12 +38,10 @@ class DashboardController extends Controller
             // Calculate total devices by location
             $locations = $this->dashboardService->mapCategoryToLocation($locations);
             
-             // Calculate total devices NCC
-             $totalData = $this->dashboardService->countCategoryOfNCC(
+            // Calculate total devices NCC
+            $locations = $this->dashboardService->countCategoryOfNCC(
                 clone $locations
             );
-
-            $locations[] = $totalData;
 
             return response()->json(Helper::formatStandardApiResponse('success', $locations, trans('admin/dashboard/message.success')));
         }
