@@ -102,7 +102,7 @@ class DashboardService
         return $locations;
     }
 
-    public function countCategoryOfNCC($locations)
+        public function countCategoryOfNCC($locations)
     {
         $totalData = [];
         $totalData['id'] = 99999;
@@ -114,11 +114,10 @@ class DashboardService
             $totalData['assets_count'] += $location->assets_count;
 
             // map total categories
-            $test = [];
             foreach ($location->categories as $category) {
                 $index = -1;
                 foreach ($totalData['categories'] as $key => $item) {
-                    if ($item->id == $category->id) {
+                        if ($item->id == $category->id) {
                         $index = $key;
                     }
                 }
@@ -131,13 +130,12 @@ class DashboardService
                         ] += $status['assets_count'];
                     }
                 } else {
-                    $totalData['categories'][] = clone $category;
+                    $categoryClone = $category->replicate();
+                    $totalData['categories'][] = $categoryClone;
                 }
             }
         }
 
-        $locations[] = $totalData;
-
-        return $locations;
+        return $totalData;
     }
 }
