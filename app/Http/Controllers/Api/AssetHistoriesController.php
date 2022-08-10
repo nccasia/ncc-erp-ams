@@ -28,8 +28,8 @@ class AssetHistoriesController extends Controller
         // show all when api have NO params
         $histories = AssetHistoryDetail::with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
 
-        if (!is_null($type) || !is_null($from) || !is_null($to) || !is_null($location) || !is_null($category)) {
-            $assetHistoryQuery = AssetHistoryDetail::whereHas('asset_history', function ($query) use ($type,$from, $to) {
+        if (!is_null($type) || !is_null($from) || !is_null($to) || !is_null($location) || !is_null($category) || !is_null($name)) {
+            $assetHistoryQuery = AssetHistoryDetail::whereHas('asset_history', function ($query) use ($type, $from, $to) {
                 $query->where('type', $type);
                 if (!is_null($from)) {
                     $query->whereDate('created_at', '>=', $from);
@@ -46,7 +46,7 @@ class AssetHistoriesController extends Controller
 
                 if (!is_null($from) || !is_null($to) || !is_null($location) || !is_null($category) || !is_null($name)) {
                     $histories = $assetHistoryQuery
-                        ->whereHas('asset', function ($query) use ( $location, $category) {
+                        ->whereHas('asset', function ($query) use ($location, $category, $name) {
                             if (!is_null($location)) {
                                 $query->where('rtd_location_id', $location);
                             }
@@ -56,7 +56,11 @@ class AssetHistoriesController extends Controller
                                     ->select('category_id')
                                     ->where('category_id', $category);
                             }
-                        })->with(['asset', 'asset_history','asset_history.user:id,first_name,last_name,username']);
+
+                            if (!is_null($name)) {
+                                $query->where('name', $name);
+                            }
+                        })->with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
                 }
             } else {
                 // when params do not have 'assetHistoryType' param
@@ -78,8 +82,16 @@ class AssetHistoriesController extends Controller
                             ->select('category_id')
                             ->where('category_id', $category);
                     }
-                })->with(['asset', 'asset_history','asset_history.user:id,first_name,last_name,username']);
+
+                    if (!is_null($name)) {
+                        $query->where('name', $name);
+                    }
+                })->with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
             }
+
+            $assetHistoryQuery = AssetHistoryDetail::whereHas('asset', function ($query) use ($name) {
+                $query->where('name', $name);
+            });
         }
 
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
