@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Asset;
 use App\Models\AssetHistoryDetail;
 use Illuminate\Http\Request;
+
+use function PHPUnit\Framework\isNull;
 
 class AssetHistoriesController extends Controller
 {
@@ -16,6 +19,7 @@ class AssetHistoriesController extends Controller
         $to = $request->purchaseDateTo;
         $location = $request->location;
         $category = $request->category_id;
+        $name = $request->name;
 
         // for paginate
         $offset = $request->offset;
@@ -25,7 +29,7 @@ class AssetHistoriesController extends Controller
         $histories = AssetHistoryDetail::with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
 
         if (!is_null($type) || !is_null($from) || !is_null($to) || !is_null($location) || !is_null($category)) {
-            $assetHistoryQuery = AssetHistoryDetail::whereHas('asset_history', function ($query) use ($type, $from, $to) {
+            $assetHistoryQuery = AssetHistoryDetail::whereHas('asset_history', function ($query) use ($type,$from, $to) {
                 $query->where('type', $type);
                 if (!is_null($from)) {
                     $query->whereDate('created_at', '>=', $from);
@@ -40,9 +44,9 @@ class AssetHistoriesController extends Controller
                 // show histories depend on type when api only have 'assetHistoryType' param
                 $histories = $assetHistoryQuery->with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
 
-                if (!is_null($from) || !is_null($to) || !is_null($location) || !is_null($category)) {
+                if (!is_null($from) || !is_null($to) || !is_null($location) || !is_null($category) || !is_null($name)) {
                     $histories = $assetHistoryQuery
-                        ->whereHas('asset', function ($query) use ($location, $category) {
+                        ->whereHas('asset', function ($query) use ( $location, $category) {
                             if (!is_null($location)) {
                                 $query->where('rtd_location_id', $location);
                             }
@@ -52,11 +56,11 @@ class AssetHistoriesController extends Controller
                                     ->select('category_id')
                                     ->where('category_id', $category);
                             }
-                        })->with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
+                        })->with(['asset', 'asset_history','asset_history.user:id,first_name,last_name,username']);
                 }
             } else {
                 // when params do not have 'assetHistoryType' param
-                $histories = AssetHistoryDetail::whereHas('asset', function ($query) use ($from, $to, $location, $category) {
+                $histories = AssetHistoryDetail::whereHas('asset', function ($query) use ($from, $to, $location, $category, $name) {
                     if (!is_null($from)) {
                         $query->where('purchase_date', '>=', $from);
                     }
@@ -74,7 +78,7 @@ class AssetHistoriesController extends Controller
                             ->select('category_id')
                             ->where('category_id', $category);
                     }
-                })->with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
+                })->with(['asset', 'asset_history','asset_history.user:id,first_name,last_name,username']);
             }
         }
 
@@ -84,7 +88,6 @@ class AssetHistoriesController extends Controller
 
         // Check to make sure the limit is not higher than the max allowed
         $limit = ((config('app.max_results') >= $limit) && $limit) ? $limit : config('app.max_results');
-        
         $histories = (!is_null($offset) && !is_null($limit)) ? $histories->skip($offset)->take($limit)->get() : $histories->get();
 
         return $histories;
