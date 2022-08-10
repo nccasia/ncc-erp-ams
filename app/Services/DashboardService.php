@@ -101,6 +101,7 @@ class DashboardService
 
         return $locations;
     }
+    
     private function getReportAssestByCategory($category)
     {
         $result = [
