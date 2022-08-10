@@ -79,7 +79,7 @@ class DashboardService
         if ($purchase_date_from == null && $purchase_date_to == null) {
             $locations = $locations->with('rtd_assets')->withCount('rtd_assets as assets_count')->get();
         } else {
-            $locations =  $locations->with('rtd_assets', function($query) use($purchase_date_from, $purchase_date_to) {
+            $locations =  $locations->with('rtd_assets', function ($query) use ($purchase_date_from, $purchase_date_to) {
                 if (!is_null($purchase_date_from)) {
                     $query = $query->where('purchase_date', '>=', $purchase_date_from);
                 }
@@ -88,7 +88,7 @@ class DashboardService
                 }
                 return $query;
             })
-            ->withCount(['rtd_assets as assets_count' => function($query) use($purchase_date_from, $purchase_date_to) {
+                ->withCount(['rtd_assets as assets_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
                     if (!is_null($purchase_date_from)) {
                         $query = $query->where('purchase_date', '>=', $purchase_date_from);
                     }
@@ -101,41 +101,76 @@ class DashboardService
 
         return $locations;
     }
+    
+    private function getReportAssestByCategory($category)
+    {
+        $result = [
+            'assets_count' => $category->assets_count,
+            'id' => $category->id,
+            'name' => $category->name,
+            'status_labels' => $category->status_labels->map(function ($label) {
+                return [
+                    'assets_count' => $label->assets_count,
+                    'id' => $label->id,
+                    'name' => $label->name,
+                ];
+            })
+        ];
+        return $result;
+    }
 
-        public function countCategoryOfNCC($locations)
+    private function increaseAssestCountForCategory(&$categoryOld, $newData)
+    {
+        $categoryOld['assets_count'] += $newData['assets_count'];
+        foreach ($newData['status_labels'] as $label) {
+            $categoryOld['status_labels'] = $categoryOld['status_labels']->map(function ($value) use ($label) {
+                if ($value['id'] == $label['id']) {
+                    $value['assets_count'] += $label['assets_count'];
+                }
+                return $value;
+            });
+            $labelOld = $categoryOld['status_labels']->first(function ($value) use ($label) {
+                return $value['id'] == $label['id'];
+            });
+            if (!$labelOld) {
+                $categoryOld['status_labels']->push($label);
+            }
+        }
+    }
+
+    public function countCategoryOfNCC($locations)
     {
         $totalData = [];
         $totalData['id'] = 99999;
         $totalData['name'] = 'TONG';
         $totalData['assets_count'] = 0;
-        $totalData['categories'] = [];
+        $totalData['categories'] = collect([]);
         $totalData['assets'] = [];
+
         foreach ($locations as $location) {
             $totalData['assets_count'] += $location->assets_count;
+            // calculate total assest of each category
+            foreach ($location->categories as $category) { // loop category
+                $totalData['categories'] = $totalData['categories']->map(function ($cate) use ($category) {
+                    if ($cate['id'] === $category->id) {
+                        $newData = $this->getReportAssestByCategory($category);
+                        // reference change
+                        $this->increaseAssestCountForCategory($cate, $newData);
+                    }
+                    return $cate;
+                });
 
-            // map total categories
-            foreach ($location->categories as $category) {
-                $index = -1;
-                foreach ($totalData['categories'] as $key => $item) {
-                        if ($item->id == $category->id) {
-                        $index = $key;
-                    }
-                }
-                if ($index != -1) {
-                    $totalData['categories'][$index]['assets_count'] +=
-                        $category->assets_count;
-                    foreach ($category->status_labels as $key => $status) {
-                        $totalData['categories'][$index]['status_labels'][$key][
-                            'assets_count'
-                        ] += $status['assets_count'];
-                    }
-                } else {
-                    $categoryClone = $category->replicate();
-                    $totalData['categories'][] = $categoryClone;
+                $categoryOld = $totalData['categories']->first(function ($cate) use ($category) {
+                    return $cate['id'] === $category->id;
+                });
+                if (!$categoryOld) {
+                    $totalData['categories']->push($this->getReportAssestByCategory($category));
                 }
             }
         }
 
-        return $totalData;
+        $locations[] = $totalData;
+
+        return $locations;
     }
 }
