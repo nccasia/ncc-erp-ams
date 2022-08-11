@@ -58,7 +58,7 @@ class AssetHistoriesController extends Controller
                             }
 
                             if (!is_null($name)) {
-                                $query->where('name', $name);
+                                $query->where('name', 'like', '%' . $name . '%');
                             }
                         })->with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
                 }
@@ -84,13 +84,13 @@ class AssetHistoriesController extends Controller
                     }
 
                     if (!is_null($name)) {
-                        $query->where('name', $name);
+                        $query->where('name', 'like', '%' . $name . '%');
                     }
                 })->with(['asset', 'asset_history', 'asset_history.user:id,first_name,last_name,username']);
             }
 
             $assetHistoryQuery = AssetHistoryDetail::whereHas('asset', function ($query) use ($name) {
-                $query->where('name', $name);
+                $query->where('name', 'like', '%' . $name . '%');
             });
         }
 

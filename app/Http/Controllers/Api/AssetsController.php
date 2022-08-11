@@ -1069,10 +1069,12 @@ class AssetsController extends Controller
                     'reason' => '',
                 ];
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                    $data['is_confirm'] = 'đã nhận được';
+                    $data['is_confirm'] = 'đã xác nhận';
+                    $data['asset_count'] = 1;
                     $asset->status_id = config('enum.status_id.ASSIGN');
                 } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
-                    $data['is_confirm'] = 'chưa nhận được';
+                    $data['is_confirm'] = 'đã từ chối';
+                    $data['asset_count'] = 1;
                     $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                     $data['reason'] = 'Lý do: ' . $request->get('reason');
                 }
