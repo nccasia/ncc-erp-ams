@@ -1067,6 +1067,7 @@ class AssetsController extends Controller
                     'asset_name' => $asset->name,
                     'time' => $current_time->format('d-m-Y'),
                     'reason' => '',
+                    'asset_count' => 1,
                 ];
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
                     $data['is_confirm'] = 'đã nhận được';
@@ -1131,7 +1132,7 @@ class AssetsController extends Controller
                             'time' => Carbon::now()->format('d-m-Y'),
                             'link' => config('client.my_assets.link'),
                             'location_address' => $location_address,
-                            'count' => 1,
+                            'asset_count' => 1,
                     ];
                     SendCheckoutMail::dispatch($data, $target->email);
                 }
@@ -1155,7 +1156,6 @@ class AssetsController extends Controller
         $asset_ids = $request->assets;
         $asset_names = null;
         $assets = array();
-
         foreach ($asset_ids as $id) {
             if ($asset = Asset::find($id)) {
                 $asset->fill($request->all());
