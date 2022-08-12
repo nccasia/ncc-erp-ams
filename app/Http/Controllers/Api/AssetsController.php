@@ -1017,7 +1017,6 @@ class AssetsController extends Controller
         $this->authorize('update', Asset::class);
 
         if ($asset = Asset::find($id)) {
-            $status_id = $asset->status_id;
             $asset->fill($request->all());
             $assigned_status = $asset->assigned_status;
             ($request->filled('model_id')) ?
@@ -1030,8 +1029,6 @@ class AssetsController extends Controller
                 $asset->company_id = Company::getIdForCurrentUser($request->get('company_id')) : '';
             ($request->filled('rtd_location_id')) ?
                 $asset->location_id = $request->get('rtd_location_id') : null;
-            ($request->filled('assigned_to')) ?
-                $asset->assigned_to = $request->get('assigned_to') : null;
             /**
              * this is here just legacy reasons. Api\AssetController
              * used image_source  once to allow encoded image uploads.
@@ -1077,7 +1074,7 @@ class AssetsController extends Controller
                 }
                 SendConfirmMail::dispatch($data, $it_ncc_email);
             }
-            
+
             if ($asset->save()) {
                 if (($request->filled('assigned_user')) && ($target = User::find($request->get('assigned_user')))) {
                     $location = $target->location_id;
@@ -1122,9 +1119,7 @@ class AssetsController extends Controller
                         }
                     }
                     $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
-                    if($asset->status_id == 4 && $status_id != 4){
-                        $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
-                    }
+                    $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                     $data = [
                             'user_name' => $target->first_name . ' ' . $target->last_name,
                             'asset_name' => $asset->name,
@@ -1135,7 +1130,7 @@ class AssetsController extends Controller
                     ];
                     SendCheckoutMail::dispatch($data, $target->email);
                 }
-                
+
                 if ($asset->image) {
                     $asset->image = $asset->getImageUrl();
                 }
@@ -1155,10 +1150,8 @@ class AssetsController extends Controller
         $asset_ids = $request->assets;
         $asset_names = null;
         $assets = array();
-
         foreach ($asset_ids as $id) {
             if ($asset = Asset::find($id)) {
-                $status_id = $asset->status_id;
                 $asset->fill($request->all());
                 $assigned_status = $asset->assigned_status;
                 ($request->filled('model_id')) ?
@@ -1171,8 +1164,6 @@ class AssetsController extends Controller
                     $asset->company_id = Company::getIdForCurrentUser($request->get('company_id')) : '';
                 ($request->filled('rtd_location_id')) ?
                     $asset->location_id = $request->get('rtd_location_id') : null;
-                ($request->filled('assigned_to')) ?
-                    $asset->assigned_to = $request->get('assigned_to') : null;
     
                 /**
                  * this is here just legacy reasons. Api\AssetController
@@ -1276,9 +1267,7 @@ class AssetsController extends Controller
                         }
 
                         $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
-                        if($asset->status_id == 4 && $status_id != 4){
-                            $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
-                        }
+                        $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                         $data = [
                                 'user_name' => $target->first_name . ' ' . $target->last_name,
                                 'asset_name' => $asset->name,
@@ -1289,7 +1278,7 @@ class AssetsController extends Controller
                         ];
                         SendCheckoutMail::dispatch($data, $target->email);
                     }
-                    
+    
                     if ($asset->image) {
                         $asset->image = $asset->getImageUrl();
                     }
