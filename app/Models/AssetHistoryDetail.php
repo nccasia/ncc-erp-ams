@@ -49,7 +49,8 @@ class AssetHistoryDetail extends Model
                     ->orWhere('assets.asset_tag', 'LIKE', '%' . $term . '%')
                     ->orWhere('categories.name', 'LIKE', '%' . $term . '%')
                     ->orWhere('locations.name', 'LIKE', '%' . $term . '%')
-                    ->orWhere('status_labels.name', 'LIKE', '%' . $term . '%')->orwhere('users.first_name', 'LIKE', '%' . $term . '%')
+                    ->orWhere('status_labels.name', 'LIKE', '%' . $term . '%')
+                    ->orwhere('users.first_name', 'LIKE', '%' . $term . '%')
                     ->orWhere('users.last_name', 'LIKE', '%' . $term . '%')
                     ->orWhere('users.username', 'LIKE', '%' . $term . '%')
                     ->orWhereRaw('CONCAT(' . DB::getTablePrefix() . 'users.first_name," ",' . DB::getTablePrefix() . 'users.last_name) LIKE ?', ["%$term%"]);
