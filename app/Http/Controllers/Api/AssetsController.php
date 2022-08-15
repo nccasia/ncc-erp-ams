@@ -1573,6 +1573,7 @@ class AssetsController extends Controller
         $asset->assigned_to = null;
         $asset->assignedTo()->disassociate($asset);
         $asset->accepted = null;
+        $asset->assigned_status = config('enum.assigned_status.DEFAULT');
 
         if ($request->filled('name')) {
             $asset->name = $request->input('name');
