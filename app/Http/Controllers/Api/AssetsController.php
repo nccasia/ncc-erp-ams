@@ -1520,40 +1520,6 @@ class AssetsController extends Controller
             if (is_null($target)) {
                 return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
             }
-
-            $error_payload = [];
-            $error_payload['asset'] = [
-                'id' => $asset->id,
-                'asset_tag' => $asset->asset_tag,
-            ];
-    
-            // This item is checked out to a location
-            if (request('checkout_to_type') == 'location') {
-                $target = Location::find(request('assigned_location'));
-                $asset->location_id = ($target) ? $target->id : '';
-                $error_payload['target_id'] = $request->input('assigned_location');
-                $error_payload['target_type'] = 'location';
-        
-            } elseif (request('checkout_to_type') == 'asset') {
-                $target = Asset::where('id', '!=', $asset_id)->find(request('assigned_asset'));
-                $asset->location_id = $target->rtd_location_id;
-                // Override with the asset's location_id if it has one
-                $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
-                $error_payload['target_id'] = $request->input('assigned_asset');
-                $error_payload['target_type'] = 'asset';
-            
-            } elseif (request('checkout_to_type') == 'user') {
-                // Fetch the target and set the asset's new location_id
-                $target = User::find(request('assigned_user'));
-                // $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
-                $error_payload['target_id'] = $request->input('assigned_user');
-                $error_payload['target_type'] = 'user';
-            }
-    
-            if (!isset($target)) {
-                return response()->json(Helper::formatStandardApiResponse('error', $error_payload, 'Checkin target for asset ' . e($asset->asset_tag) . ' is invalid - ' . $error_payload['target_type'] . ' does not exist.'));
-            }
-
             $checkin_at = request('checkin_at', date('Y-m-d H:i:s'));
             $note = request('note', null);
 
@@ -1567,6 +1533,7 @@ class AssetsController extends Controller
             $current_time = Carbon::now();
             $location = Location::find($asset->location_id);
             $location_address = null;
+            $checkin_at = null;
 
             if ($request->filled('name')) {
                 $asset->name = $request->input('name');
@@ -1580,7 +1547,6 @@ class AssetsController extends Controller
                 $asset->status_id = $request->input('status_id');
             }
 
-            $checkin_at = null;
             if ($request->filled('checkin_at')) {
                 $checkin_at = $request->input('checkin_at');
             }
@@ -1622,7 +1588,7 @@ class AssetsController extends Controller
                 $asset_name .= $asset->name . ", ";
                 $asset_tag .= $asset->asset_tag . ", ";
             }
-
+            
             $asset->status_id = config('enum.status_id.ASSIGN');
 
             if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
@@ -1654,37 +1620,6 @@ class AssetsController extends Controller
             return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
         }
 
-        $error_payload = [];
-        $error_payload['asset'] = [
-            'id' => $asset->id,
-            'asset_tag' => $asset->asset_tag,
-        ];
-
-        // This item is checked in to a location
-        if (request('checkout_to_type')=='location') {
-            $target = Location::find(request('assigned_location'));
-            $asset->location_id = ($target) ? $target->id : '';
-            $error_payload['target_id'] = $request->input('assigned_location');
-            $error_payload['target_type'] = 'location';
-        } elseif (request('checkout_to_type')=='asset') {
-            $target = Asset::where('id','!=',$asset_id)->find(request('assigned_asset'));
-            $asset->location_id = $target->rtd_location_id;
-            // Override with the asset's location_id if it has one
-            $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
-            $error_payload['target_id'] = $request->input('assigned_asset');
-            $error_payload['target_type'] = 'asset';
-
-        } elseif (request('checkout_to_type')=='user') {
-            // Fetch the target and set the asset's new location_id
-            $target = User::find(request('assigned_user'));
-            $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
-            $error_payload['target_id'] = $request->input('assigned_user');
-            $error_payload['target_type'] = 'user';
-        }
-
-        if (!isset($target)) {
-            return response()->json(Helper::formatStandardApiResponse('error', $error_payload, 'Checkin target for asset '.e($asset->asset_tag).' is invalid - '.$error_payload['target_type'].' does not exist.'));
-        }
 
         $checkin_at = request('checkin_at', date("Y-m-d H:i:s"));
         $note = request('note', null);
@@ -1697,6 +1632,7 @@ class AssetsController extends Controller
         $user_name = $user->first_name . ' ' . $user->last_name;
         $current_time = Carbon::now();
         $location_address = null;
+        $checkin_at = null;
 
         $asset->assigned_status = config('enum.assigned_status.DEFAULT');
         // concat asset's address information
@@ -1712,7 +1648,6 @@ class AssetsController extends Controller
             $asset->status_id =  $request->input('status_id');
         }
 
-        $checkin_at = null;
         if ($request->filled('checkin_at')) {
             $checkin_at = $request->input('checkin_at');
         }
