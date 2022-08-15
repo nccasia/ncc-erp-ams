@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Events\AssetCheckedOut;
 use App\Events\CheckoutableCheckedOut;
+use App\Events\CheckoutableCheckedIn;
 use App\Exceptions\CheckoutNotAllowed;
+use App\Exceptions\CheckinNotAllowed;
 use App\Http\Traits\UniqueSerialTrait;
 use App\Http\Traits\UniqueUndeletedTrait;
 use App\Models\Traits\Acceptable;
@@ -289,6 +291,72 @@ class Asset extends Depreciable
         return false;
     }
 
+    /**
+     * Checks the asset out to the target
+     *
+     * @todo The admin parameter is never used. Can probably be removed.
+     *
+     * @author [A. Gianotto] [<snipe@snipe.net>]
+     * @param User $user
+     * @param User $admin
+     * @param Carbon $checkin_at
+     * @param Carbon $status_id
+     * @param string $note
+     * @param null $name
+     * @return bool
+     * @since [v3.0]
+     * @return bool
+     */
+    public function checkIn($target, $admin = null, $checkin_at = null, $status_id = null, $note = null, $name = null, $location = null, $assigned_status = null)
+    {
+        if (!$target) {
+            return false;
+        }
+        if ($this->is($target)) {
+            throw new CheckinNotAllowed('You cannot check an asset in to itself.');
+        }
+
+        $this->status_id = $status_id;
+        $this->expected_checkin = null;
+        $this->last_checkout = null;
+        $this->assigned_to = null;
+        $this->assignedTo()->disassociate($this);
+        $this->accepted = null;
+        $this->assigned_status = $assigned_status;
+
+        
+        if ($name != null) {
+            $this->name = $name;
+        }
+
+        if ($location != null) {
+            $this->location_id = $location;
+        } else {
+            if (isset($target->location)) {
+                $this->location_id = $target->location->id;
+            }
+            if ($target instanceof Location) {
+                $this->location_id = $target->id;
+            }
+        }
+        
+        if ($this->save()) {
+            if (is_int($admin)) {
+                $checkedInBy = User::findOrFail($admin);
+            } elseif (get_class($admin) === \App\Models\User::class) {
+                $checkedInBy = $admin;
+            } else {
+                $checkedInBy = Auth::user();
+            }
+            event(new CheckoutableCheckedIn($this, $target, $checkedInBy, $note, $checkin_at));
+
+            $this->increment('checkin_counter', 1);
+
+            return true;
+        }
+
+        return false;
+    }
 
     /**
      * Checks the asset out to the target
