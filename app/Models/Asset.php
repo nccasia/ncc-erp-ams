@@ -307,7 +307,7 @@ class Asset extends Depreciable
      * @since [v3.0]
      * @return bool
      */
-    public function checkIn($target, $admin = null, $checkin_at = null, $status_id = null, $note = null, $name = null, $location = null, $assigned_status = null)
+    public function checkIn($target, $admin = null, $checkin_at = null, $status_id = null, $note = null, $name = null, $assigned_status = null)
     {
         if (!$target) {
             return false;
@@ -327,17 +327,6 @@ class Asset extends Depreciable
         
         if ($name != null) {
             $this->name = $name;
-        }
-
-        if ($location != null) {
-            $this->location_id = $location;
-        } else {
-            if (isset($target->location)) {
-                $this->location_id = $target->location->id;
-            }
-            if ($target instanceof Location) {
-                $this->location_id = $target->id;
-            }
         }
         
         if ($this->save()) {
