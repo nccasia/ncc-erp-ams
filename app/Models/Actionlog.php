@@ -5,9 +5,11 @@ namespace App\Models;
 use App\Models\Traits\Searchable;
 use App\Presenters\Presentable;
 use Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
+use DB;
 
 /**
  * Model for the Actionlog (the table that keeps a historical log of
@@ -135,8 +137,8 @@ class Actionlog extends SnipeModel
     public function uploads()
     {
         return $this->morphTo('item')
-                    ->where('action_type', '=', 'uploaded')
-                    ->withTrashed();
+            ->where('action_type', '=', 'uploaded')
+            ->withTrashed();
     }
 
     /**
@@ -161,7 +163,7 @@ class Actionlog extends SnipeModel
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id')
-                    ->withTrashed();
+            ->withTrashed();
     }
 
     /**
@@ -198,7 +200,7 @@ class Actionlog extends SnipeModel
     public function get_src($type = 'assets', $fieldname = 'filename')
     {
         if ($this->filename != '') {
-            $file = config('app.private_uploads').'/'.$type.'/'.$this->{$fieldname};
+            $file = config('app.private_uploads') . '/' . $type . '/' . $this->{$fieldname};
 
             return $file;
         }
@@ -275,9 +277,33 @@ class Actionlog extends SnipeModel
     public function getListingOfActionLogsChronologicalOrder()
     {
         return $this->all()
-                 ->where('action_type', '!=', 'uploaded')
-                 ->orderBy('item_id', 'asc')
-                 ->orderBy('created_at', 'asc')
-                 ->get();
+            ->where('action_type', '!=', 'uploaded')
+            ->orderBy('item_id', 'asc')
+            ->orderBy('created_at', 'asc')
+            ->get();
+    }
+
+    public function advancedTextSearch(Builder $query, array $terms)
+    {
+        $query = $query
+            ->leftJoin('locations', 'locations.id', '=', 'assets.rtd_location_id')
+            ->leftJoin('status_labels', 'status_labels.id', '=', 'assets.status_id')
+            ->leftJoin('models', 'models.id', '=', 'assets.model_id')
+            ->leftJoin('categories', 'categories.id', '=', 'models.category_id')
+            ->leftJoin('users', 'users.id', '=', 'action_logs.target_id');
+
+        foreach ($terms as $term) {
+            $query->orwhere('assets.id', 'LIKE', '%' . $term . '%')
+                    ->orWhere('assets.asset_tag', 'LIKE', '%' . $term . '%')
+                    ->orWhere('categories.name', 'LIKE', '%' . $term . '%')
+                    ->orWhere('locations.name', 'LIKE', '%' . $term . '%')
+                    ->orWhere('status_labels.name', 'LIKE', '%' . $term . '%')
+                    ->orwhere('users.first_name', 'LIKE', '%' . $term . '%')
+                    ->orWhere('users.last_name', 'LIKE', '%' . $term . '%')
+                    ->orWhere('users.username', 'LIKE', '%' . $term . '%')
+                    ->orWhereRaw('CONCAT(' . DB::getTablePrefix() . 'users.first_name," ",' . DB::getTablePrefix() . 'users.last_name) LIKE ?', ["%$term%"]);
+        }
+
+        return $query;
     }
 }
