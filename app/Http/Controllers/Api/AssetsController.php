@@ -1531,16 +1531,11 @@ class AssetsController extends Controller
             $user_email = $user->email;
             $user_name = $user->first_name . ' ' . $user->last_name;
             $current_time = Carbon::now();
-            $location = Location::find($asset->location_id);
-            $location_address = null;
+            $location = Location::find( $user->location_id ? $user->location_id : env('DEFAULT_LOCATION_USER') );
+            $location_address = $location->name;
             $checkin_at = null;
-
             if ($request->filled('name')) {
                 $asset->name = $request->input('name');
-            }
-
-            if ($request->filled('location_id')) {
-                $asset->location_id = $request->input('location_id');
             }
 
             if ($request->has('status_id')) {
@@ -1571,12 +1566,12 @@ class AssetsController extends Controller
                     array_push($location_arr, $location->city);
                 }
             }
-
+            
             foreach ($location_arr as $value) {
                 if ( $value === end($location_arr)) {
                     $location_address .= $value . '.';
                 } else {
-                    $location_address .= $value . ', ';
+                    $location_address .= ' '.$value . ', ';
                 }
             }
 
@@ -1591,7 +1586,7 @@ class AssetsController extends Controller
             
             $asset->status_id = config('enum.status_id.ASSIGN');
 
-            if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
+            if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
                 $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
             }
         }
@@ -1631,17 +1626,14 @@ class AssetsController extends Controller
         $user_email = $user->email;
         $user_name = $user->first_name . ' ' . $user->last_name;
         $current_time = Carbon::now();
-        $location_address = null;
+        $location = Location::find($user->location_id ? $user->location_id : env('DEFAULT_LOCATION_USER'));
+        $location_address = $location->name;
         $checkin_at = null;
 
         $asset->assigned_status = config('enum.assigned_status.DEFAULT');
         // concat asset's address information
         if ($request->filled('name')) {
             $asset->name = $request->input('name');
-        }
-        
-        if ($request->filled('location_id')) {
-            $asset->location_id =  $request->input('location_id');
         }
 
         if ($request->has('status_id')) {
@@ -1651,8 +1643,34 @@ class AssetsController extends Controller
         if ($request->filled('checkin_at')) {
             $checkin_at = $request->input('checkin_at');
         }
+        // concat asset's address information
+        $location_arr = array();
 
-        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, $asset->location_id, $asset->assigned_status)) {
+        if (!is_null($location)) {
+            if (!is_null($location->address2)) {
+                array_push($location_arr, $location->address2);
+            }
+
+            if (!is_null($location->address)) {
+                array_push($location_arr, $location->address);
+            }
+
+            if (!is_null($location->state)) {
+                array_push($location_arr, $location->state);
+            }
+
+            if (!is_null($location->city)) {
+                array_push($location_arr, $location->city);
+            }
+        }
+        foreach ($location_arr as $value) {
+            if ( $value === end($location_arr)) {
+                $location_address .= $value . '.';
+            } else {
+                $location_address .= ' '.$value . ', ';
+            }
+        }
+        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, $asset->assigned_status)) {
             $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));  
             $data = [
                 'user_name' => $user_name,
