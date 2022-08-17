@@ -1502,188 +1502,74 @@ class AssetsController extends Controller
      * @since [v4.0]
      * @return JsonResponse
      */
-    public function multiCheckin(AssetCheckinRequest $request, $type = null)
+    public function multiCheckin(Request $request, $type = null)
     {
+
         $assets = $request->assets;
         $asset_tag = null;
-        $asset_name = null;
-
         foreach ($assets as $asset_id) {
-            
-            $asset_id = $asset_id;
             $this->authorize('checkin', Asset::class);
             $asset = Asset::findOrFail($asset_id);
             $this->authorize('checkin', $asset);
-
-
-            $target = $asset->assignedTo;
-            if (is_null($target)) {
+            
+            if (is_null($target = $asset->assignedTo)) {
                 return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
             }
+            $asset->status_id = config('enum.status_id.ASSIGN');
+                
             $checkin_at = request('checkin_at', date('Y-m-d H:i:s'));
             $note = request('note', null);
-
-            // Set the location ID to the RTD location id if there is one
-            // Wait, why are we doing this? This overrides the stuff we set further up, which makes no sense.
-            // TODO: Follow up here. WTF. Commented out for now. 
-
-            $user = User::find($request->assigned_user);
-            $user_email = $user->email;
-            $user_name = $user->first_name . ' ' . $user->last_name;
-            $current_time = Carbon::now();
-            $location = Location::find( $user->location_id ? $user->location_id : env('DEFAULT_LOCATION_USER') );
-            $location_address = $location->name;
+            $user=$asset->assignedTo;
             $checkin_at = null;
-            if ($request->filled('name')) {
-                $asset->name = $request->input('name');
-            }
-
-            if ($request->has('status_id')) {
-                $asset->status_id = $request->input('status_id');
-            }
 
             if ($request->filled('checkin_at')) {
                 $checkin_at = $request->input('checkin_at');
             }
-
-            // concat asset's address information
-            $location_arr = array();
-
-            if (!is_null($location)) {
-                if (!is_null($location->address2)) {
-                    array_push($location_arr, $location->address2);
-                }
-    
-                if (!is_null($location->address)) {
-                    array_push($location_arr, $location->address);
-                }
-    
-                if (!is_null($location->state)) {
-                    array_push($location_arr, $location->state);
-                }
-    
-                if (!is_null($location->city)) {
-                    array_push($location_arr, $location->city);
-                }
+            if ($request->has('status_id')) {
+                $asset->status_id = $request->input('status_id');
             }
-            
-            foreach ($location_arr as $value) {
-                if ( $value === end($location_arr)) {
-                    $location_address .= $value . '.';
-                } else {
-                    $location_address .= ' '.$value . ', ';
-                }
-            }
-
-            // concat assets' names and assets' tags
             if($asset_id === end($assets)) {
-                $asset_name .= $asset->name;
                 $asset_tag .= $asset->asset_tag;
             } else {
-                $asset_name .= $asset->name . ", ";
                 $asset_tag .= $asset->asset_tag . ", ";
             }
-            
-            $asset->status_id = config('enum.status_id.ASSIGN');
 
+            $asset->status_id = config('enum.status_id.ASSIGN');
             if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
                 $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
+                $data = $this->saveAssetCheckIn($request,$user,$asset);
+                SendCheckinMail::dispatch($data, $data['user_email']);
             }
         }
-
-        $data = [
-            'user_name' => $user_name,
-            'asset_name' => $asset_name,
-            'count' => count($assets),
-            'location_address' => $location_address,
-            'time' => $current_time->format('d-m-Y'),
-            'link' => config('client.my_assets.link'),
-        ];
-        SendCheckinMail::dispatch($data, $user_email);
-        return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset_tag)], trans('admin/hardware/message.checkin.success')));
+        return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
     }
 
-    public function checkin(AssetCheckinRequest $request, $asset_id)
+    public function checkin(Request $request, $asset_id)
     {
         $this->authorize('checkin', Asset::class);
         $asset = Asset::findOrFail($asset_id);
         $this->authorize('checkin', $asset);
-
-
-        $user = $asset->assignedUser;
+        
         if (is_null($target = $asset->assignedTo)) {
             return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
         }
-
-
-        $checkin_at = request('checkin_at', date("Y-m-d H:i:s"));
+        $checkin_at = request('checkin_at', date('Y-m-d H:i:s'));
         $note = request('note', null);
-        // Set the location ID to the RTD location id if there is one
-        // Wait, why are we doing this? This overrides the stuff we set further up, which makes no sense.
-        // TODO: Follow up here. WTF. Commented out for now. 
-
-        $user = User::find($request->assigned_user);
-        $user_email = $user->email;
-        $user_name = $user->first_name . ' ' . $user->last_name;
-        $current_time = Carbon::now();
-        $location = Location::find($user->location_id ? $user->location_id : env('DEFAULT_LOCATION_USER'));
-        $location_address = $location->name;
+        $user=$asset->assignedTo;
         $checkin_at = null;
-
-        $asset->assigned_status = config('enum.assigned_status.DEFAULT');
-        // concat asset's address information
-        if ($request->filled('name')) {
-            $asset->name = $request->input('name');
-        }
-
-        if ($request->has('status_id')) {
-            $asset->status_id =  $request->input('status_id');
-        }
-
         if ($request->filled('checkin_at')) {
             $checkin_at = $request->input('checkin_at');
         }
-        // concat asset's address information
-        $location_arr = array();
-
-        if (!is_null($location)) {
-            if (!is_null($location->address2)) {
-                array_push($location_arr, $location->address2);
-            }
-
-            if (!is_null($location->address)) {
-                array_push($location_arr, $location->address);
-            }
-
-            if (!is_null($location->state)) {
-                array_push($location_arr, $location->state);
-            }
-
-            if (!is_null($location->city)) {
-                array_push($location_arr, $location->city);
-            }
-        }
-        foreach ($location_arr as $value) {
-            if ( $value === end($location_arr)) {
-                $location_address .= $value . '.';
-            } else {
-                $location_address .= ' '.$value . ', ';
-            }
-        }
-        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, $asset->assigned_status)) {
-            $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));  
-            $data = [
-                'user_name' => $user_name,
-                'asset_name' => $asset->name,
-                'count' => 1,
-                'location_address' => $location_address,
-                'time' => $current_time->format('d-m-Y'),
-                'link' => config('client.my_assets.link'),
-            ];
-            SendCheckinMail::dispatch($data, $user_email);
-            return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
+        if ($request->has('status_id')) {
+            $asset->status_id = $request->input('status_id');
         }
 
+        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
+            $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
+            $data = $this->saveAssetCheckIn($request,$user,$asset);
+            SendCheckinMail::dispatch($data, $data['user_email']);
+            return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
+        }
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.error')));
     }
 
@@ -1971,5 +1857,53 @@ class AssetsController extends Controller
     }
 
     #End Region
+    private function saveAssetCheckIn($request,$user,$asset){
 
+        $user_email = $user->email;
+        $user_name = $user->first_name . ' ' . $user->last_name;
+        $current_time = Carbon::now();
+        $location = Location::find($user->location_id ? $user->location_id : env('DEFAULT_LOCATION_USER'));
+        $location_address = $location->name;
+        
+        if ($request->filled('name')) {
+            $user->name = $request->input('name');
+        }
+        $location_arr = array();
+
+        if (!is_null($location)) {
+            if (!is_null($location->address2)) {
+                array_push($location_arr, $location->address2);
+            }
+
+            if (!is_null($location->address)) {
+                array_push($location_arr, $location->address);
+            }
+            if (!is_null($location->state)) {
+                array_push($location_arr, $location->state);
+            }
+
+            if (!is_null($location->city)) {
+                array_push($location_arr, $location->city);
+            }
+        }
+
+        foreach ($location_arr as $value) {
+            if ( $value === end($location_arr)) {
+                $location_address .= $value . '.';
+            } else {
+                $location_address .= ' '.$value . ', ';
+            }
+        }
+       
+        $data = [
+            'user_name' => $user_name,
+            'asset_name' => $asset->name,
+            'count' => 1,
+            'user_email' => $user_email,
+            'location_address' => $location_address,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+        return $data;
+    }
 }
