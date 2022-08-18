@@ -1519,7 +1519,7 @@ class AssetsController extends Controller
                 
             $checkin_at = request('checkin_at', date('Y-m-d H:i:s'));
             $note = request('note', null);
-            $user=$asset->assignedTo;
+            $user = $asset->assignedTo;
             $checkin_at = null;
 
             if ($request->filled('checkin_at')) {
@@ -1537,7 +1537,7 @@ class AssetsController extends Controller
             $asset->status_id = config('enum.status_id.ASSIGN');
             if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
                 $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
-                $data = $this->saveAssetCheckIn($request,$user,$asset);
+                $data = $this->setDataUser($request, $user, $asset);
                 SendCheckinMail::dispatch($data, $data['user_email']);
             }
         }
@@ -1555,7 +1555,7 @@ class AssetsController extends Controller
         }
         $checkin_at = request('checkin_at', date('Y-m-d H:i:s'));
         $note = request('note', null);
-        $user=$asset->assignedTo;
+        $user = $asset->assignedTo;
         $checkin_at = null;
         if ($request->filled('checkin_at')) {
             $checkin_at = $request->input('checkin_at');
@@ -1566,7 +1566,7 @@ class AssetsController extends Controller
 
         if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
             $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            $data = $this->saveAssetCheckIn($request,$user,$asset);
+            $data = $this->setDataUser($request, $user, $asset);
             SendCheckinMail::dispatch($data, $data['user_email']);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
         }
@@ -1856,8 +1856,7 @@ class AssetsController extends Controller
         ]);
     }
 
-    #End Region
-    private function saveAssetCheckIn($request,$user,$asset){
+    private function setDataUser($request, $user, $asset){
 
         $user_email = $user->email;
         $user_name = $user->first_name . ' ' . $user->last_name;
@@ -1904,6 +1903,9 @@ class AssetsController extends Controller
             'time' => $current_time->format('d-m-Y'),
             'link' => config('client.my_assets.link'),
         ];
+        
         return $data;
     }
+    
+    #End Region
 }
