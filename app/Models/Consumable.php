@@ -27,7 +27,8 @@ class Consumable extends SnipeModel
         'category_id'    => 'integer',
         'company_id'     => 'integer',
         'qty'            => 'integer',
-        'min_amt'        => 'integer',    
+        'min_amt'        => 'integer', 
+        'supplier_id'    => 'integer'   
      ];
 
     /**
@@ -229,6 +230,10 @@ class Consumable extends SnipeModel
         return $this->belongsToMany(\App\Models\User::class, 'consumables_users', 'consumable_id', 'assigned_to')->withPivot('user_id')->withTrashed()->withTimestamps();
     }
 
+    public function supplier()
+    {
+        return $this->belongsTo(\App\Models\Supplier::class, 'supplier_id');
+    }
 
     /**
      * Determine whether to send a checkin/checkout email based on

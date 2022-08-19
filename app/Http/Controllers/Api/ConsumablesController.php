@@ -43,6 +43,7 @@ class ConsumablesController extends Controller
                 'qty',
                 'image',
                 'notes',
+                'supplier_id'
                 ];
 
 
