@@ -54,6 +54,11 @@ class ReportsController extends Controller
             $actionlogs->where('assets.rtd_location_id', $request->input('location_id'));
         }
 
+        if ($request->filled('category_id')) {
+            $actionlogs->leftJoin('models', 'assets.model_id', '=', 'models.id')
+                ->where('models.category_id', $request->input('category_id'));
+        }
+
         // For sort
         $allowed_columns = [
             'id',
