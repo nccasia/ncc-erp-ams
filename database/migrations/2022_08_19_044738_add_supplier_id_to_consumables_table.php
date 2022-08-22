@@ -14,7 +14,7 @@ class AddSupplierIdToConsumablesTable extends Migration
     public function up()
     {
         Schema::table('consumables', function (Blueprint $table) {
-            $table->integer('supplier_id');
+            $table->integer('supplier_id')->nullable();
         });
     }
 
