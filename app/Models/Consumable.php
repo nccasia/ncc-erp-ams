@@ -73,6 +73,7 @@ class Consumable extends SnipeModel
         'min_amt',
         'requestable',
         'notes',
+        'supplier_id'
     ];
 
     use Searchable;
