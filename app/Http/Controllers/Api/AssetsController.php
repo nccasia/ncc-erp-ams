@@ -774,7 +774,7 @@ class AssetsController extends Controller
             $assets = $assets->where('created_at', '<=', $to);
         }
 
-        $assets = $assets->where('assets.assigned_to', '=', $user_id)->skip($offset)->take($limit)->get();
+        $assets = $assets->where('assets.assigned_to', '=', $user_id)->orWhere('assets.withdraw_from', '=', $user_id)->skip($offset)->take($limit)->get();
         $total = $assets->count();
 
         /**
@@ -1055,7 +1055,12 @@ class AssetsController extends Controller
                     }
                 }
             }
-            $user = User::find($asset->assigned_to);
+            if($asset->assigned_to){
+                $user = User::find($asset->assigned_to);
+            }
+            if($asset->withdraw_from){
+                $user = User::find($asset->withdraw_from);
+            }
             if ($user && $assigned_status !== $request->get('assigned_status')) {
                 $it_ncc_email = Setting::first()->admin_cc_email;
                 $user_name = $user->first_name . ' ' . $user->last_name;
@@ -1071,6 +1076,7 @@ class AssetsController extends Controller
                     $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     $asset->status_id = config('enum.status_id.ASSIGN');
+                    $asset->withdraw_from = null;
                 } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
                     $data['is_confirm'] = 'đã từ chối';
                     $data['asset_count'] = 1;
