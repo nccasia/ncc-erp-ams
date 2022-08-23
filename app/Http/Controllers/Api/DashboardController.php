@@ -50,30 +50,29 @@ class DashboardController extends Controller
 
     public function reportAssetByType(Request $request)
     {
-        $query = 'SELECT g.*, l.name as locationName
+        $query = 'SELECT g.*, l.name as location_name
         FROM
-          (SELECT g.rtd_location_id, g.name, g.id,
+          (SELECT g.name as category_name, g.id as category_id, g.rtd_location_id, 
             CAST(
             sum(CASE
-                WHEN g.type = 0 THEN g.total            
+                WHEN g.action_type = "checkout" THEN g.total            
                 ELSE 0
             end) AS SIGNED ) AS checkout,
             CAST(
             sum(CASE
-                WHEN g.type = 1 THEN g.total
+                WHEN g.action_type = "checkin from" THEN g.total
                 ELSE 0
             end) AS SIGNED ) AS checkin
            FROM
              (SELECT assets.rtd_location_id,
-                     history.type,
-                     c.name,
-                     c.id,
+                     action_logs.action_type,
+                     cates.name,
+                     cates.id,
                      COUNT(*) AS total
-              FROM asset_histories AS history
-              JOIN asset_history_details AS history_details ON history.id = history_details.asset_histories_id
-              JOIN assets ON assets.id = history_details.asset_id
-              JOIN models m ON m.id = assets.model_id
-	          JOIN categories c ON c.id = m.category_id';
+              FROM action_logs
+              JOIN assets ON assets.id = action_logs.item_id
+              JOIN models ON models.id = assets.model_id
+	          JOIN categories cates ON cates.id = models.category_id';
 
         $bind = [];
         $from = $request->from;
@@ -82,20 +81,20 @@ class DashboardController extends Controller
         $where = ' WHERE true ';
 
         if ($from && $to) {
-            $where .= " AND cast(history.created_at as date) >= cast(:from as date)
-                             AND cast(history.created_at as date) <=  cast(:to as date)";
+            $where .= " AND cast(action_logs.created_at as date) >= cast(:from as date)
+                             AND cast(action_logs.created_at as date) <=  cast(:to as date)";
             $bind = ['from' => $from, 'to' => $to];
         }
 
         if($request->asset_id){
-            $where .= " AND history_details.asset_id = :asset_id";
+            $where .= " AND action_logs.item_id = :asset_id";
             $bind['asset_id'] = $request->asset_id;
         }
 
         
         $query .= $where;
     
-        $query .= " GROUP BY assets.rtd_location_id, c.name, c.id , history.type) AS g
+        $query .= " GROUP BY assets.rtd_location_id, cates.name, cates.id , action_logs.action_type) AS g
         GROUP BY g.rtd_location_id, g.name , g.id) AS g
         JOIN locations l ON l.id = g.rtd_location_id";
 
@@ -110,6 +109,8 @@ class DashboardController extends Controller
                 $query,
                 $bind
             );
+
+            // dd ($assets_statistic);
 
 
             return response()->json(
