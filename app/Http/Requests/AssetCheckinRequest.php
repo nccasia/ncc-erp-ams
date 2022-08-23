@@ -21,9 +21,7 @@ class AssetCheckinRequest extends Request
      */
     public function rules()
     {
-        return [
-
-        ];
+        return [];
     }
 
     public function response(array $errors)

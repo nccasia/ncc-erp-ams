@@ -36,6 +36,9 @@ use App\Jobs\SendCheckoutMail;
 use App\Jobs\SendConfirmMail;
 use App\Models\AssetHistory;
 use App\Models\AssetHistoryDetail;
+use App\Jobs\SendCheckinMail;
+use App\Http\Requests\AssetCheckinRequest;
+
 
 /**
  * This class controls all actions related to assets for
@@ -1501,59 +1504,44 @@ class AssetsController extends Controller
      */
     public function multiCheckin(Request $request, $type = null)
     {
+
         $assets = $request->assets;
         $asset_tag = null;
-
         foreach ($assets as $asset_id) {
-
             $this->authorize('checkin', Asset::class);
             $asset = Asset::findOrFail($asset_id);
             $this->authorize('checkin', $asset);
-
-
-            $target = $asset->assignedTo;
-            if (is_null($target)) {
+            
+            if (is_null($target = $asset->assignedTo)) {
                 return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
             }
-
-            $asset->expected_checkin = null;
-            $asset->last_checkout = null;
-            $asset->assigned_to = null;
-            $asset->assignedTo()->disassociate($asset);
-            $asset->accepted = null;
-            $asset->assigned_status = config('enum.assigned_status.DEFAULT');
-
-
-            if ($request->filled('name')) {
-                $asset->name = $request->input('name');
-            }
-
-            if ($request->filled('location_id')) {
-                $asset->location_id = $request->input('location_id');
-            }
-
-            if ($request->has('status_id')) {
-                $asset->status_id = $request->input('status_id');
-            }
-
+            $asset->status_id = config('enum.status_id.ASSIGN');
+                
+            $checkin_at = request('checkin_at', date('Y-m-d H:i:s'));
+            $note = request('note', null);
+            $user = $asset->assignedTo;
             $checkin_at = null;
+
             if ($request->filled('checkin_at')) {
                 $checkin_at = $request->input('checkin_at');
             }
-
+            if ($request->has('status_id')) {
+                $asset->status_id = $request->input('status_id');
+            }
             if($asset_id === end($assets)) {
                 $asset_tag .= $asset->asset_tag;
             } else {
                 $asset_tag .= $asset->asset_tag . ", ";
             }
 
-            if ($asset->save()) {
+            $asset->status_id = config('enum.status_id.ASSIGN');
+            if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
                 $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
-                event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
+                $data = $this->setDataUser($request, $user, $asset);
+                SendCheckinMail::dispatch($data, $data['user_email']);
             }
         }
-
-        return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset_tag)], trans('admin/hardware/message.checkin.success')));
+        return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
     }
 
     public function checkin(Request $request, $asset_id)
@@ -1561,45 +1549,27 @@ class AssetsController extends Controller
         $this->authorize('checkin', Asset::class);
         $asset = Asset::findOrFail($asset_id);
         $this->authorize('checkin', $asset);
-
         
-        $user = $asset->assignedUser;
         if (is_null($target = $asset->assignedTo)) {
             return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.already_checked_in')));
         }
-
-        $asset->expected_checkin = null;
-        $asset->last_checkout = null;
-        $asset->assigned_to = null;
-        $asset->assignedTo()->disassociate($asset);
-        $asset->accepted = null;
-        $asset->assigned_status = config('enum.assigned_status.DEFAULT');
-
-        if ($request->filled('name')) {
-            $asset->name = $request->input('name');
-        }
-        
-        // $asset->location_id =  $asset->rtd_location_id;
-
-        if ($request->filled('location_id')) {
-            $asset->location_id =  $request->input('location_id');
-        }
-
-        if ($request->has('status_id')) {
-            $asset->status_id =  $request->input('status_id');
-        }
-
+        $checkin_at = request('checkin_at', date('Y-m-d H:i:s'));
+        $note = request('note', null);
+        $user = $asset->assignedTo;
         $checkin_at = null;
         if ($request->filled('checkin_at')) {
             $checkin_at = $request->input('checkin_at');
         }
-
-        if ($asset->save()) {
-            $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
-            return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
+        if ($request->has('status_id')) {
+            $asset->status_id = $request->input('status_id');
         }
 
+        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
+            $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
+            $data = $this->setDataUser($request, $user, $asset);
+            SendCheckinMail::dispatch($data, $data['user_email']);
+            return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
+        }
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.error')));
     }
 
@@ -1886,6 +1856,56 @@ class AssetsController extends Controller
         ]);
     }
 
-    #End Region
+    private function setDataUser($request, $user, $asset){
 
+        $user_email = $user->email;
+        $user_name = $user->first_name . ' ' . $user->last_name;
+        $current_time = Carbon::now();
+        $location = Location::find($user->location_id ? $user->location_id : env('DEFAULT_LOCATION_USER'));
+        $location_address = $location->name;
+        
+        if ($request->filled('name')) {
+            $user->name = $request->input('name');
+        }
+        $location_arr = array();
+
+        if (!is_null($location)) {
+            if (!is_null($location->address2)) {
+                array_push($location_arr, $location->address2);
+            }
+
+            if (!is_null($location->address)) {
+                array_push($location_arr, $location->address);
+            }
+            if (!is_null($location->state)) {
+                array_push($location_arr, $location->state);
+            }
+
+            if (!is_null($location->city)) {
+                array_push($location_arr, $location->city);
+            }
+        }
+
+        foreach ($location_arr as $value) {
+            if ( $value === end($location_arr)) {
+                $location_address .= $value . '.';
+            } else {
+                $location_address .= ' '.$value . ', ';
+            }
+        }
+       
+        $data = [
+            'user_name' => $user_name,
+            'asset_name' => $asset->name,
+            'count' => 1,
+            'user_email' => $user_email,
+            'location_address' => $location_address,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+        
+        return $data;
+    }
+    
+    #End Region
 }
