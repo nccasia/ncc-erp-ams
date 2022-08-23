@@ -110,8 +110,6 @@ class DashboardController extends Controller
                 $bind
             );
 
-            // dd ($assets_statistic);
-
 
             return response()->json(
                 Helper::formatStandardApiResponse('success',
