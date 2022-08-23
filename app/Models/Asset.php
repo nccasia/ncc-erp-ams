@@ -285,7 +285,7 @@ class Asset extends Depreciable
 
     public function availableForCheckin()
     {
-        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status=== config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status=== config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')) || ($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
+        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')) || ($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
             return true;
         }
         return false;
