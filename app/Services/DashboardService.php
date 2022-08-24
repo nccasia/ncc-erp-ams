@@ -14,7 +14,6 @@ class DashboardService
         $categories = Category::select([
             'id',
             'name',
-            'category_type',
         ])->get();
         return $locations->map(function ($location) use ($categories) {
             return $this->addCategoriesToLocation($location, $categories);
@@ -23,27 +22,25 @@ class DashboardService
 
     public function addCategoriesToLocation($location, $categories)
     {
-        $location['categories'] =  !$location['rtd_consumables']->isEmpty() ? $this->mapStatusToCategory($location['rtd_assets'], $location['rtd_consumables'], $categories) : [];
+        $location['categories'] = !$location['rtd_assets']->isEmpty() ? $this->mapStatusToCategory($location['rtd_assets'], $categories) : [];
         return $location;
     }
-    
-    public function mapStatusToCategory($assets, $consumables, $categories )
+
+    public function mapStatusToCategory($assets, $categories)
     {
         $status_labels = Statuslabel::select([
             'id',
             'name',
         ])->get();
-        return  $categories->map(function ($category) use ($status_labels, $assets, $consumables) {
-            return clone $this->addStatusToCategory($assets, $consumables, $category, $status_labels);
+        return  $categories->map(function ($category) use ($status_labels, $assets) {
+            return clone $this->addStatusToCategory($assets, $category, $status_labels);
         });
     }
 
-    public function addStatusToCategory($assets, $consumables, $category, $status_labels)
+    public function addStatusToCategory($assets, $category, $status_labels)
     {
         $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
         $category['assets_count'] = count($assets);
-        $consumables = (new \App\Models\Consumable)->scopeInCategory($consumables->toQuery(), $category['id'])->get();
-        $category['consumable_count'] = count($consumables);
 
         $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
         $category['status_labels'] = $status_labels;
@@ -58,7 +55,7 @@ class DashboardService
         });
     }
 
-    public function addValueToStatusLabel($assets,$status_label)
+    public function addValueToStatusLabel($assets, $status_label)
     {
         $assets_by_status = (new \App\Models\Asset)->getByStatusId($assets, $status_label['id']);
         $status_label['assets_count'] = count($assets_by_status->toArray());
@@ -147,7 +144,6 @@ class DashboardService
         $totalData['id'] = 99999;
         $totalData['name'] = 'TONG';
         $totalData['assets_count'] = 0;
-        $totalData['consumable_count'] = 0;
         $totalData['categories'] = collect([]);
         $totalData['assets'] = [];
 
@@ -172,7 +168,7 @@ class DashboardService
                 }
             }
         }
-        
+
         $locations[] = $totalData;
 
         return $locations;
