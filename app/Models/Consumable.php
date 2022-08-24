@@ -312,6 +312,20 @@ class Consumable extends SnipeModel
     }
 
     /**
+     * Query builder scope to return results of a category
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query  Query builder instance
+     * @param  text $order Order
+     *
+     * @return \Illuminate\Database\Query\Builder          Modified query builder
+     */
+    public function scopeInCategory($query, $category_id)
+    {
+        return $query->join('categories', 'consumables.category_id', '=', 'categories.id')->where('consumables.category_id', '=', $category_id);
+    }
+
+
+    /**
      * Query builder scope to order on location
      *
      * @param  \Illuminate\Database\Query\Builder  $query  Query builder instance
