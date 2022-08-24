@@ -34,6 +34,7 @@ class AccessoriesTransformer
             'location' => ($accessory->location) ? ['id' => $accessory->location->id, 'name'=> e($accessory->location->name)] : null,
             'notes' => ($accessory->notes) ? e($accessory->notes) : null,
             'qty' => ($accessory->qty) ? (int) $accessory->qty : null,
+            'warranty_months' => ($accessory->warranty_months) ? (int) $accessory->warranty_months : null,
             'purchase_date' => ($accessory->purchase_date) ? Helper::getFormattedDateObject($accessory->purchase_date, 'date') : null,
             'purchase_cost' => Helper::formatCurrencyOutput($accessory->purchase_cost),
             'order_number' => ($accessory->order_number) ? e($accessory->order_number) : null,

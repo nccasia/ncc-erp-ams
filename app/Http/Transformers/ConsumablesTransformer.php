@@ -38,6 +38,7 @@ class ConsumablesTransformer
             'purchase_cost'  => Helper::formatCurrencyOutput($consumable->purchase_cost),
             'purchase_date'  => Helper::getFormattedDateObject($consumable->purchase_date, 'date'),
             'qty'           => (int) $consumable->qty,
+            'warranty_months'  => ($consumable->warranty_months) ? (int) $consumable->warranty_months : null,
             'supplier'      => ($consumable->supplier) ? ['id' => (int) $consumable->supplier->id, 'name' => e($consumable->supplier->name)] : null,
             'notes'         => ($consumable->notes) ? e($consumable->notes) : null,
             'created_at' => Helper::getFormattedDateObject($consumable->created_at, 'datetime'),

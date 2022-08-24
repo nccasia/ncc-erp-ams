@@ -42,6 +42,7 @@ class AccessoriesController extends Controller
                 'min_amt',
                 'company_id',
                 'notes',
+                'warranty_months'
             ];
 
 
@@ -73,6 +74,10 @@ class AccessoriesController extends Controller
 
         if ($request->filled('notes')) {
             $accessories->where('notes','=',$request->input('notes'));
+        }
+
+        if ($request->filled('date_from', 'date_to')) {
+            $accessories->whereBetween('purchase_date', [$request->input('date_from'), $request->input('date_to')]);
         }
 
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
