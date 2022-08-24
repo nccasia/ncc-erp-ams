@@ -269,7 +269,7 @@ class Asset extends Depreciable
         //     // The status of the finfast request is Approved
         //     if($finfast_request->status == 'Approved'){
         // This asset is not currently assigned to anyone and is not deleted...
-        if ((!$this->assigned_to) && (!$this->deleted_at)) {
+        if ((!$this->assigned_to) && (!$this->deleted_at) && (!$this->withdraw_from)) {
 
             // The asset status is not archived and is deployable
             if (($this->assetstatus) && ($this->assetstatus->archived == '0')
@@ -315,7 +315,8 @@ class Asset extends Depreciable
         if ($this->is($target)) {
             throw new CheckinNotAllowed('You cannot check an asset in to itself.');
         }
-        
+
+        $this->withdraw_from = $this->assigned_to;
         $this->status_id = $status_id;
         $this->assigned_status = $assigned_status;
 
