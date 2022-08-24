@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB; 
+use Illuminate\Support\Facades\DB;
 use App\Models\Location;
 use App\Models\Category;
 
@@ -37,88 +37,62 @@ class DashboardController extends Controller
 
             // Calculate total devices by location
             $locations = $this->dashboardService->mapCategoryToLocation($locations);
-            
+
             // Calculate total devices NCC
             $locations = $this->dashboardService->countCategoryOfNCC(
                 clone $locations
             );
 
             return response()->json(Helper::formatStandardApiResponse('success', $locations, trans('admin/dashboard/message.success')));
-        }
-        else  return response()->json(Helper::formatStandardApiResponse('error', null , trans('admin/dashboard/message.not_permission')),401);
+        } else  return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/dashboard/message.not_permission')), 401);
     }
 
     public function reportAssetByType(Request $request)
     {
-        $query = 'SELECT g.*, l.name as location_name
-        FROM
-          (SELECT g.name as category_name, g.id as category_id, g.rtd_location_id, 
-            CAST(
-            sum(CASE
-                WHEN g.action_type = "checkout" THEN g.total            
-                ELSE 0
-            end) AS SIGNED ) AS checkout,
-            CAST(
-            sum(CASE
-                WHEN g.action_type = "checkin from" THEN g.total
-                ELSE 0
-            end) AS SIGNED ) AS checkin
-           FROM
-             (SELECT assets.rtd_location_id,
-                     action_logs.action_type,
-                     cates.name,
-                     cates.id,
-                     COUNT(*) AS total
-              FROM action_logs
-              JOIN assets ON assets.id = action_logs.item_id
-              JOIN models ON models.id = assets.model_id
-	          JOIN categories cates ON cates.id = models.category_id';
-
         $bind = [];
         $from = $request->from;
         $to = $request->to;
 
-        $where = ' WHERE true ';
-
         if ($from && $to) {
-            $where .= " AND cast(action_logs.created_at as date) >= cast(:from as date)
-                             AND cast(action_logs.created_at as date) <=  cast(:to as date)";
             $bind = ['from' => $from, 'to' => $to];
         }
 
-        if($request->asset_id){
-            $where .= " AND action_logs.item_id = :asset_id";
-            $bind['asset_id'] = $request->asset_id;
-        }
+        $locations = Location::select('id', 'name')->get();
+        $categories = Category::select('id', 'name', 'category_type')->get();
 
-        
-        $query .= $where;
-    
-        $query .= " GROUP BY assets.rtd_location_id, cates.name, cates.id , action_logs.action_type) AS g
-        GROUP BY g.rtd_location_id, g.name , g.id) AS g
-        JOIN locations l ON l.id = g.rtd_location_id";
-
-        $locations = Location::select('id','name')->get();
-        $categories = Category::select('id','name')->get();
-
-
+        // dd($categories->toArray());
 
         if (Auth::user()->hasAccess('admin')) {
 
             $assets_statistic = DB::select(
-                $query,
+                $this->dashboardService->queryReportAssetByType('assets', 'rtd_location_id', $from, $to),
+                $bind
+            );
+
+            $consumables_statistic = DB::select(
+                $this->dashboardService->queryReportAssetByType('consumables', 'location_id', $from, $to),
+                $bind
+            );
+
+            $accessories_statistic = DB::select(
+                $this->dashboardService->queryReportAssetByType('accessories', 'location_id', $from, $to),
                 $bind
             );
 
 
             return response()->json(
-                Helper::formatStandardApiResponse('success',
-                [
-                    'locations' => $locations,
-                    'categories' => $categories,
-                    'assets_statistic' => $assets_statistic
-                ]
-                , trans('admin/dashboard/message.success')));
+                Helper::formatStandardApiResponse(
+                    'success',
+                    [
+                        'locations' => $locations,
+                        'categories' => $categories,
+                        'assets_statistic' => $assets_statistic,
+                        'consumables_statistic' => $consumables_statistic,
+                        'accessories_statistic' => $accessories_statistic
+                    ],
+                    trans('admin/dashboard/message.success')
+                )
+            );
         } else {
             return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/dashboard/message.not_permission')), 401);
         }

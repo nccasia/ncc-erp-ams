@@ -173,4 +173,51 @@ class DashboardService
 
         return $locations;
     }
+
+    public function queryReportAssetByType($table_name, $location, $from, $to)
+    {
+        $where = ' WHERE true ';
+
+        if ($from && $to) {
+            $where .= " AND cast(action_logs.created_at as date) >= cast(:from as date)
+                             AND cast(action_logs.created_at as date) <=  cast(:to as date)";
+            $bind = ['from' => $from, 'to' => $to];
+        }
+
+        $query = 'SELECT g.*, l.name as location_name
+        FROM
+          (SELECT g.name as category_name, g.id as category_id, g.' . $location . ', 
+            CAST(
+            sum(CASE
+                WHEN g.action_type = "checkout" THEN g.total            
+                ELSE 0
+            end) AS SIGNED ) AS checkout,
+            CAST(
+            sum(CASE
+                WHEN g.action_type = "checkin from" THEN g.total
+                ELSE 0
+            end) AS SIGNED ) AS checkin
+           FROM
+             (SELECT ' . $table_name . '.' . $location . ',
+                     action_logs.action_type,
+                     cates.name,
+                     cates.id,
+                     COUNT(*) AS total
+              FROM action_logs
+              JOIN ' . $table_name . ' ON ' . $table_name . '.id = action_logs.item_id';
+
+        if ($table_name === "assets") {
+            $query .= ' JOIN models ON models.id = assets.model_id
+                        JOIN categories cates ON cates.id = models.category_id';
+        } else {
+            $query .= ' JOIN categories cates ON cates.id = ' . $table_name . '.category_id';
+        }
+
+        $query .= $where;
+        $query .= ' GROUP BY ' . $table_name . '.' . $location . ', cates.name, cates.id , action_logs.action_type) AS g
+            GROUP BY g.' . $location . ', g.name , g.id) AS g
+            JOIN locations l ON l.id = g.' . $location . '';
+
+        return $query;
+    }
 }
