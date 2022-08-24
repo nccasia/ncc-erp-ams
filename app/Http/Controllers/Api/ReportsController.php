@@ -59,6 +59,10 @@ class ReportsController extends Controller
                 ->where('models.category_id', $request->input('category_id'));
         }
 
+        if ($request->filled('item_type')) {
+            $actionlogs->where('action_logs.item_type', "App\\Models\\" . $request->input('item_type'));
+        }
+
         // For sort
         $allowed_columns = [
             'id',

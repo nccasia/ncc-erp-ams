@@ -60,8 +60,6 @@ class DashboardController extends Controller
         $locations = Location::select('id', 'name')->get();
         $categories = Category::select('id', 'name', 'category_type')->get();
 
-        // dd($categories->toArray());
-
         if (Auth::user()->hasAccess('admin')) {
 
             $assets_statistic = DB::select(
