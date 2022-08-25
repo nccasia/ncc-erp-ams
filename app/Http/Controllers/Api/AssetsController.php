@@ -1077,7 +1077,7 @@ class AssetsController extends Controller
                         if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                         }
-                        $asset->assign_status = config('enum.assigned_status.DEFAULT');
+                        $asset->assigned_status = config('enum.assigned_status.DEFAULT');
                         $asset->withdraw_from = null;
                         $asset->expected_checkin = null;
                         $asset->last_checkout = null;
@@ -1240,7 +1240,7 @@ class AssetsController extends Controller
                             if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
                                 $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                             }
-                            $asset->assign_status = config('enum.assigned_status.DEFAULT');
+                            $asset->assigned_status = config('enum.assigned_status.DEFAULT');
                             $asset->withdraw_from = null;
                             $asset->expected_checkin = null;
                             $asset->last_checkout = null;
