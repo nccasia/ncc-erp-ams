@@ -1242,9 +1242,10 @@ class AssetsController extends Controller
                         $data['is_confirm'] = 'đã xác nhận';
                         $data['asset_count'] = 1;
                         if($asset->withdraw_from){
-                            if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
+                            if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
                                 $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                             }
+                            $asset->assign_status  = config('enum.assigned_status.DEFAULT');
                             $asset->withdraw_from = null;
                             $asset->expected_checkin = null;
                             $asset->last_checkout = null;
