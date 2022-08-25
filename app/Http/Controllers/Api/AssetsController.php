@@ -1055,7 +1055,6 @@ class AssetsController extends Controller
                     }
                 }
             }
-
             $user = null;
             if($asset->assigned_to){
                 $user = User::find($asset->assigned_to);
@@ -1063,7 +1062,6 @@ class AssetsController extends Controller
             if($asset->withdraw_from){
                 $user = User::find($asset->withdraw_from);
             }
-
             if ($user && $assigned_status !== $request->get('assigned_status')) {
                 $it_ncc_email = Setting::first()->admin_cc_email;
                 $user_name = $user->first_name . ' ' . $user->last_name;
