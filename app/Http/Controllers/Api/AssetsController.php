@@ -1076,25 +1076,19 @@ class AssetsController extends Controller
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
                     $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
-                    if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
-                        if($asset->withdraw_from){
-                            $asset->withdraw_from = null;
+                    if($asset->withdraw_from){
+                        if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
-                            $asset->expected_checkin = null;
-                            $asset->last_checkout = null;
-                            $asset->assigned_to = null;
-                            $asset->assignedTo()->disassociate($this);
-                            $asset->accepted = null;
-                        }else{
-                            $asset->status_id = config('enum.status_id.ASSIGN');
                         }
-                    } else {
-                    $asset->expected_checkin = null;
-                    $asset->last_checkout = null;
-                    $asset->assigned_to = null;
-                    $asset->assignedTo()->disassociate($this);
-                    $asset->accepted = null;
-                }
+                        $asset->withdraw_from = null;
+                        $asset->expected_checkin = null;
+                        $asset->last_checkout = null;
+                        $asset->assigned_to = null;
+                        $asset->assignedTo()->disassociate($this);
+                        $asset->accepted = null;
+                    }else{
+                        $asset->status_id = config('enum.status_id.ASSIGN');
+                    }
                 } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
                     $data['is_confirm'] = 'đã từ chối';
                     $data['asset_count'] = 1;
@@ -1218,7 +1212,13 @@ class AssetsController extends Controller
                         }
                     }
                 }
-                $user = User::find($asset->assigned_to);
+                $user = null;
+                if($asset->assigned_to){
+                    $user = User::find($asset->assigned_to);
+                }
+                if($asset->withdraw_from){
+                    $user = User::find($asset->withdraw_from);
+                }
 
                 if ($id === end($asset_ids)) {
                     $asset_names .= $asset->name;
@@ -1239,11 +1239,25 @@ class AssetsController extends Controller
                         'asset_count' => count($asset_ids)
                     ];
                     if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                        $data['is_confirm'] = 'đã nhận được';
-                        $asset->status_id = config('enum.status_id.ASSIGN');
+                        $data['is_confirm'] = 'đã xác nhận';
+                        $data['asset_count'] = 1;
+                        if($asset->withdraw_from){
+                            if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
+                                $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                            }
+                            $asset->withdraw_from = null;
+                            $asset->expected_checkin = null;
+                            $asset->last_checkout = null;
+                            $asset->assigned_to = null;
+                            $asset->assignedTo()->disassociate($this);
+                            $asset->accepted = null;
+                        }else{
+                            $asset->status_id = config('enum.status_id.ASSIGN');
+                        }
                     } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
-                        $data['is_confirm'] = 'chưa nhận được';
-                        $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                        $data['is_confirm'] = 'đã từ chối';
+                        $asset->status_id = config('enum.status_id.ASSIGN');
+                        $asset->withdraw_from = null;
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
                     }
                     if ($id === end($asset_ids)) {
@@ -1562,7 +1576,6 @@ class AssetsController extends Controller
                 $asset_tag .= $asset->asset_tag . ", ";
             }
 
-            $asset->status_id = config('enum.status_id.ASSIGN');
             if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
                 $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
                 $data = $this->setDataUser($request, $user, $asset);
@@ -1886,6 +1899,7 @@ class AssetsController extends Controller
             'asset_id' => $asset_id
         ]);
     }
+    #End Region
 
     private function setDataUser($request, $user, $asset){
 
@@ -1938,5 +1952,4 @@ class AssetsController extends Controller
         return $data;
     }
     
-    #End Region
 }
