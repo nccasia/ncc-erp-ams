@@ -1059,9 +1059,6 @@ class AssetsController extends Controller
             if($asset->assigned_to){
                 $user = User::find($asset->assigned_to);
             }
-            if($asset->withdraw_from){
-                $user = User::find($asset->withdraw_from);
-            }
             if ($user && $assigned_status !== $request->get('assigned_status')) {
                 $it_ncc_email = Setting::first()->admin_cc_email;
                 $user_name = $user->first_name . ' ' . $user->last_name;
@@ -1080,6 +1077,7 @@ class AssetsController extends Controller
                         if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                         }
+                        $asset->assign_status = config('enum.assigned_status.DEFAULT');
                         $asset->withdraw_from = null;
                         $asset->expected_checkin = null;
                         $asset->last_checkout = null;
@@ -1216,9 +1214,6 @@ class AssetsController extends Controller
                 if($asset->assigned_to){
                     $user = User::find($asset->assigned_to);
                 }
-                if($asset->withdraw_from){
-                    $user = User::find($asset->withdraw_from);
-                }
 
                 if ($id === end($asset_ids)) {
                     $asset_names .= $asset->name;
@@ -1245,7 +1240,7 @@ class AssetsController extends Controller
                             if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
                                 $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                             }
-                            $asset->assign_status  = config('enum.assigned_status.DEFAULT');
+                            $asset->assign_status = config('enum.assigned_status.DEFAULT');
                             $asset->withdraw_from = null;
                             $asset->expected_checkin = null;
                             $asset->last_checkout = null;
