@@ -13,6 +13,8 @@ return [
     "REJECT"  => 3
   ],
   "status_id" => [
+    "PENDING" => 1,
+    "BROKEN" => 3,
     "ASSIGN" => 4,
     "READY_TO_DEPLOY" => 5
   ],

@@ -84,6 +84,7 @@ class AssetsTransformer
             'expected_checkin' => Helper::getFormattedDateObject($asset->expected_checkin, 'date'),
             'purchase_cost' => Helper::formatCurrencyOutput($asset->purchase_cost),
             'permissions' => (object) $asset->permissions,
+            'withdraw_from' => (int) $asset->withdraw_from,
             'assigned_status' => (int) $asset->assigned_status,
             'requestable' => e($asset->requestable),
             'checkin_counter' => (int) $asset->checkin_counter,

@@ -269,7 +269,7 @@ class Asset extends Depreciable
         //     // The status of the finfast request is Approved
         //     if($finfast_request->status == 'Approved'){
         // This asset is not currently assigned to anyone and is not deleted...
-        if ((!$this->assigned_to) && (!$this->deleted_at)) {
+        if ((!$this->assigned_to) && (!$this->deleted_at) && (!$this->withdraw_from)) {
 
             // The asset status is not archived and is deployable
             if (($this->assetstatus) && ($this->assetstatus->archived == '0')
@@ -285,7 +285,7 @@ class Asset extends Depreciable
 
     public function availableForCheckin()
     {
-        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->status_id === config('enum.status_id.ASSIGN')) || ($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
+        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')) || ($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
             return true;
         }
         return false;
@@ -316,12 +316,8 @@ class Asset extends Depreciable
             throw new CheckinNotAllowed('You cannot check an asset in to itself.');
         }
 
+        $this->withdraw_from = $this->assigned_to;
         $this->status_id = $status_id;
-        $this->expected_checkin = null;
-        $this->last_checkout = null;
-        $this->assigned_to = null;
-        $this->assignedTo()->disassociate($this);
-        $this->accepted = null;
         $this->assigned_status = $assigned_status;
 
         
