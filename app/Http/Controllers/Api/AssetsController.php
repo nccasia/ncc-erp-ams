@@ -1255,7 +1255,7 @@ class AssetsController extends Controller
                         }else{
                             $asset->status_id = config('enum.status_id.ASSIGN');
                         }
-                    } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
+                    } elseif ($asset->assigned_status === config('enum.assigned_status.REJECTCHECKOUT') || $asset->assigned_status === config('enum.assigned_status.REJECTCHECKIN')) {
                         $data['is_confirm'] = 'đã từ chối cấp phát';
                         if($asset->withdraw_from){
                             $data['is_confirm'] = 'đã từ chối thu hồi';
