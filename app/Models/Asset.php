@@ -285,7 +285,7 @@ class Asset extends Depreciable
 
     public function availableForCheckin()
     {
-        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')) || ($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
+        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPTCHECKOUT'))) || (($this->assigned_status === config('enum.assigned_status.REJECTCHECKOUT'))) || (($this->assigned_status === config('enum.assigned_status.REJECTCHECKIN'))) && (($this->status_id === config('enum.status_id.ASSIGN')) || ($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
             return true;
         }
         return false;
@@ -315,12 +315,12 @@ class Asset extends Depreciable
         if ($this->is($target)) {
             throw new CheckinNotAllowed('You cannot check an asset in to itself.');
         }
-
+        
         $this->withdraw_from = $this->assigned_to;
         $this->status_id = $status_id;
         $this->assigned_status = $assigned_status;
 
-        
+
         if ($name != null) {
             $this->name = $name;
         }

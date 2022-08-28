@@ -1070,7 +1070,7 @@ class AssetsController extends Controller
                     'time' => $current_time->format('d-m-Y'),
                     'reason' => '',
                 ];
-                if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
+                if ($asset->assigned_status === config('enum.assigned_status.ACCEPTCHECKOUT') || $asset->assigned_status === config('enum.assigned_status.ACCEPTCHECKIN')) {
                     $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     $asset->assigned_status = config('enum.assigned_status.ACCEPTCHECKOUT');
@@ -1088,7 +1088,7 @@ class AssetsController extends Controller
                     }else{
                         $asset->status_id = config('enum.status_id.ASSIGN');
                     }
-                } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
+                } elseif ($asset->assigned_status === config('enum.assigned_status.REJECTCHECKOUT') || $asset->assigned_status === config('enum.assigned_status.REJECTCHECKIN')) {
                     $data['is_confirm'] = 'đã từ chối';
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
@@ -1238,7 +1238,7 @@ class AssetsController extends Controller
                         'reason' => '',
                         'asset_count' => count($asset_ids)
                     ];
-                    if ($asset->assigned_status === config('enum.assigned_status.ACCEPTCHECKOUT')) {
+                if ($asset->assigned_status === config('enum.assigned_status.ACCEPTCHECKOUT') || $asset->assigned_status === config('enum.assigned_status.ACCEPTCHECKIN')) {
                         $data['is_confirm'] = 'đã xác nhận cấp phát';
                         $data['asset_count'] = 1;
                         if($asset->withdraw_from){
@@ -1613,7 +1613,7 @@ class AssetsController extends Controller
         if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')){
             $asset->status_id = config('enum.status_id.CHECKIN');
         }
-        
+
         if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
             $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
             $data = $this->setDataUser($request, $user, $asset);
