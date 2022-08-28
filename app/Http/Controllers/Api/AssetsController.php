@@ -983,7 +983,7 @@ class AssetsController extends Controller
                     }
                 }
 
-                $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
+                $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITINGCHECKOUT'));
                 $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_OUT_TYPE'));
                 $data = [
                     'user_name' => $target->first_name . ' ' . $target->last_name,
@@ -1140,7 +1140,7 @@ class AssetsController extends Controller
                             $location_address .= $value . ', ';
                         }
                     }
-                    $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
+                    $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITINGCHECKOUT'));
                     $data = [
                             'user_name' => $target->first_name . ' ' . $target->last_name,
                             'asset_name' => $asset->name,
@@ -1305,7 +1305,7 @@ class AssetsController extends Controller
                             }
                         }
 
-                        $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITING'));
+                        $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITINGCHECKOUT'));
                         $data = [
                                 'user_name' => $target->first_name . ' ' . $target->last_name,
                                 'asset_name' => $asset->name,
@@ -1511,7 +1511,7 @@ class AssetsController extends Controller
 
             $asset->status_id = config('enum.status_id.ASSIGN');
 
-            if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
+            if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITINGCHECKOUT'))) {
                 $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_OUT_TYPE'));
             }
         }
@@ -1564,7 +1564,7 @@ class AssetsController extends Controller
                 $asset->status_id = $request->input('status_id');
             }
             if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')){
-                $asset->status_id = config('enum.status_id.ASSIGN');
+                $asset->status_id = config('enum.status_id.CHECKIN');
             }
             if($asset_id === end($assets)) {
                 $asset_tag .= $asset->asset_tag;
@@ -1572,7 +1572,7 @@ class AssetsController extends Controller
                 $asset_tag .= $asset->asset_tag . ", ";
             }
 
-            if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
+            if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
                 $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
                 $data = $this->setDataUser($request, $user, $asset);
                 SendCheckinMail::dispatch($data, $data['user_email']);
@@ -1601,10 +1601,10 @@ class AssetsController extends Controller
             $asset->status_id = $request->input('status_id');
         }
         if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')){
-            $asset->status_id = config('enum.status_id.ASSIGN');
+            $asset->status_id = config('enum.status_id.CHECKIN');
         }
         
-        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITING'))) {
+        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
             $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
             $data = $this->setDataUser($request, $user, $asset);
             SendCheckinMail::dispatch($data, $data['user_email']);
@@ -1713,7 +1713,7 @@ class AssetsController extends Controller
 
         $asset->status_id = config('enum.status_id.ASSIGN');
 
-        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITING'))) {
+        if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset->name, $asset->location_id, config('enum.assigned_status.WAITINGCHECKOUT'))) {
             $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_OUT_TYPE'));  
             $data = [
                 'user_name' => $user_name,

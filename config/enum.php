@@ -10,13 +10,16 @@ return [
     "DEFAULT" => 0, 
     "WAITING" => 1, 
     "ACCEPT"  => 2,  
-    "REJECT"  => 3
+    "REJECT"  => 3,
+    "WAITINGCHECKOUT" => 4, 
+    "WAITINGCHECKIN" => 5, 
   ],
   "status_id" => [
     "PENDING" => 1,
     "BROKEN" => 3,
     "ASSIGN" => 4,
-    "READY_TO_DEPLOY" => 5
+    "READY_TO_DEPLOY" => 5,
+    "CHECKIN" => 6,
   ],
   "asset_history" => [
     "CHECK_IN_TYPE" => 1,
