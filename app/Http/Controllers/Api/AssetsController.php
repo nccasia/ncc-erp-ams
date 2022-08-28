@@ -755,7 +755,7 @@ class AssetsController extends Controller
             default:
                 $priority_assign_status = config('enum.assigned_status.WAITING');
                 $assets->orderByRaw(
-                    "CASE WHEN assets.assigned_status = $priority_assign_status THEN 1 ELSE 0 END DESC"
+                    "CASE WHEN assets.assigned_status = $priority_assign_status THEN 6 ELSE 0 END DESC"
                 );
                 $assets->orderBy($column_sort, $order);
                 break;
@@ -1073,6 +1073,7 @@ class AssetsController extends Controller
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
                     $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
+                    $asset->assigned_status = config('enum.assigned_status.ACCEPTCHECKOUT');
                     if($asset->withdraw_from){
                         if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
@@ -1090,7 +1091,11 @@ class AssetsController extends Controller
                 } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
                     $data['is_confirm'] = 'đã từ chối';
                     $data['asset_count'] = 1;
-                    $asset->withdraw_from = null;
+                    if($asset->withdraw_from){
+                        $asset->assigned_status = config('enum.assigned_status.REJECTCHECKIN');
+                        $asset->withdraw_from = null;
+                    }
+                    $asset->assigned_status = config('enum.assigned_status.REJECTCHECKOUT');
                     $asset->status_id = config('enum.status_id.ASSIGN');
                     $data['reason'] = 'Lý do: ' . $request->get('reason');
                 }
@@ -1233,8 +1238,8 @@ class AssetsController extends Controller
                         'reason' => '',
                         'asset_count' => count($asset_ids)
                     ];
-                    if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                        $data['is_confirm'] = 'đã xác nhận';
+                    if ($asset->assigned_status === config('enum.assigned_status.ACCEPTCHECKOUT')) {
+                        $data['is_confirm'] = 'đã xác nhận cấp phát';
                         $data['asset_count'] = 1;
                         if($asset->withdraw_from){
                             if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
@@ -1251,9 +1256,14 @@ class AssetsController extends Controller
                             $asset->status_id = config('enum.status_id.ASSIGN');
                         }
                     } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
-                        $data['is_confirm'] = 'đã từ chối';
+                        $data['is_confirm'] = 'đã từ chối cấp phát';
+                        if($asset->withdraw_from){
+                            $data['is_confirm'] = 'đã từ chối thu hồi';
+                            $asset->assigned_status = config('enum.assigned_status.REJECTCHECKIN');
+                            $asset->withdraw_from = null;
+                        }
+                        $asset->assigned_status = config('enum.assigned_status.REJECTCHECKOUT');
                         $asset->status_id = config('enum.status_id.ASSIGN');
-                        $asset->withdraw_from = null;
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
                     }
                     if ($id === end($asset_ids)) {

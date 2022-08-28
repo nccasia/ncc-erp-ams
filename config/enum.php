@@ -13,6 +13,10 @@ return [
     "REJECT"  => 3,
     "WAITINGCHECKOUT" => 4, 
     "WAITINGCHECKIN" => 5, 
+    "ACCEPTCHECKOUT" => 6, 
+    "ACCEPTCHECKIN" => 7,
+    "REJECTCHECKOUT"  => 8,
+    "REJECTCHECKIN"  => 9,
   ],
   "status_id" => [
     "PENDING" => 1,
