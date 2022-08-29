@@ -1091,11 +1091,11 @@ class AssetsController extends Controller
                 } elseif ($asset->assigned_status === config('enum.assigned_status.REJECTCHECKOUT') || $asset->assigned_status === config('enum.assigned_status.REJECTCHECKIN')) {
                     $data['is_confirm'] = 'đã từ chối';
                     $data['asset_count'] = 1;
+                    $asset->assigned_status = config('enum.assigned_status.REJECTCHECKOUT');
                     if($asset->withdraw_from){
                         $asset->assigned_status = config('enum.assigned_status.REJECTCHECKIN');
                         $asset->withdraw_from = null;
                     }
-                    $asset->assigned_status = config('enum.assigned_status.REJECTCHECKOUT');
                     $asset->status_id = config('enum.status_id.ASSIGN');
                     $data['reason'] = 'Lý do: ' . $request->get('reason');
                 }
@@ -1257,12 +1257,12 @@ class AssetsController extends Controller
                         }
                     } elseif ($asset->assigned_status === config('enum.assigned_status.REJECTCHECKOUT') || $asset->assigned_status === config('enum.assigned_status.REJECTCHECKIN')) {
                         $data['is_confirm'] = 'đã từ chối cấp phát';
+                        $asset->assigned_status = config('enum.assigned_status.REJECTCHECKOUT');
                         if($asset->withdraw_from){
                             $data['is_confirm'] = 'đã từ chối thu hồi';
                             $asset->assigned_status = config('enum.assigned_status.REJECTCHECKIN');
                             $asset->withdraw_from = null;
                         }
-                        $asset->assigned_status = config('enum.assigned_status.REJECTCHECKOUT');
                         $asset->status_id = config('enum.status_id.ASSIGN');
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
                     }
@@ -1549,7 +1549,7 @@ class AssetsController extends Controller
      */
     public function multiCheckin(Request $request, $type = null)
     {
-
+        
         $assets = $request->assets;
         $asset_tag = null;
         foreach ($assets as $asset_id) {
@@ -1944,7 +1944,7 @@ class AssetsController extends Controller
                 $location_address .= ' '.$value . ', ';
             }
         }
-       
+
         $data = [
             'user_name' => $user_name,
             'asset_name' => $asset->name,
