@@ -200,6 +200,10 @@ class AssetsController extends Controller
             $assets->where('assets.company_id', '=', $request->input('company_id'));
         }
 
+        if ($request->category) {
+            $assets->InCategory($request->input('category'));
+        }
+        
         if ($request->filled('manufacturer_id')) {
             $assets->ByManufacturer($request->input('manufacturer_id'));
         }
@@ -1549,7 +1553,7 @@ class AssetsController extends Controller
      */
     public function multiCheckin(Request $request, $type = null)
     {
-        
+
         $assets = $request->assets;
         $asset_tag = null;
         foreach ($assets as $asset_id) {
@@ -1944,7 +1948,7 @@ class AssetsController extends Controller
                 $location_address .= ' '.$value . ', ';
             }
         }
-
+       
         $data = [
             'user_name' => $user_name,
             'asset_name' => $asset->name,
