@@ -26,7 +26,7 @@ class AddColWithdrawFromAssets extends Migration
     public function down()
     {
         Schema::table('assets', function (Blueprint $table) {
-            $table->integer('withdraw_from')->nullable();
+            $table->dropColumn('withdraw_from');
         });
     }
 }

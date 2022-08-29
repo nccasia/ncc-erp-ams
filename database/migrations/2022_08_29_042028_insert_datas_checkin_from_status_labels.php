@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
-class InsertDataCheckinFromStatusLabels extends Migration
+class InsertDatasCheckinFromStatusLabels extends Migration
 {
     /**
      * Run the migrations.
@@ -28,7 +28,7 @@ class InsertDataCheckinFromStatusLabels extends Migration
      */
     public function down()
     {
-        DB::table('status_labels')->insert([
+        DB::table('status_labels')->delete([
             'id' => 6,
             'name' => 'Checkin',
             'user_id' => 1,
