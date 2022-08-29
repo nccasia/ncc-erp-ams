@@ -13,9 +13,12 @@ class AddColWithdrawFromAssets extends Migration
      */
     public function up()
     {
-        Schema::table('assets', function (Blueprint $table) {
-            $table->integer('withdraw_from')->nullable();
-        });
+        if (!Schema::hasColumn('assets', 'withdraw_from')) //check the column
+        {
+            Schema::table('assets', function (Blueprint $table) {
+                $table->integer('withdraw_from')->nullable();
+            });
+        }
     }
 
     /**
