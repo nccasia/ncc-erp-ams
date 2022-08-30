@@ -1074,10 +1074,10 @@ class AssetsController extends Controller
                     'time' => $current_time->format('d-m-Y'),
                     'reason' => '',
                 ];
-                if ($asset->assigned_status === config('enum.assigned_status.ACCEPTCHECKOUT') || $asset->assigned_status === config('enum.assigned_status.ACCEPTCHECKIN')) {
+                if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
                     $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
-                    $asset->assigned_status = config('enum.assigned_status.ACCEPTCHECKOUT');
+                    $asset->assigned_status = config('enum.assigned_status.ACCEPT');
                     if($asset->withdraw_from){
                         if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
@@ -1092,12 +1092,11 @@ class AssetsController extends Controller
                     }else{
                         $asset->status_id = config('enum.status_id.ASSIGN');
                     }
-                } elseif ($asset->assigned_status === config('enum.assigned_status.REJECTCHECKOUT') || $asset->assigned_status === config('enum.assigned_status.REJECTCHECKIN')) {
+                } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
                     $data['is_confirm'] = 'đã từ chối';
                     $data['asset_count'] = 1;
-                    $asset->assigned_status = config('enum.assigned_status.REJECTCHECKOUT');
+                    $asset->assigned_status = config('enum.assigned_status.REJECT');
                     if($asset->withdraw_from){
-                        $asset->assigned_status = config('enum.assigned_status.REJECTCHECKIN');
                         $asset->withdraw_from = null;
                     }
                     $asset->status_id = config('enum.status_id.ASSIGN');
