@@ -759,7 +759,7 @@ class AssetsController extends Controller
             default:
                 $priority_assign_status = config('enum.assigned_status.WAITING');
                 $assets->orderByRaw(
-                    "CASE WHEN assets.assigned_status = $priority_assign_status THEN 6 ELSE 0 END DESC"
+                    "CASE WHEN assets.assigned_status = $priority_assign_status THEN 1 ELSE 0 END DESC"
                 );
                 $assets->orderBy($column_sort, $order);
                 break;
