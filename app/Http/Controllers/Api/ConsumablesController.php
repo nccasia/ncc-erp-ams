@@ -56,6 +56,10 @@ class ConsumablesController extends Controller
             $consumables = $consumables->TextSearch(e($request->input('search')));
         }
 
+        if ($request->filled('consumable_id')) {
+            $consumables->where('id', '=', $request->input('consumable_id'));
+        }
+
         if ($request->filled('company_id')) {
             $consumables->where('company_id', '=', $request->input('company_id'));
         }

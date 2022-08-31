@@ -52,6 +52,10 @@ class AccessoriesController extends Controller
             $accessories = $accessories->TextSearch($request->input('search'));
         }
 
+        if ($request->filled('accessory_id')) {
+            $accessories->where('id', '=', $request->input('accessory_id'));
+        }
+
         if ($request->filled('company_id')) {
             $accessories->where('company_id', '=', $request->input('company_id'));
         }
