@@ -315,12 +315,12 @@ class Asset extends Depreciable
         if ($this->is($target)) {
             throw new CheckinNotAllowed('You cannot check an asset in to itself.');
         }
-
+        
         $this->withdraw_from = $this->assigned_to;
         $this->status_id = $status_id;
         $this->assigned_status = $assigned_status;
 
-        
+
         if ($name != null) {
             $this->name = $name;
         }
