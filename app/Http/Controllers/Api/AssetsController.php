@@ -1573,7 +1573,7 @@ class AssetsController extends Controller
                 $asset->status_id = $request->input('status_id');
             }
             if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')){
-                $asset->status_id = config('enum.status_id.CHECKIN');
+                $asset->status_id = config('enum.status_id.ASSIGN');
             }
             if($asset_id === end($assets)) {
                 $asset_tag .= $asset->asset_tag;
@@ -1610,7 +1610,7 @@ class AssetsController extends Controller
             $asset->status_id = $request->input('status_id');
         }
         if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')){
-            $asset->status_id = config('enum.status_id.CHECKIN');
+            $asset->status_id = config('enum.status_id.ASSIGN');
         }
 
         if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {

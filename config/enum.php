@@ -19,7 +19,6 @@ return [
     "BROKEN" => 3,
     "ASSIGN" => 4,
     "READY_TO_DEPLOY" => 5,
-    "CHECKIN" => 6,
   ],
   "asset_history" => [
     "CHECK_IN_TYPE" => 1,
