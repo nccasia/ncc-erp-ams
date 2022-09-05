@@ -311,10 +311,10 @@ class AccessoriesController extends Controller
 
             $accessory->logCheckout($request->input('note'), $user);
 
-            return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/accessories/message.checkout.success')));
+            return response()->json(Helper::formatStandardApiResponse('success', ['accessory' => e($accessory->name)], trans('admin/accessories/message.checkout.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, 'No accessories remaining'));
+        return response()->json(Helper::formatStandardApiResponse('error', ['accessory' => e($accessory->name)], 'No accessories remaining'));
 
     }
 
@@ -345,7 +345,7 @@ class AccessoriesController extends Controller
             if (! is_null($accessory_user->assigned_to)) {
                 $user = User::find($accessory_user->assigned_to);
             }
-
+            
             $data['log_id'] = $logaction->id;
             $data['first_name'] = $user->first_name;
             $data['last_name'] = $user->last_name;
@@ -354,10 +354,10 @@ class AccessoriesController extends Controller
             $data['item_tag'] = '';
             $data['note'] = $logaction->note;
 
-            return response()->json(Helper::formatStandardApiResponse('success', null,  trans('admin/accessories/message.checkin.success')));
+            return response()->json(Helper::formatStandardApiResponse('success', ['accessory' => e($accessory->name)],  trans('admin/accessories/message.checkin.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/accessories/message.checkin.error')));
+        return response()->json(Helper::formatStandardApiResponse('error', ['accessory' => e($accessory->name)], trans('admin/accessories/message.checkin.error')));
 
     }
 
