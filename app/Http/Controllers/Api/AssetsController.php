@@ -203,6 +203,10 @@ class AssetsController extends Controller
         if ($request->category) {
             $assets->InCategory($request->input('category'));
         }
+
+        if ($request->status_label) {
+            $assets->where('assets.status_id', '=', $request->input('status_label'));
+        }
         
         if ($request->filled('manufacturer_id')) {
             $assets->ByManufacturer($request->input('manufacturer_id'));
