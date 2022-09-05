@@ -289,10 +289,10 @@ class ConsumablesController extends Controller
             $data['note'] = $logaction->note;
             $data['require_acceptance'] = $consumable->requireAcceptance();
 
-            return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/consumables/message.checkout.success')));
+            return response()->json(Helper::formatStandardApiResponse('success', ['accessory' => e($consumable->name)], trans('admin/consumables/message.checkout.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, 'No consumables remaining'));
+        return response()->json(Helper::formatStandardApiResponse('error', ['accessory' => e($consumable->name)], 'No consumables remaining'));
     }
 
     /**
