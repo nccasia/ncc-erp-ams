@@ -328,6 +328,11 @@ class Accessory extends SnipeModel
         return $remaining;
     }
 
+    public function scopeInCategory($query, $category_id)
+    {
+        return $query->join('categories', 'accessories.category_id', '=', 'categories.id')->where('accessories.category_id', '=', $category_id);
+    }
+
     /**
     * Query builder scope to order on company
     *
@@ -382,6 +387,8 @@ class Accessory extends SnipeModel
     {
         return $query->leftJoin('manufacturers', 'accessories.manufacturer_id', '=', 'manufacturers.id')->orderBy('manufacturers.name', $order);
     }
+
+    
 
     /**
     * Query builder scope to order on supplier

@@ -134,6 +134,11 @@ class Location extends SnipeModel
         return $this->hasMany(\App\Models\Consumable::class, 'location_id');
     }
 
+    public function rtd_accessories()
+    {
+        return $this->hasMany(\App\Models\Accessory::class, 'location_id');
+    }
+
     public function parent()
     {
         return $this->belongsTo(self::class, 'parent_id', 'id')
