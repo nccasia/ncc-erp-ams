@@ -14,6 +14,7 @@ class DashboardService
         $categories = Category::select([
             'id',
             'name',
+            'category_type'
         ])->get();
         return $locations->map(function ($location) use ($categories) {
             return $this->addCategoriesToLocation($location, $categories);
@@ -22,26 +23,42 @@ class DashboardService
 
     public function addCategoriesToLocation($location, $categories)
     {
-        $location['categories'] = !$location['rtd_assets']->isEmpty() ? $this->mapStatusToCategory($location['rtd_assets'], $categories) : [];
+        $location['categories'] = !$location['rtd_assets']->isEmpty() ? $this->mapStatusToCategory($location['rtd_assets'], $categories, $location['rtd_consumables'], $location['rtd_accessories']) : [];
         return $location;
     }
 
-    public function mapStatusToCategory($assets, $categories)
+    public function mapStatusToCategory($assets, $categories, $consumables, $accessories)
     {
         $status_labels = Statuslabel::select([
             'id',
             'name',
         ])->get();
-        return  $categories->map(function ($category) use ($status_labels, $assets) {
-            return clone $this->addStatusToCategory($assets, $category, $status_labels);
+        return  $categories->map(function ($category) use ($status_labels, $assets, $consumables, $accessories) {
+            return clone $this->addStatusToCategory($assets, $category, $status_labels, $consumables, $accessories);
         });
     }
 
-    public function addStatusToCategory($assets, $category, $status_labels)
+    public function addStatusToCategory($assets, $category, $status_labels, $consumables, $accessories)
     {
         $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
         $category['assets_count'] = count($assets);
 
+       if($consumables->isEmpty()){
+        $category['consumables_count'] = 0;
+       }
+       else{
+        $consumables = (new \App\Models\Consumable)->scopeInCategory($consumables->toQuery(), $category['id'])->get();
+        $category['consumables_count'] = count($consumables);
+       }
+
+       if($accessories->isEmpty()){
+        $category['accessories_count'] = 0;
+       }
+       else{
+        $accessories = (new \App\Models\Accessory)->scopeInCategory($accessories->toQuery(), $category['id'])->get();
+        $category['accessories_count'] = count($accessories);
+       }
+       
         $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
         $category['status_labels'] = $status_labels;
 
@@ -77,7 +94,8 @@ class DashboardService
     {
         $locations = Location::select(['id', 'name']);
         if ($purchase_date_from == null && $purchase_date_to == null) {
-            $locations = $locations->with('rtd_assets')->withCount('rtd_assets as assets_count')->get();
+            $locations = $locations->withCount(['rtd_assets as assets_count','rtd_consumables as consumables_count','rtd_accessories as accessories_count'])->get();
+            
         } else {
             $locations =  $locations->with('rtd_assets', function ($query) use ($purchase_date_from, $purchase_date_to) {
                 if (!is_null($purchase_date_from)) {
@@ -96,7 +114,26 @@ class DashboardService
                         $query = $query->where('purchase_date', '<=', $purchase_date_to);
                     }
                     return $query;
-                }])->get();
+                }, 
+                'rtd_consumables as consumables_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
+                    return $query;
+                },
+                'rtd_accessories as accessories_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
+                    return $query;
+                }
+                ])->get();
         }
 
         return $locations;
@@ -106,6 +143,9 @@ class DashboardService
     {
         $result = [
             'assets_count' => $category->assets_count,
+            'consumables_count' => $category->consumables_count,
+            'accessories_count' => $category->accessories_count,
+            'category_type' => $category->category_type,
             'id' => $category->id,
             'name' => $category->name,
             'status_labels' => $category->status_labels->map(function ($label) {
@@ -121,11 +161,14 @@ class DashboardService
 
     private function increaseAssestCountForCategory(&$categoryOld, $newData)
     {
-        $categoryOld['assets_count'] += $newData['assets_count'];
+	$categoryOld['assets_count'] += $newData['assets_count'];
+    $categoryOld['consumables_count'] += $newData['consumables_count'];
+    $categoryOld['accessories_count'] += $newData['accessories_count'];
         foreach ($newData['status_labels'] as $label) {
             $categoryOld['status_labels'] = $categoryOld['status_labels']->map(function ($value) use ($label) {
                 if ($value['id'] == $label['id']) {
                     $value['assets_count'] += $label['assets_count'];
+                    
                 }
                 return $value;
             });
@@ -144,11 +187,19 @@ class DashboardService
         $totalData['id'] = 99999;
         $totalData['name'] = 'TONG';
         $totalData['assets_count'] = 0;
+        $totalData['consumables_count'] = 0;
+        $totalData['accessories_count'] = 0;
+        $totalData['items_count'] = 0;
+
         $totalData['categories'] = collect([]);
         $totalData['assets'] = [];
 
         foreach ($locations as $location) {
             $totalData['assets_count'] += $location->assets_count;
+            $totalData['consumables_count'] += $location->consumables_count;
+            $totalData['accessories_count'] += $location->accessories_count;
+            $totalData['items_count'] = $totalData['assets_count'] + $totalData['consumables_count'] + $totalData['accessories_count'];
+
             // calculate total assest of each category
             foreach ($location->categories as $category) { // loop category
                 $totalData['categories'] = $totalData['categories']->map(function ($cate) use ($category) {
