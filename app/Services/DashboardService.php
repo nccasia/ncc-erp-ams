@@ -98,45 +98,43 @@ class DashboardService
             
         } else {
             $locations =  $locations->with('rtd_assets', function ($query) use ($purchase_date_from, $purchase_date_to) {
-                if (!is_null($purchase_date_from)) {
-                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
-                }
-                if (!is_null($purchase_date_to)) {
-                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
-                }
-                return $query;
+                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
+                    return $query;
+            })
+            ->with('rtd_consumables', function ($query) use ($purchase_date_from, $purchase_date_to) {
+                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
+                    return $query;
+            })
+            ->with('rtd_accessories', function ($query) use ($purchase_date_from, $purchase_date_to) {
+                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
+                    return $query;
             })
                 ->withCount(['rtd_assets as assets_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    if (!is_null($purchase_date_from)) {
-                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
-                    }
-                    if (!is_null($purchase_date_to)) {
-                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
-                    }
+                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
                     return $query;
-                }, 
+                },
                 'rtd_consumables as consumables_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    if (!is_null($purchase_date_from)) {
-                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
-                    }
-                    if (!is_null($purchase_date_to)) {
-                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
-                    }
+                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
                     return $query;
                 },
                 'rtd_accessories as accessories_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    if (!is_null($purchase_date_from)) {
-                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
-                    }
-                    if (!is_null($purchase_date_to)) {
-                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
-                    }
+                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
                     return $query;
                 }
                 ])->get();
         }
 
         return $locations;
+    }
+    
+    private function getDateTime($query, $purchase_date_from, $purchase_date_to){
+        if (!is_null($purchase_date_from)) {
+            $query = $query->where('purchase_date', '>=', $purchase_date_from);
+        }
+        if (!is_null($purchase_date_to)) {
+            $query = $query->where('purchase_date', '<=', $purchase_date_to);
+        }
+        return $query;
     }
     
     private function getReportAssestByCategory($category)
