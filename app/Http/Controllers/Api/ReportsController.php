@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\ActionlogsTransformer;
 use App\Models\Actionlog;
+use App\Models\Category;
 use Illuminate\Http\Request;
 
 class ReportsController extends Controller
@@ -19,9 +20,11 @@ class ReportsController extends Controller
     public function index(Request $request)
     {
         $this->authorize('reports.view');
-
+        $category = Category::find($request->category_id);
         $actionlogs = Actionlog::select('action_logs.*')
             ->with('item', 'user', 'target', 'location')
+            ->leftJoin('consumables', 'action_logs.item_id', '=', 'consumables.id')
+            ->leftJoin('accessories', 'action_logs.item_id', '=', 'accessories.id')
             ->leftJoin('assets', 'action_logs.item_id', '=', 'assets.id');
 
         if ($request->filled('search')) {
@@ -49,16 +52,40 @@ class ReportsController extends Controller
         if ($request->filled('date_to')) {
             $actionlogs->whereDate('action_logs.created_at', '<=', $request->input('date_to'));
         }
+        if ($category){
+            if( $category->category_type == 'asset'){
+                if ($request->filled('location_id')) {
+                    $actionlogs->where('assets.rtd_location_id', $request->input('location_id'));
+                }
+            }
+            if( $category->category_type == 'consumable'){
+                if ($request->filled('location_id')) {
+                    $actionlogs->where('consumables.location_id', $request->input('location_id'));
+                }
+            }
+            if( $category->category_type == 'accessory'){
+                if ($request->filled('location_id')) {
+                    $actionlogs->where('accessories.location_id', $request->input('location_id'));
+                }
+            }
 
-        if ($request->filled('location_id')) {
-            $actionlogs->where('assets.rtd_location_id', $request->input('location_id'));
+            if( $category->category_type == 'asset'){
+                if ($request->filled('category_id')) {
+                    $actionlogs->leftJoin('models', 'assets.model_id', '=', 'models.id')
+                        ->where('models.category_id', $request->input('category_id'));
+                }
+            }
+            if( $category->category_type == 'consumable'){
+                if ($request->filled('category_id')) {
+                    $actionlogs->where('consumables.category_id', $request->input('category_id'));
+                }
+            }
+            if( $category->category_type == 'accessory'){
+                if ($request->filled('category_id')) {
+                    $actionlogs->where('accessories.category_id', $request->input('category_id'));
+                }
+            }
         }
-
-        if ($request->filled('category_id')) {
-            $actionlogs->leftJoin('models', 'assets.model_id', '=', 'models.id')
-                ->where('models.category_id', $request->input('category_id'));
-        }
-
         if ($request->filled('item_type')) {
             $actionlogs->where('action_logs.item_type', "App\\Models\\" . $request->input('item_type'));
         }
