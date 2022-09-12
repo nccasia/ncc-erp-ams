@@ -153,11 +153,15 @@ class AssetsController extends Controller
             }
         }
 
-
         if ($request->filled('assigned_status')) {
             $assets->where('assets.assigned_status', '=', $request->input('assigned_status'));
         }
-
+        
+        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+            $assets->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+                   ->orWhere('assets.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+        }
+ 
         if ($request->filled('status_id')) {
             $assets->where('assets.status_id', '=', $request->input('status_id'));
         }
@@ -472,6 +476,7 @@ class AssetsController extends Controller
 
     }
 
+
     public function assign(Request $request, $audit = null)
     {
         $user_id = Auth::id();
@@ -568,7 +573,6 @@ class AssetsController extends Controller
                 $assets->where($field->db_column_name(), '=', $request->input($field->db_column_name()));
             }
         }
-
 
         if ($request->filled('status_id')) {
             $assets->where('assets.status_id', '=', $request->input('status_id'));
@@ -721,7 +725,7 @@ class AssetsController extends Controller
 
         // This handles all of the pivot sorting (versus the assets.* fields
         // in the allowed_columns array)
-        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : ' assets.created_at';
+        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'created_at';
 
 
         switch ($sort_override) {
@@ -1520,6 +1524,7 @@ class AssetsController extends Controller
             } else {
                 $asset_name .= $asset->name . ", ";
                 $asset_tag .= $asset->asset_tag . ", ";
+                
             }
 
             $asset->status_id = config('enum.status_id.ASSIGN');
