@@ -721,7 +721,7 @@ class AssetsController extends Controller
 
         // This handles all of the pivot sorting (versus the assets.* fields
         // in the allowed_columns array)
-        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : ' assets.created_at';
+        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'created_at';
 
 
         switch ($sort_override) {

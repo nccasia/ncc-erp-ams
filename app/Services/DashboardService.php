@@ -98,43 +98,63 @@ class DashboardService
             
         } else {
             $locations =  $locations->with('rtd_assets', function ($query) use ($purchase_date_from, $purchase_date_to) {
-                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
+                if (!is_null($purchase_date_from)) {
+                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                }
+                if (!is_null($purchase_date_to)) {
+                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                }
+                return $query;
             })
             ->with('rtd_consumables', function ($query) use ($purchase_date_from, $purchase_date_to) {
-                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
+                if (!is_null($purchase_date_from)) {
+                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                }
+                if (!is_null($purchase_date_to)) {
+                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                }
+                return $query;
             })
             ->with('rtd_accessories', function ($query) use ($purchase_date_from, $purchase_date_to) {
-                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
+                if (!is_null($purchase_date_from)) {
+                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                }
+                if (!is_null($purchase_date_to)) {
+                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                }
+                return $query;
             })
                 ->withCount(['rtd_assets as assets_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
                     return $query;
-                },
+                }, 
                 'rtd_consumables as consumables_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
                     return $query;
                 },
                 'rtd_accessories as accessories_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
                     return $query;
                 }
                 ])->get();
         }
 
         return $locations;
-    }
-    
-    private function getDateTime($query, $purchase_date_from, $purchase_date_to){
-        if (!is_null($purchase_date_from)) {
-            $query = $query->where('purchase_date', '>=', $purchase_date_from);
-        }
-        if (!is_null($purchase_date_to)) {
-            $query = $query->where('purchase_date', '<=', $purchase_date_to);
-        }
-        return $query;
     }
     
     private function getReportAssestByCategory($category)
@@ -223,48 +243,48 @@ class DashboardService
         return $locations;
     }
 
-    public function queryReportAssetByType($table_name, $location, $from, $to)
+    public function queryReportAssetByType($table_name, $category_type, $location, $from, $to)
     {
         $where = ' WHERE true ';
 
-        if ($from && $to) {
-            $where .= " AND cast(action_logs.created_at as date) >= cast(:from as date)
-                             AND cast(action_logs.created_at as date) <=  cast(:to as date)";
-        }
-
-        $query = 'SELECT g.*, l.name as location_name
-        FROM
-          (SELECT g.name as category_name, g.id as category_id, g.' . $location . ', 
-            CAST(
-            sum(CASE
-                WHEN g.action_type = "checkout" THEN g.total            
-                ELSE 0
-            end) AS SIGNED ) AS checkout,
-            CAST(
-            sum(CASE
-                WHEN g.action_type = "checkin from" THEN g.total
-                ELSE 0
-            end) AS SIGNED ) AS checkin
-           FROM
-             (SELECT ' . $table_name . '.' . $location . ',
-                     action_logs.action_type,
-                     cates.name,
-                     cates.id,
-                     COUNT(*) AS total
-              FROM action_logs
-              JOIN ' . $table_name . ' ON ' . $table_name . '.id = action_logs.item_id';
-
-        if ($table_name === "assets") {
-            $query .= ' JOIN models ON models.id = assets.model_id
-                        JOIN categories cates ON cates.id = models.category_id';
-        } else {
-            $query .= ' JOIN categories cates ON cates.id = ' . $table_name . '.category_id';
-        }
-
-        $query .= $where;
-        $query .= ' GROUP BY ' . $table_name . '.' . $location . ', cates.name, cates.id , action_logs.action_type) AS g
-            GROUP BY g.' . $location . ', g.name , g.id) AS g
-            JOIN locations l ON l.id = g.' . $location . '';
+            if ($from && $to) {
+                $where .= " AND cast(action_logs.created_at as date) >= cast(:from as date)
+                                 AND cast(action_logs.created_at as date) <=  cast(:to as date)";
+            }
+            
+            $query = 'SELECT g.*, l.name as location_name
+            FROM
+              (SELECT g.name as category_name, g.id as category_id, g.' . $location . ',
+                CAST(
+                sum(CASE
+                    WHEN g.action_type = "checkout" THEN g.total            
+                    ELSE 0
+                end) AS SIGNED ) AS checkout,
+                CAST(
+                sum(CASE
+                    WHEN g.action_type = "checkin from" THEN g.total
+                    ELSE 0
+                end) AS SIGNED ) AS checkin
+               FROM
+                 (SELECT ' . $table_name . '.' . $location . ',
+                         action_logs.action_type,
+                         cates.name,
+                         cates.id,
+                         COUNT(*) AS total
+                  FROM action_logs
+                  JOIN ' . $table_name . ' ON ' . $table_name . '.id = action_logs.item_id';
+    
+            if ($table_name === "assets") {
+                $query .= ' JOIN models ON models.id = assets.model_id
+                            JOIN categories cates ON cates.id = models.category_id';
+            } else {
+                $query .= ' JOIN categories cates ON cates.id = ' . $table_name . '.category_id';
+            }
+            
+            $query .= $where;
+            $query .= 'AND item_type = '.'"'. $category_type .'"'.' GROUP BY ' . $table_name . '.' . $location . ', cates.name, cates.id , action_logs.action_type ) AS g
+                GROUP BY g.' . $location . ', g.name , g.id ) AS g
+                JOIN locations l ON l.id = g.' . $location . '';
 
         return $query;
     }
