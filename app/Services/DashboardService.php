@@ -43,22 +43,20 @@ class DashboardService
         $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
         $category['assets_count'] = count($assets);
 
-       if($consumables->isEmpty()){
-        $category['consumables_count'] = 0;
-       }
-       else{
-        $consumables = (new \App\Models\Consumable)->scopeInCategory($consumables->toQuery(), $category['id'])->get();
-        $category['consumables_count'] = count($consumables);
-       }
+        if ($consumables->isEmpty()) {
+            $category['consumables_count'] = 0;
+        } else {
+            $consumables = (new \App\Models\Consumable)->scopeInCategory($consumables->toQuery(), $category['id'])->get();
+            $category['consumables_count'] = count($consumables);
+        }
 
-       if($accessories->isEmpty()){
-        $category['accessories_count'] = 0;
-       }
-       else{
-        $accessories = (new \App\Models\Accessory)->scopeInCategory($accessories->toQuery(), $category['id'])->get();
-        $category['accessories_count'] = count($accessories);
-       }
-       
+        if ($accessories->isEmpty()) {
+            $category['accessories_count'] = 0;
+        } else {
+            $accessories = (new \App\Models\Accessory)->scopeInCategory($accessories->toQuery(), $category['id'])->get();
+            $category['accessories_count'] = count($accessories);
+        }
+
         $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
         $category['status_labels'] = $status_labels;
 
@@ -94,49 +92,69 @@ class DashboardService
     {
         $locations = Location::select(['id', 'name']);
         if ($purchase_date_from == null && $purchase_date_to == null) {
-            $locations = $locations->withCount(['rtd_assets as assets_count','rtd_consumables as consumables_count','rtd_accessories as accessories_count'])->get();
-            
+            $locations = $locations->withCount(['rtd_assets as assets_count', 'rtd_consumables as consumables_count', 'rtd_accessories as accessories_count'])->get();
         } else {
             $locations =  $locations->with('rtd_assets', function ($query) use ($purchase_date_from, $purchase_date_to) {
-                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
-            })
-            ->with('rtd_consumables', function ($query) use ($purchase_date_from, $purchase_date_to) {
-                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
-            })
-            ->with('rtd_accessories', function ($query) use ($purchase_date_from, $purchase_date_to) {
-                $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
-            })
-                ->withCount(['rtd_assets as assets_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
-                },
-                'rtd_consumables as consumables_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
-                },
-                'rtd_accessories as accessories_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
-                    $query = $this->getDateTime($query, $purchase_date_from, $purchase_date_to);
-                    return $query;
+                if (!is_null($purchase_date_from)) {
+                    $query = $query->where('purchase_date', '>=', $purchase_date_from);
                 }
+                if (!is_null($purchase_date_to)) {
+                    $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                }
+                return $query;
+            })
+                ->with('rtd_consumables', function ($query) use ($purchase_date_from, $purchase_date_to) {
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
+                    return $query;
+                })
+                ->with('rtd_accessories', function ($query) use ($purchase_date_from, $purchase_date_to) {
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
+                    return $query;
+                })
+                ->withCount([
+                    'rtd_assets as assets_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+                        if (!is_null($purchase_date_from)) {
+                            $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                        }
+                        if (!is_null($purchase_date_to)) {
+                            $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                        }
+                        return $query;
+                    },
+                    'rtd_consumables as consumables_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+                        if (!is_null($purchase_date_from)) {
+                            $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                        }
+                        if (!is_null($purchase_date_to)) {
+                            $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                        }
+                        return $query;
+                    },
+                    'rtd_accessories as accessories_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+                        if (!is_null($purchase_date_from)) {
+                            $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                        }
+                        if (!is_null($purchase_date_to)) {
+                            $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                        }
+                        return $query;
+                    }
                 ])->get();
         }
 
         return $locations;
     }
-    
-    private function getDateTime($query, $purchase_date_from, $purchase_date_to){
-        if (!is_null($purchase_date_from)) {
-            $query = $query->where('purchase_date', '>=', $purchase_date_from);
-        }
-        if (!is_null($purchase_date_to)) {
-            $query = $query->where('purchase_date', '<=', $purchase_date_to);
-        }
-        return $query;
-    }
-    
+
     private function getReportAssestByCategory($category)
     {
         $result = [
@@ -159,14 +177,13 @@ class DashboardService
 
     private function increaseAssestCountForCategory(&$categoryOld, $newData)
     {
-	$categoryOld['assets_count'] += $newData['assets_count'];
-    $categoryOld['consumables_count'] += $newData['consumables_count'];
-    $categoryOld['accessories_count'] += $newData['accessories_count'];
+        $categoryOld['assets_count'] += $newData['assets_count'];
+        $categoryOld['consumables_count'] += $newData['consumables_count'];
+        $categoryOld['accessories_count'] += $newData['accessories_count'];
         foreach ($newData['status_labels'] as $label) {
             $categoryOld['status_labels'] = $categoryOld['status_labels']->map(function ($value) use ($label) {
                 if ($value['id'] == $label['id']) {
                     $value['assets_count'] += $label['assets_count'];
-                    
                 }
                 return $value;
             });
@@ -223,48 +240,48 @@ class DashboardService
         return $locations;
     }
 
-    public function queryReportAssetByType($table_name, $location, $from, $to)
+    public function queryReportAssetByType($table_name, $category_type, $location, $from, $to)
     {
         $where = ' WHERE true ';
 
         if ($from && $to) {
             $where .= " AND cast(action_logs.created_at as date) >= cast(:from as date)
-                             AND cast(action_logs.created_at as date) <=  cast(:to as date)";
+                                 AND cast(action_logs.created_at as date) <=  cast(:to as date)";
         }
 
         $query = 'SELECT g.*, l.name as location_name
-        FROM
-          (SELECT g.name as category_name, g.id as category_id, g.' . $location . ', 
-            CAST(
-            sum(CASE
-                WHEN g.action_type = "checkout" THEN g.total            
-                ELSE 0
-            end) AS SIGNED ) AS checkout,
-            CAST(
-            sum(CASE
-                WHEN g.action_type = "checkin from" THEN g.total
-                ELSE 0
-            end) AS SIGNED ) AS checkin
-           FROM
-             (SELECT ' . $table_name . '.' . $location . ',
-                     action_logs.action_type,
-                     cates.name,
-                     cates.id,
-                     COUNT(*) AS total
-              FROM action_logs
-              JOIN ' . $table_name . ' ON ' . $table_name . '.id = action_logs.item_id';
+            FROM
+              (SELECT g.name as category_name, g.id as category_id, g.' . $location . ',
+                CAST(
+                sum(CASE
+                    WHEN g.action_type = "checkout" THEN g.total            
+                    ELSE 0
+                end) AS SIGNED ) AS checkout,
+                CAST(
+                sum(CASE
+                    WHEN g.action_type = "checkin from" THEN g.total
+                    ELSE 0
+                end) AS SIGNED ) AS checkin
+               FROM
+                 (SELECT ' . $table_name . '.' . $location . ',
+                         action_logs.action_type,
+                         cates.name,
+                         cates.id,
+                         COUNT(*) AS total
+                  FROM action_logs
+                  JOIN ' . $table_name . ' ON ' . $table_name . '.id = action_logs.item_id';
 
         if ($table_name === "assets") {
             $query .= ' JOIN models ON models.id = assets.model_id
-                        JOIN categories cates ON cates.id = models.category_id';
+                            JOIN categories cates ON cates.id = models.category_id';
         } else {
             $query .= ' JOIN categories cates ON cates.id = ' . $table_name . '.category_id';
         }
 
-        $query .= $where;
-        $query .= ' GROUP BY ' . $table_name . '.' . $location . ', cates.name, cates.id , action_logs.action_type) AS g
-            GROUP BY g.' . $location . ', g.name , g.id) AS g
-            JOIN locations l ON l.id = g.' . $location . '';
+        $query .= $where . 'AND item_type = ' . '"' . $category_type . '"';
+        $query .= ' GROUP BY ' . $table_name . '.' . $location . ', cates.name, cates.id , action_logs.action_type ) AS g
+                GROUP BY g.' . $location . ', g.name , g.id ) AS g
+                JOIN locations l ON l.id = g.' . $location . '';
 
         return $query;
     }

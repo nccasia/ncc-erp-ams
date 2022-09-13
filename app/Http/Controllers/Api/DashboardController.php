@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\Helper;
@@ -63,17 +62,17 @@ class DashboardController extends Controller
         if (Auth::user()->hasAccess('admin')) {
 
             $assets_statistic = DB::select(
-                $this->dashboardService->queryReportAssetByType('assets', 'rtd_location_id', $from, $to),
+                $this->dashboardService->queryReportAssetByType('assets', 'App\\\Models\\\Asset','rtd_location_id', $from, $to),
                 $bind
             );
 
             $consumables_statistic = DB::select(
-                $this->dashboardService->queryReportAssetByType('consumables', 'location_id', $from, $to),
+                $this->dashboardService->queryReportAssetByType('consumables', 'App\\\Models\\\Consumable', 'location_id', $from, $to),
                 $bind
             );
 
             $accessories_statistic = DB::select(
-                $this->dashboardService->queryReportAssetByType('accessories', 'location_id', $from, $to),
+                $this->dashboardService->queryReportAssetByType('accessories', 'App\\\Models\\\Accessory','location_id', $from, $to),
                 $bind
             );
 
