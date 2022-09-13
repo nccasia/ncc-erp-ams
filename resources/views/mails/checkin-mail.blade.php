@@ -1,5 +1,6 @@
 <body>
     <div>
+        <p><i>Bạn vui lòng xác nhận bằng cách: </i><a href="{{ $data['link'] }}"><b>Nhấp vào đường dẫn này!</b></a></p>
         <p>Hôm nay, ngày {{ $data['time'] }}.</p>
         <p>Tại: Công Ty Cổ Phần NCC Plus Việt Nam</p>
         <p>Địa chỉ: {{ $data['location_address'] }}</p>
@@ -11,7 +12,6 @@
         <p> - Nếu nhân viên nghỉ việc phải có trách nhiệm bàn giao lại đầy đủ và trong tình trạng nguyên vẹn những thiết bị trên cho công ty và báo lại bộ phận IT để làm biên bản thu hồi.</p>
         <p><b>Điều khoản chung:</b></p>
         <p> - Nhân viên xác nhận đã nhận đủ số thiết bị như nêu trên, cam kết bảo quản, sử dụng đúng mục đích, theo yêu cầu của công ty.</p>
-        <p><i>Bạn vui lòng xác nhận bằng cách: </i><a href="{{ $data['link'] }}"><b>Nhấp vào đường dẫn này!</b></a></p>
         
     </div>
 </body>
