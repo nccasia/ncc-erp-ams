@@ -34,6 +34,7 @@ use Validator;
 use Route;
 use App\Jobs\SendCheckoutMail;
 use App\Jobs\SendConfirmMail;
+use App\Jobs\SendConfirmRevokeMail;
 use App\Models\AssetHistory;
 use App\Models\AssetHistoryDetail;
 use App\Jobs\SendCheckinMail;
@@ -1083,9 +1084,10 @@ class AssetsController extends Controller
                     'reason' => '',
                 ];
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                    $data['is_confirm'] = 'đã xác nhận';
+                    // $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
+                        $data['is_confirm'] = 'đã xác nhận thu hồi';
                         if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                         }
@@ -1096,19 +1098,32 @@ class AssetsController extends Controller
                         $asset->assigned_to = null;
                         $asset->assignedTo()->disassociate($this);
                         $asset->accepted = null;
+                        SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
+
                     }else{
+                        $data['is_confirm'] = 'đã xác nhận cấp phát';
                         $asset->status_id = config('enum.status_id.ASSIGN');
+                         SendConfirmMail::dispatch($data, $it_ncc_email);
+
                     }
+
                 } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
-                    $data['is_confirm'] = 'đã từ chối';
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
+                        $data['is_confirm'] = 'đã từ chối thu hồi';
                         $asset->withdraw_from = null;
+                        SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
+
                     }
-                    $asset->status_id = config('enum.status_id.ASSIGN');
-                    $data['reason'] = 'Lý do: ' . $request->get('reason');
+                    else{
+                        $data['is_confirm'] = 'đã từ chối cấp phát';
+                        $asset->status_id = config('enum.status_id.ASSIGN');
+                        $data['reason'] = 'Lý do: ' . $request->get('reason');
+                        SendConfirmMail::dispatch($data, $it_ncc_email);
+                    }
+                 
                 }
-                SendConfirmMail::dispatch($data, $it_ncc_email);
+
             }
 
             if ($asset->save()) {
@@ -1246,11 +1261,13 @@ class AssetsController extends Controller
                         'time' => $current_time->format('d-m-Y'),
                         'reason' => '',
                         'asset_count' => count($asset_ids)
+                        
                     ];
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                        $data['is_confirm'] = 'đã xác nhận cấp phát';
-                        $data['asset_count'] = 1;
+                    
+                        // $data['asset_count'] = 1;
                         if($asset->withdraw_from){
+                            $data['is_confirm'] = 'đã xác nhận thu hồi';
                             if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
                                 $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                             }
@@ -1261,22 +1278,42 @@ class AssetsController extends Controller
                             $asset->assigned_to = null;
                             $asset->assignedTo()->disassociate($this);
                             $asset->accepted = null;
+
+                            if ($id === end($asset_ids)) {
+                                SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
+                        }
+
+
                         }else{
+                            $data['is_confirm'] = 'đã xác nhận cấp phát';
                             $asset->status_id = config('enum.status_id.ASSIGN');
+
+                            if ($id === end($asset_ids)) {
+                                SendConfirmMail::dispatch($data, $it_ncc_email);
+                            }
+                            
                         }
                     } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
-                        $data['is_confirm'] = 'đã từ chối cấp phát';
                         if($asset->withdraw_from){
                             $data['is_confirm'] = 'đã từ chối thu hồi';
                             $asset->withdraw_from = null;
+
+                            if ($id === end($asset_ids)) {
+                                SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
+                            }
                         }
-                        $asset->status_id = config('enum.status_id.ASSIGN');
-                        $data['reason'] = 'Lý do: ' . $request->get('reason');
-                    }
-                    if ($id === end($asset_ids)) {
-                        SendConfirmMail::dispatch($data, $it_ncc_email);
-                    }
+                        else{
+                            $data['is_confirm'] = 'đã từ chối cấp phát';
+                            $asset->status_id = config('enum.status_id.ASSIGN');
+                            $data['reason'] = 'Lý do: ' . $request->get('reason');
+                            
+                            if ($id === end($asset_ids)) {
+                                SendConfirmMail::dispatch($data, $it_ncc_email);
+                            }
+                        }
                 }
+                    
+            }
     
                 if ($asset->save()) {
                     if (($request->filled('assigned_user')) && ($target = User::find($request->get('assigned_user')))) {
