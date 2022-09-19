@@ -23,7 +23,7 @@ class DashboardService
 
     public function addCategoriesToLocation($location, $categories)
     {
-        $location['categories'] = !$location['rtd_assets']->isEmpty() ? $this->mapStatusToCategory($location['rtd_assets'], $categories, $location['rtd_consumables'], $location['rtd_accessories']) : [];
+        $location['categories'] = !$location['rtd_assets']->isEmpty() || !$location['rtd_consumables']->isEmpty() || !$location['rtd_accessories']->isEmpty() ? $this->mapStatusToCategory($location['rtd_assets'], $categories, $location['rtd_consumables'], $location['rtd_accessories']) : [];
         return $location;
     }
 
@@ -40,9 +40,12 @@ class DashboardService
 
     public function addStatusToCategory($assets, $category, $status_labels, $consumables, $accessories)
     {
-        $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
-        $category['assets_count'] = count($assets);
-
+        if ($assets->isEmpty()) {
+            $category['assets_count'] = 0;
+        } else {
+            $assets = (new \App\Models\Asset)->scopeInCategory($assets->toQuery(), $category['id'])->get();
+            $category['assets_count'] = count($assets);
+        }
         if ($consumables->isEmpty()) {
             $category['consumables_count'] = 0;
         } else {
