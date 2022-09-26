@@ -19,7 +19,6 @@ class ReportsController extends Controller
     public function index(Request $request)
     {
         $this->authorize('reports.view');
-        $category = Category::find($request->category_id);
         $actionlogs = Actionlog::select('action_logs.*')
             ->with('item', 'user', 'target', 'location')
             ->leftJoin('consumables', 'action_logs.item_id', '=', 'consumables.id')
@@ -51,35 +50,23 @@ class ReportsController extends Controller
         if ($request->filled('date_to')) {
             $actionlogs->whereDate('action_logs.created_at', '<=', $request->input('date_to'));
         }
-        if ($category){
-            if($category->category_type == 'asset'){
-                $actionlogs->leftJoin('models', 'assets.model_id', '=', 'models.id')
+        if($request->category_type == 'asset'){
+            $actionlogs->leftJoin('models', 'assets.model_id', '=', 'models.id')
                            ->where('models.category_id', $request->input('category_id'));
-                if ($request->filled('location_id')) {
-                    $actionlogs->where('assets.rtd_location_id', $request->input('location_id'));
-                    $actionlogs->where('models.category_id', $request->input('category_id'));
-                }
-            }
-            if( $category->category_type == 'consumable'){
-                $actionlogs->where('consumables.category_id', $request->input('category_id'));
-                if ($request->filled('location_id')) {
-                    $actionlogs->where('consumables.location_id', $request->input('location_id'));
-                    $actionlogs->where('consumables.category_id', $request->input('category_id'));
-                }
-            }
-            if( $category->category_type == 'accessory'){
-                $actionlogs->where('accessories.category_id', $request->input('category_id'));
-                if ($request->filled('location_id')) {
-                    $actionlogs->where('accessories.location_id', $request->input('location_id'));
-                    $actionlogs->where('accessories.category_id', $request->input('category_id'));
-                }
-            }
-        }
-        else {
+                
             if ($request->filled('location_id')) {
                 $actionlogs->where('assets.rtd_location_id', $request->input('location_id'));
-                $actionlogs->orWhere('accessories.location_id', $request->input('location_id'));
-                $actionlogs->orWhere('consumables.location_id', $request->input('location_id'));
+                $actionlogs->where('models.category_id', $request->input('category_id'));
+            }
+        }
+        if( $request->category_type == 'consumable'){
+            if ($request->filled('location_id')) {
+                $actionlogs->where('consumables.location_id', $request->input('location_id'));
+            }
+        }
+        if( $request->category_type == 'accessory'){
+            if ($request->filled('location_id')) {
+                $actionlogs->where('accessories.location_id', $request->input('location_id'));
             }
         }
         if ($request->filled('category_type')) {
