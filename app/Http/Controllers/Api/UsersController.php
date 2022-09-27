@@ -237,7 +237,7 @@ class UsersController extends Controller
         }
 
         $users = $users->orderBy('last_name', 'asc')->orderBy('first_name', 'asc');
-        $users = $users->paginate(100);
+        $users = $users->paginate(800);
 
         foreach ($users as $user) {
             $name_str = '';
