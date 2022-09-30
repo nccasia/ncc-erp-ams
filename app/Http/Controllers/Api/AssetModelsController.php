@@ -254,7 +254,7 @@ class AssetModelsController extends Controller
             $assetmodels = $assetmodels->SearchByManufacturerOrCat($request->input('search'));
         }
 
-        $assetmodels = $assetmodels->OrderCategory('ASC')->OrderManufacturer('ASC')->orderby('models.name', 'asc')->orderby('models.model_number', 'asc')->paginate(50);
+        $assetmodels = $assetmodels->OrderCategory('ASC')->OrderManufacturer('ASC')->orderby('models.name', 'asc')->orderby('models.model_number', 'asc')->paginate(200);
 
         foreach ($assetmodels as $assetmodel) {
             $assetmodel->use_text = '';
