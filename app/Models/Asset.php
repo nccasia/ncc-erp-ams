@@ -269,23 +269,26 @@ class Asset extends Depreciable
         //     // The status of the finfast request is Approved
         //     if($finfast_request->status == 'Approved'){
         // This asset is not currently assigned to anyone and is not deleted...
-        if ((!$this->assigned_to) && (!$this->deleted_at) && (!$this->withdraw_from)) {
+        // if ((!$this->assigned_to) && (!$this->deleted_at) && (!$this->withdraw_from)) {
 
-            // The asset status is not archived and is deployable
-            if (($this->assetstatus) && ($this->assetstatus->archived == '0')
-                && ($this->assetstatus->deployable == '1')
-            ) {
-                return true;
+        //     // The asset status is not archived and is deployable
+        //     if (($this->assetstatus) && ($this->assetstatus->archived == '0')
+        //         && ($this->assetstatus->deployable == '1')
+        //     ) {
+        //         return true;
+        //     }
+        // }
+
+        if ((!$this->deleted_at) && (!$this->assigned_to) && (!$this->withdraw_from) && 
+        (($this->assigned_status === config('enum.assigned_status.DEFAULT'))) && (($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
+            return true;
             }
-        }
-        // }
-        // }
         return false;
     }
 
     public function availableForCheckin()
     {
-        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')) || ($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
+        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')))) {
             return true;
         }
         return false;

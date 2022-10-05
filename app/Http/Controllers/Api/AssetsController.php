@@ -39,6 +39,8 @@ use App\Models\AssetHistory;
 use App\Models\AssetHistoryDetail;
 use App\Jobs\SendCheckinMail;
 use App\Http\Requests\AssetCheckinRequest;
+use App\Jobs\SendRejectAllocateMail;
+use App\Jobs\SendRejectRevokeMail;
 
 
 /**
@@ -1111,17 +1113,24 @@ class AssetsController extends Controller
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
                         $data['is_confirm'] = 'đã từ chối thu hồi';
-                        $asset->withdraw_from = null;
-                        SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
-
+                        $asset->status_id = config('enum.status_id.ASSIGN');
+                        $asset->assigned_status = config('enum.assigned_status.ACCEPT');
+                        $data['reason'] = 'Lý do: ' . $request->get('reason');
+                        SendRejectRevokeMail::dispatch($data, $it_ncc_email);
                     }
                     else{
-                        $data['is_confirm'] = 'đã từ chối cấp phát';
-                        $asset->status_id = config('enum.status_id.ASSIGN');
+                        $data['is_confirm'] = 'đã từ chối nhận';
+                        $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                        $asset->assigned_status = config('enum.assigned_status.DEFAULT');
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
-                        SendConfirmMail::dispatch($data, $it_ncc_email);
+                        $asset->withdraw_from = null;
+                        $asset->expected_checkin = null;
+                        $asset->last_checkout = null;
+                        $asset->assigned_to = null;
+                        $asset->assignedTo()->disassociate($this);
+                        $asset->accepted = null;
+                        SendRejectAllocateMail::dispatch($data, $it_ncc_email);
                     }
-                 
                 }
 
             }
@@ -1297,18 +1306,28 @@ class AssetsController extends Controller
                         if($asset->withdraw_from){
                             $data['is_confirm'] = 'đã từ chối thu hồi';
                             $asset->withdraw_from = null;
+                            $asset->status_id = config('enum.status_id.ASSIGN');
+                            $asset->assigned_status = config('enum.assigned_status.ACCEPT');
+                            $data['reason'] = 'Lý do: ' . $request->get('reason');
 
                             if ($id === end($asset_ids)) {
-                                SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
+                                SendRejectRevokeMail::dispatch($data, $it_ncc_email);
                             }
                         }
                         else{
-                            $data['is_confirm'] = 'đã từ chối cấp phát';
-                            $asset->status_id = config('enum.status_id.ASSIGN');
+                            $data['is_confirm'] = 'đã từ chối nhận';
+                            $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                            $asset->assigned_status = config('enum.assigned_status.DEFAULT');
+                            $asset->withdraw_from = null;
+                            $asset->expected_checkin = null;
+                            $asset->last_checkout = null;
+                            $asset->assigned_to = null;
+                            $asset->assignedTo()->disassociate($this);
+                            $asset->accepted = null;
                             $data['reason'] = 'Lý do: ' . $request->get('reason');
-                            
+
                             if ($id === end($asset_ids)) {
-                                SendConfirmMail::dispatch($data, $it_ncc_email);
+                                SendRejectAllocateMail::dispatch($data, $it_ncc_email);
                             }
                         }
                 }
@@ -1639,9 +1658,9 @@ class AssetsController extends Controller
                     $asset_tag .= $asset->asset_tag . ", ";
                 }
 
-                if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
-                    $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_IN_TYPE'));
-                }
+                    if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+                        $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_IN_TYPE'));
+                    }
             }
             $data = $this->setDataUser($userId, $asset_name, $countAssets);
             SendCheckinMail::dispatch($data, $data['user_email']);
@@ -1673,13 +1692,21 @@ class AssetsController extends Controller
             $asset->status_id = config('enum.status_id.ASSIGN');
         }
         $asset_name = $asset->name;
-        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
-            $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            $data = $this->setDataUser($user->id, $asset_name, $countAssets);
 
-            SendCheckinMail::dispatch($data, $data['user_email']);
-            return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
-        }
+        // if ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
+        //     $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
+
+        // }else{
+            if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+                $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
+                $data = $this->setDataUser($user->id, $asset_name, $countAssets);
+               
+    
+                SendCheckinMail::dispatch($data, $data['user_email']);
+                return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
+            }
+        // }
+       
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.error')));
     }
 
