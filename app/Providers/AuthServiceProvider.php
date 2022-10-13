@@ -71,7 +71,7 @@ class AuthServiceProvider extends ServiceProvider
         User::class => UserPolicy::class,
         Manufacturer::class => ManufacturerPolicy::class,
         Company::class => CompanyPolicy::class,
-    ];
+     ];
 
     /**
      * Register any authentication / authorization services.
@@ -87,11 +87,103 @@ class AuthServiceProvider extends ServiceProvider
         ]);
 
         $this->registerPolicies();
+        Passport::tokensCan([
+            'superuser'  => 'test',
+            'admin'  => 'test',
+            'import'  => 'test',
+            'reports.view'  => 'test',
+            'assets.view'  => 'test',
+            'assets.create'  => 'test',
+            'assets.edit'  => 'test',
+            'assets.delete'  => 'test',
+            'assets.checkin'  => 'test',
+            'assets.checkout'  => 'test',
+            'assets.audit'  => 'test',
+            'assets.view.requestable'  => 'test',
+            'accessories.view'  => 'test',
+            'accessories.create'  => 'test',
+            'accessories.edit'  => 'test',
+            'accessories.delete'  => 'test',
+            'accessories.checkout'  => 'test',
+            'accessories.checkin'  => 'test',
+            'consumables.view'  => 'test',
+            'consumables.create'  => 'test',
+            'consumables.edit'  => 'test',
+            'consumables.delete'  => 'test',
+            'consumables.checkout'  => 'test',
+            'licenses.view'  => 'test',
+            'licenses.create'  => 'test',
+            'licenses.edit'  => 'test',
+            'licenses.delete'  => 'test',
+            'licenses.checkout'  => 'test',
+            'licenses.keys'  => 'test',
+            'licenses.files'  => 'test',
+            'components.view'  => 'test',
+            'components.create'  => 'test',
+            'components.edit'  => 'test',
+            'components.delete'  => 'test',
+            'components.checkout'  => 'test',
+            'components.checkin'  => 'test',
+            'kits.view'  => 'test',
+            'kits.create'  => 'test',
+            'kits.edit'  => 'test',
+            'kits.delete'  => 'test',
+            'kits.checkout'  => 'test',
+            'users.view'  => 'test',
+            'users.create'  => 'test',
+            'users.edit'  => 'test',
+            'users.delete'  => 'test',
+            'models.view'  => 'test',
+            'models.create'  => 'test',
+            'models.edit'  => 'test',
+            'models.delete'  => 'test',
+            'categories.view'  => 'test',
+            'categories.create'  => 'test',
+            'categories.edit'  => 'test',
+            'categories.delete'  => 'test',
+            'departments.view'  => 'test',
+            'departments.create'  => 'test',
+            'departments.edit'  => 'test',
+            'departments.delete'  => 'test',
+            'statuslabels.view'  => 'test',
+            'statuslabels.create'  => 'test',
+            'statuslabels.edit'  => 'test',
+            'statuslabels.delete'  => 'test',
+            'customfields.view'  => 'test',
+            'customfields.create'  => 'test',
+            'customfields.edit'  => 'test',
+            'customfields.delete'  => 'test',
+            'suppliers.view'  => 'test',
+            'suppliers.create'  => 'test',
+            'suppliers.edit'  => 'test',
+            'suppliers.delete'  => 'test',
+            'manufacturers.view'  => 'test',
+            'manufacturers.create'  => 'test',
+            'manufacturers.edit'  => 'test',
+            'manufacturers.delete'  => 'test',
+            'depreciations.view'  => 'test',
+            'depreciations.create'  => 'test',
+            'depreciations.edit'  => 'test',
+            'depreciations.delete'  => 'test',
+            'locations.view'  => 'test',
+            'locations.create'  => 'test',
+            'locations.edit'  => 'test',
+            'locations.delete'  => 'test',
+            'companies.view'  => 'test',
+            'companies.create'  => 'test',
+            'companies.edit'  => 'test',
+            'companies.delete'  => 'test',
+            'self.two_factor'  => 'test',
+            'self.api'  => 'test',
+            'self.edit_location'  => 'test',
+            'self.checkout_assets'  => 'test',
+        ]);
         Passport::routes();
         Passport::tokensExpireIn(Carbon::now()->addYears(config('passport.expiration_years')));
         Passport::refreshTokensExpireIn(Carbon::now()->addYears(config('passport.expiration_years')));
         Passport::personalAccessTokensExpireIn(Carbon::now()->addYears(config('passport.expiration_years')));
         Passport::withCookieSerialization();
+        
 
         // --------------------------------
         // BEFORE ANYTHING ELSE
@@ -167,6 +259,7 @@ class AuthServiceProvider extends ServiceProvider
                 || $user->can('view', CustomField::class)
                 || $user->can('view', CustomFieldset::class)
                 || $user->can('view', Depreciation::class);
+                
         });
 
 

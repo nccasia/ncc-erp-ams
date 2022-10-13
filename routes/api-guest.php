@@ -24,7 +24,17 @@ Route::group(['prefix' => 'v1', 'middleware' => ['throttle:'.config('app.api_thr
         Api\UsersController::class,
         'loginGoogleV2'
     ]
+    
 );
+
+        Route::post('auth/login',
+        [
+            Api\UsersController::class,
+            'login'
+        ]
+);
+
+
 
 }); // end API routes
 
