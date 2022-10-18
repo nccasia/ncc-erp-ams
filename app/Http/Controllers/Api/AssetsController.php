@@ -407,6 +407,336 @@ class AssetsController extends Controller
         return (new $transformer)->transformAssets($assets, $total, $request);
     }
 
+    public function assetExpiration(Request $request, $audit = null)
+    {
+        \Log::debug(Route::currentRouteName());
+        $filter_non_deprecable_assets = false;
+
+        /**
+         * This looks MAD janky (and it is), but the AssetsController@index does a LOT of heavy lifting throughout the 
+         * app. This bit here just makes sure that someone without permission to view assets doesn't 
+         * end up with priv escalations because they asked for a different endpoint. 
+         * 
+         * Since we never gave the specification for which transformer to use before, it should default 
+         * gracefully to just use the AssetTransformer by default, which shouldn't break anything. 
+         * 
+         * It was either this mess, or repeating ALL of the searching and sorting and filtering code, 
+         * which would have been far worse of a mess. *sad face*  - snipe (Sept 1, 2021)
+         */
+        if (Route::currentRouteName()=='api.depreciation-report.index') {
+            $filter_non_deprecable_assets = true;
+            $transformer = 'App\Http\Transformers\DepreciationReportTransformer';
+            $this->authorize('reports.view');
+        } else {
+            $transformer = 'App\Http\Transformers\AssetsTransformer';
+            $this->authorize('index', Asset::class);
+        }
+
+
+        $settings = Setting::getSettings();
+
+        $allowed_columns = [
+            'id',
+            'name',
+            'asset_tag',
+            'serial',
+            'model_number',
+            'last_checkout',
+            'notes',
+            'expected_checkin',
+            'order_number',
+            'image',
+            'assigned_to',
+            'created_at',
+            'updated_at',
+            'purchase_date',
+            'purchase_cost',
+            'last_audit_date',
+            'next_audit_date',
+            'assigned_status',
+            'requestable',
+            'warranty_months',
+            'checkout_counter',
+            'checkin_counter',
+            'requests_counter',
+        ];
+
+        $filter = [];
+
+        if ($request->filled('filter')) {
+            $filter = json_decode($request->input('filter'), true);
+        }
+
+        $all_custom_fields = CustomField::all(); //used as a 'cache' of custom fields throughout this page load
+        foreach ($all_custom_fields as $field) {
+            $allowed_columns[] = $field->db_column_name();
+        }
+
+        $assets = Company::scopeCompanyables(Asset::select('assets.*'), 'company_id', 'assets')
+        ->with('location', 'assetstatus', 'company', 'defaultLoc','assignedTo',
+        'model.category', 'model.manufacturer', 'model.fieldset','supplier'); //it might be tempting to add 'assetlog' here, but don't. It blows up update-heavy users.
+        
+
+        if ($filter_non_deprecable_assets) {
+            $non_deprecable_models = AssetModel::select('id')->whereNotNull('depreciation_id')->get();
+
+            $assets->InModelList($non_deprecable_models->toArray());
+        }
+
+        // Search custom fields by column name
+        foreach ($all_custom_fields as $field) {
+            if ($request->filled($field->db_column_name())) {
+                $assets->where($field->db_column_name(), '=', $request->input($field->db_column_name()));
+            }
+        }
+
+        if ($request->filled('assigned_status')) {
+            $assets->where('assets.assigned_status', '=', $request->input('assigned_status'));
+        }
+        
+        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+            $assets->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+                   ->orWhere('assets.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+        }
+ 
+        if ($request->filled('status_id')) {
+            $assets->where('assets.status_id', '=', $request->input('status_id'));
+        }
+
+        if ($request->input('requestable') == 'true') {
+            $assets->where('assets.requestable', '=', '1');
+        }
+
+        if ($request->filled('model_id')) {
+            $assets->InModelList([$request->input('model_id')]);
+        }
+
+        if ($request->filled('category_id')) {
+            $assets->InCategory($request->input('category_id'));
+        }
+
+        if ($request->filled('location_id')) {
+            $assets->where('assets.location_id', '=', $request->input('location_id'));
+        }
+
+        if ($request->filled('dateFrom', 'dateTo')) {
+            $assets
+                ->whereBetween('assets.purchase_date', [$request->input('dateFrom'), $request->input('dateTo')]);
+        }
+
+        if ($request->filled('rtd_location_id')) {
+            $assets->where('assets.rtd_location_id', '=', $request->input('rtd_location_id'));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $assets->where('assets.supplier_id', '=', $request->input('supplier_id'));
+        }
+
+        if (($request->filled('assigned_to')) && ($request->filled('assigned_type'))) {
+            $assets->where('assets.assigned_to', '=', $request->input('assigned_to'))
+                ->where('assets.assigned_type', '=', $request->input('assigned_type'));
+        }
+
+        if ($request->filled('company_id')) {
+            $assets->where('assets.company_id', '=', $request->input('company_id'));
+        }
+
+        if ($request->category) {
+            $assets->InCategory($request->input('category'));
+        }
+
+        if ($request->status_label) {
+            $assets->where('assets.status_id', '=', $request->input('status_label'));
+        }
+        
+        if ($request->filled('manufacturer_id')) {
+            $assets->ByManufacturer($request->input('manufacturer_id'));
+        }
+
+        if ($request->filled('depreciation_id')) {
+            $assets->ByDepreciationId($request->input('depreciation_id'));
+        }
+
+        $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
+
+        // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
+        // case we override with the actual count, so we should return 0 items.
+        $offset = (($assets) && ($request->get('offset') > $assets->count())) ? $assets->count() : $request->get('offset', 0);
+
+
+        // Check to make sure the limit is not higher than the max allowed
+        ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit'))) ? $limit = $request->input('limit') : $limit = config('app.max_results');
+
+        $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
+
+        // This is used by the audit reporting routes
+        if (Gate::allows('audit', Asset::class)) {
+            switch ($audit) {
+                case 'due':
+                    $assets->DueOrOverdueForAudit($settings);
+                    break;
+                case 'overdue':
+                    $assets->overdueForAudit($settings);
+                    break;
+            }
+        }
+
+        // This is used by the sidenav, mostly
+
+        // We switched from using query scopes here because of a Laravel bug
+        // related to fulltext searches on complex queries.
+        // I am sad. :(
+        switch ($request->input('status')) {
+            case 'Deleted':
+                $assets->onlyTrashed();
+                break;
+            case 'Pending':
+                $assets->join('status_labels AS status_alias', function ($join) {
+                    $join->on('status_alias.id', '=', 'assets.status_id')
+                        ->where('status_alias.deployable', '=', 0)
+                        ->where('status_alias.pending', '=', 1)
+                        ->where('status_alias.archived', '=', 0);
+                });
+                break;
+            case 'RTD':
+                $assets->whereNull('assets.assigned_to')
+                    ->join('status_labels AS status_alias', function ($join) {
+                        $join->on('status_alias.id', '=', 'assets.status_id')
+                            ->where('status_alias.deployable', '=', 1)
+                            ->where('status_alias.pending', '=', 0)
+                            ->where('status_alias.archived', '=', 0);
+                    });
+                break;
+            case 'Undeployable':
+                $assets->Undeployable();
+                break;
+            case 'Archived':
+                $assets->join('status_labels AS status_alias', function ($join) {
+                    $join->on('status_alias.id', '=', 'assets.status_id')
+                        ->where('status_alias.deployable', '=', 0)
+                        ->where('status_alias.pending', '=', 0)
+                        ->where('status_alias.archived', '=', 1);
+                });
+                break;
+            case 'Requestable':
+                $assets->where('assets.requestable', '=', 1)
+                    ->join('status_labels AS status_alias', function ($join) {
+                        $join->on('status_alias.id', '=', 'assets.status_id')
+                            ->where('status_alias.deployable', '=', 1)
+                            ->where('status_alias.pending', '=', 0)
+                            ->where('status_alias.archived', '=', 0);
+                    });
+
+                break;
+            case 'Deployed':
+                // more sad, horrible workarounds for laravel bugs when doing full text searches
+                $assets->where('assets.assigned_to', '>', '0');
+                break;
+            default:
+
+                if ((! $request->filled('status_id')) && ($settings->show_archived_in_list != '1')) {
+                    // terrible workaround for complex-query Laravel bug in fulltext
+                    $assets->join('status_labels AS status_alias', function ($join) {
+                        $join->on('status_alias.id', '=', 'assets.status_id')
+                            ->where('status_alias.archived', '=', 0);
+                    });
+
+                    // If there is a status ID, don't take show_archived_in_list into consideration
+                } else {
+                    $assets->join('status_labels AS status_alias', function ($join) {
+                        $join->on('status_alias.id', '=', 'assets.status_id');
+                    });
+                }
+        }
+
+        if ((! is_null($filter)) && (count($filter)) > 0) {
+            $assets->ByFilter($filter);
+        } elseif ($request->filled('search')) {
+            $assets->TextSearch($request->input('search'));
+        }
+
+
+        // This is kinda gross, but we need to do this because the Bootstrap Tables
+        // API passes custom field ordering as custom_fields.fieldname, and we have to strip
+        // that out to let the default sorter below order them correctly on the assets table.
+        $sort_override = str_replace('custom_fields.', '', $request->input('sort'));
+
+        // This handles all of the pivot sorting (versus the assets.* fields
+        // in the allowed_columns array)
+        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
+
+
+        switch ($sort_override) {
+            case 'model':
+                $assets->OrderModels($order);
+                break;
+            case 'model_number':
+                $assets->OrderModelNumber($order);
+                break;
+            case 'category':
+                $assets->OrderCategory($order);
+                break;
+            case 'manufacturer':
+                $assets->OrderManufacturer($order);
+                break;
+            case 'company':
+                $assets->OrderCompany($order);
+                break;
+            case 'location':
+                $assets->OrderLocation($order);
+            case 'rtd_location':
+                $assets->OrderRtdLocation($order);
+                break;
+            case 'status_label':
+                $assets->OrderStatus($order);
+                break;
+            case 'supplier':
+                $assets->OrderSupplier($order);
+                break;
+            case 'assigned_to':
+                $assets->OrderAssigned($order);
+                break;
+            default:
+                $assets->orderBy($column_sort, $order);
+                break;
+        }
+
+        if ($request->notRequest == 1){
+            $assets = $assets->with('finfast_request_asset')->doesntHave('finfast_request_asset');
+        }
+
+        if (isset($request->from)){
+            $from = Carbon::createFromFormat('Y-m-d', $request->from)->startOfDay()->toDateTimeString();
+            $assets = $assets->where('created_at', '>=',$from);
+        }
+        if (isset($request->to)){
+            $to = Carbon::createFromFormat('Y-m-d', $request->to)->endOfDay()->toDateTimeString();
+            $assets = $assets->where('created_at', '<=',$to);
+        }
+
+        $total = $assets->count();
+
+        $assets = $assets->skip($offset)->take($limit)->get();
+
+
+        /**
+         * Include additional associated relationships
+         */
+        if ($request->input('components')) {
+            $assets->loadMissing(['components' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            }]);
+        }
+
+
+        /**
+         * Here we're just determining which Transformer (via $transformer) to use based on the 
+         * variables we set earlier on in this method - we default to AssetsTransformer.
+         */
+
+        return (new $transformer)->transformAssets($assets, $total, $request);
+    }
+
 
     /**
      * Returns JSON with information about an asset (by tag) for detail view.
