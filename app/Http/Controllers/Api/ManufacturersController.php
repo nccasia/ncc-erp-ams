@@ -37,6 +37,10 @@ class ManufacturersController extends Controller
             $manufacturers = $manufacturers->TextSearch($request->input('search'));
         }
 
+        if($request->filled('manufacturer_id')){
+            $manufacturers = $manufacturers->where('id', '=', $request->input('manufacturer_id'));
+        }
+
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
         // case we override with the actual count, so we should return 0 items.
         $offset = (($manufacturers) && ($request->get('offset') > $manufacturers->count())) ? $manufacturers->count() : $request->get('offset', 0);

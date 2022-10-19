@@ -417,6 +417,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 'assign'
             ]
         );
+
+        Route::get('assetExpiration',
+        [
+            Api\AssetsController::class,
+                'assetExpiration'
+        ]
+        );
         
         Route::get('selectlist',
             [
