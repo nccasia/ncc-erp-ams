@@ -1359,7 +1359,8 @@ class AssetsController extends Controller
      */
     public function update(ImageUploadRequest $request, $id)
     {
-        $this->authorize('update', Asset::class);
+        $asset = Asset::find($id);
+        $this->authorize('update', $asset);
 
         if ($asset = Asset::find($id)) {
             $asset->fill($request->all());

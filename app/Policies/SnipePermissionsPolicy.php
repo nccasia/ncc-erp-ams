@@ -67,9 +67,14 @@ abstract class SnipePermissionsPolicy
      * @param  \App\Models\User  $user
      * @return mixed
      */
-    public function create(User $user)
+    public function create(User $user, $item = null)
     {
-        return $user->hasAccess($this->columnName().'.create');
+        if ($user->isBranchAdmin() | $user->hasAccess($this->columnName().'.create')) {
+            if ($user->isSameLocation($user, $item)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -80,7 +85,12 @@ abstract class SnipePermissionsPolicy
      */
     public function update(User $user, $item = null)
     {
-        return $user->hasAccess($this->columnName().'.edit');
+        if ($user->isBranchAdmin() | $user->hasAccess($this->columnName().'.edit')) {
+            if ($user->isSameLocation($user, $item)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -96,7 +106,13 @@ abstract class SnipePermissionsPolicy
             $itemConditional = empty($item->deleted_at);
         }
 
-        return $itemConditional && $user->hasAccess($this->columnName().'.delete');
+        if ($user->isBranchAdmin() | ($itemConditional & $user->hasAccess($this->columnName().'.delete'))) {
+            if ($user->isSameLocation($user, $item)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
