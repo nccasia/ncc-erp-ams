@@ -190,10 +190,20 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         return $this->checkPermissionSection('admin');
     }
 
+    /**
+     * Checks if the user is a BranchAdmin
+     *
+     * @return bool
+     */
     public function isBranchAdmin() {
         return $this->checkPermissionSection('branchadmin');
     }
 
+    /**
+     * Checks if the user  is same location with item
+     *
+     * @return bool
+     */
     public function isSameLocation($user, $item)
     {
         return $user->location_id === $item->location_id;

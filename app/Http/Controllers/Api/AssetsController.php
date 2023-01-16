@@ -130,6 +130,7 @@ class AssetsController extends Controller
         ->with('location', 'assetstatus', 'company', 'defaultLoc','assignedTo',
         'model.category', 'model.manufacturer', 'model.fieldset','supplier'); //it might be tempting to add 'assetlog' here, but don't. It blows up update-heavy users.
         
+         $assets->filterLocationByRole($request->user());
         // if ($request->filled('type')) {
         //     $type = $request->filled('type');
 
@@ -248,7 +249,7 @@ class AssetsController extends Controller
         }
 
 
-
+        
         // This is used by the sidenav, mostly
 
         // We switched from using query scopes here because of a Laravel bug
@@ -1213,7 +1214,7 @@ class AssetsController extends Controller
      */
     public function store(ImageUploadRequest $request)
     {
-        $this->authorize('create', Asset::class);
+        $this->authorize('create', [Asset::class, (object)$request->only(['location_id'])]);
 
         $asset = new Asset();
         $asset->model()->associate(AssetModel::find((int) $request->get('model_id')));
@@ -1359,7 +1360,7 @@ class AssetsController extends Controller
      */
     public function update(ImageUploadRequest $request, $id)
     {
-        $asset = Asset::find($id);
+        $asset = Asset::find($id);x
         $this->authorize('update', $asset);
 
         if ($asset = Asset::find($id)) {
@@ -1746,7 +1747,8 @@ class AssetsController extends Controller
      */
     public function destroy($id)
     {
-        $this->authorize('delete', Asset::class);
+        $asset = Asset::find($id);
+        $this->authorize('delete', $asset);
 
         if ($asset = Asset::find($id)) {
             $this->authorize('delete', $asset);

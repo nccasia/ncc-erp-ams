@@ -155,4 +155,21 @@ class SnipeModel extends Model
     {
         return $this->name;
     }
+
+    /**
+     * Query builder scope to filter location by role
+     *
+     */
+    public function scopeFilterLocationByRole($query, $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;  
+        }
+        
+        if ($user->isBranchAdmin()) {
+            return $query->where('location_id', '=', $user->location_id);
+        }
+
+        return $query->where('assets.user_id', '=', $user->id);
+    }
 }
