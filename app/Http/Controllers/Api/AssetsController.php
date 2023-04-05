@@ -1413,11 +1413,10 @@ class AssetsController extends Controller
                     'reason' => '',
                 ];
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                    // $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
                         $data['is_confirm'] = 'đã xác nhận thu hồi';
-                        if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
+                        if($asset->status_id == config('enum.status_id.ARCHIVED') || $asset->status_id == config('enum.status_id.ASSIGN')  ){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                         }
                         $asset->assigned_status = config('enum.assigned_status.DEFAULT');
@@ -1427,13 +1426,11 @@ class AssetsController extends Controller
                         $asset->assigned_to = null;
                         $asset->assignedTo()->disassociate($this);
                         $asset->accepted = null;
-                        SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
-
-                    }else{
+                        // SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
+                    } else {
                         $data['is_confirm'] = 'đã xác nhận cấp phát';
                         $asset->status_id = config('enum.status_id.ASSIGN');
-                         SendConfirmMail::dispatch($data, $it_ncc_email);
-
+                        // SendConfirmMail::dispatch($data, $it_ncc_email);
                     }
 
                 } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
@@ -1443,20 +1440,17 @@ class AssetsController extends Controller
                         $asset->status_id = config('enum.status_id.ASSIGN');
                         $asset->assigned_status = config('enum.assigned_status.ACCEPT');
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
-                        SendRejectRevokeMail::dispatch($data, $it_ncc_email);
-                    }
-                    else{
+                        // SendRejectRevokeMail::dispatch($data, $it_ncc_email);
+                    } else {
                         $data['is_confirm'] = 'đã từ chối nhận';
                         $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
-                        $asset->assigned_status = config('enum.assigned_status.DEFAULT');
+                        $asset->assigned_status = config('enum.assigned_status.REJECT');
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
                         $asset->withdraw_from = null;
                         $asset->expected_checkin = null;
                         $asset->last_checkout = null;
-                        $asset->assigned_to = null;
-                        $asset->assignedTo()->disassociate($this);
                         $asset->accepted = null;
-                        SendRejectAllocateMail::dispatch($data, $it_ncc_email);
+                        // SendRejectAllocateMail::dispatch($data, $it_ncc_email);
                     }
                 }
 
@@ -1514,7 +1508,7 @@ class AssetsController extends Controller
                             'location_address' => $location_address,
                             'count' => 1,
                     ];
-                    SendCheckoutMail::dispatch($data, $target->email);
+                    // SendCheckoutMail::dispatch($data, $target->email);
                 }
 
                 if ($asset->image) {
@@ -1604,7 +1598,7 @@ class AssetsController extends Controller
                         // $data['asset_count'] = 1;
                         if($asset->withdraw_from){
                             $data['is_confirm'] = 'đã xác nhận thu hồi';
-                            if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
+                            if($asset->status_id == config('enum.status_id.ASSIGN') || $asset->status_id == config('enum.status_id.ARCHIVED')) {
                                 $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                             }
                             $asset->assigned_status = config('enum.assigned_status.DEFAULT');
@@ -1615,19 +1609,16 @@ class AssetsController extends Controller
                             $asset->assignedTo()->disassociate($this);
                             $asset->accepted = null;
 
-                            if ($id === end($asset_ids)) {
-                                SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
-                        }
-
-
-                        }else{
+                            // if ($id === end($asset_ids)) {
+                            //     SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
+                            // }
+                        } else {
                             $data['is_confirm'] = 'đã xác nhận cấp phát';
                             $asset->status_id = config('enum.status_id.ASSIGN');
 
-                            if ($id === end($asset_ids)) {
-                                SendConfirmMail::dispatch($data, $it_ncc_email);
-                            }
-                            
+                            // if ($id === end($asset_ids)) {
+                            //     SendConfirmMail::dispatch($data, $it_ncc_email);
+                            // }
                         }
                     } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
                         if($asset->withdraw_from){
@@ -1636,37 +1627,36 @@ class AssetsController extends Controller
                             $asset->status_id = config('enum.status_id.ASSIGN');
                             $asset->assigned_status = config('enum.assigned_status.ACCEPT');
                             $data['reason'] = 'Lý do: ' . $request->get('reason');
-
-                            if ($id === end($asset_ids)) {
-                                SendRejectRevokeMail::dispatch($data, $it_ncc_email);
-                            }
-                        }
-                        else{
+                            // if ($id === end($asset_ids)) {
+                            //     SendRejectRevokeMail::dispatch($data, $it_ncc_email);
+                            // }
+                        } else {
+                            // dd($asset);
                             $data['is_confirm'] = 'đã từ chối nhận';
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
-                            $asset->assigned_status = config('enum.assigned_status.DEFAULT');
+                            $asset->assigned_status = config('enum.assigned_status.REJECT');
                             $asset->withdraw_from = null;
                             $asset->expected_checkin = null;
                             $asset->last_checkout = null;
-                            $asset->assigned_to = null;
-                            $asset->assignedTo()->disassociate($this);
+                            // $asset->assigned_to = null;
+                            // $asset->assignedTo()->disassociate($this);
                             $asset->accepted = null;
                             $data['reason'] = 'Lý do: ' . $request->get('reason');
-
-                            if ($id === end($asset_ids)) {
-                                SendRejectAllocateMail::dispatch($data, $it_ncc_email);
-                            }
+                            // dd($data);
+                            // if ($id === end($asset_ids)) {
+                            //     SendRejectAllocateMail::dispatch($data, $it_ncc_email);
+                            // }
                         }
+                    }
                 }
-                    
-            }
-    
+
+                // dd($asset);
                 if ($asset->save()) {
                     if (($request->filled('assigned_user')) && ($target = User::find($request->get('assigned_user')))) {
                         $location = $target->location_id;
                     } elseif (($request->filled('assigned_asset')) && ($target = Asset::find($request->get('assigned_asset')))) {
                         $location = $target->location_id;
-    
+
                         Asset::where('assigned_type', \App\Models\Asset::class)->where('assigned_to', $id)
                             ->update(['location_id' => $target->location_id]);
                     } elseif (($request->filled('assigned_location')) && ($target = Location::find($request->get('assigned_location')))) {
@@ -1706,17 +1696,17 @@ class AssetsController extends Controller
                         }
 
                         $asset->checkOut($target, Auth::user(), date('Y-m-d H:i:s'), '', 'Checked out on asset creation', e($request->get('name')), $target->location_id, config('enum.assigned_status.WAITINGCHECKOUT'));
-                        $data = [
-                                'user_name' => $target->first_name . ' ' . $target->last_name,
-                                'asset_name' => $asset->name,
-                                'time' => Carbon::now()->format('d-m-Y'),
-                                'link' => config('client.my_assets.link'),
-                                'location_address' => $location_address,
-                                'count' => count($asset_ids),
-                        ];
-                        SendCheckoutMail::dispatch($data, $target->email);
+                        // $data = [
+                        //     'user_name' => $target->first_name . ' ' . $target->last_name,
+                        //     'asset_name' => $asset->name,
+                        //     'time' => Carbon::now()->format('d-m-Y'),
+                        //     'link' => config('client.my_assets.link'),
+                        //     'location_address' => $location_address,
+                        //     'count' => count($asset_ids),
+                        // ];
+                        // SendCheckoutMail::dispatch($data, $target->email);
                     }
-    
+
                     if ($asset->image) {
                         $asset->image = $asset->getImageUrl();
                     }
@@ -1917,15 +1907,15 @@ class AssetsController extends Controller
             }
         }
 
-        $data = [
-            'user_name' => $user_name,
-            'asset_name' => $asset_name,
-            'count' => count($assets),
-            'location_address' => $location_address,
-            'time' => $current_time->format('d-m-Y'),
-            'link' => config('client.my_assets.link'),
-        ];
-        SendCheckoutMail::dispatch($data, $user_email);
+        // $data = [
+        //     'user_name' => $user_name,
+        //     'asset_name' => $asset_name,
+        //     'count' => count($assets),
+        //     'location_address' => $location_address,
+        //     'time' => $current_time->format('d-m-Y'),
+        //     'link' => config('client.my_assets.link'),
+        // ];
+        // SendCheckoutMail::dispatch($data, $user_email);
         return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset_tag)], trans('admin/hardware/message.checkout.success')));
     }
 
@@ -1940,7 +1930,6 @@ class AssetsController extends Controller
      */
     public function multiCheckin(Request $request, $type = null)
     {
-
         $assets = $request->assets;
         $asset_tag = null;
         $asset = Asset::findOrFail($assets);
@@ -1968,16 +1957,19 @@ class AssetsController extends Controller
                 $note = request('note', null);
                 $checkin_at = null;
                 $countAssets = count($assets);
+                
                 if ($request->filled('checkin_at')) {
                     $checkin_at = $request->input('checkin_at');
                 }
                 if ($request->has('status_id')) {
                     $asset->status_id = $request->input('status_id');
                 }
-                if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')){
+
+                if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')) {
                     $asset->status_id = config('enum.status_id.ASSIGN');
                 }
-                if($asset === end($assets)) {
+
+                if ($asset === end($assets)) {
                     $asset_name .= $asset->name;
                     $asset_tag .= $asset->asset_tag;
                 } else {
@@ -1985,12 +1977,12 @@ class AssetsController extends Controller
                     $asset_tag .= $asset->asset_tag . ", ";
                 }
 
-                    if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
-                        $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_IN_TYPE'));
-                    }
+                if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+                    $this->saveAssetHistory($asset->id, config('enum.asset_history.CHECK_IN_TYPE'));
+                }
             }
-            $data = $this->setDataUser($userId, $asset_name, $countAssets);
-            SendCheckinMail::dispatch($data, $data['user_email']);
+            // $data = $this->setDataUser($userId, $asset_name, $countAssets);
+            // SendCheckinMail::dispatch($data, $data['user_email']);
         }
         return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
     }
@@ -2015,25 +2007,18 @@ class AssetsController extends Controller
         if ($request->has('status_id')) {
             $asset->status_id = $request->input('status_id');
         }
-        if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')){
+        if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY') || $request->status_id == config('enum.status_id.ARCHIVED') ){
             $asset->status_id = config('enum.status_id.ASSIGN');
         }
         $asset_name = $asset->name;
+        if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+            $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
+            // $data = $this->setDataUser($user->id, $asset_name, $countAssets);
 
-        // if ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
-        //     $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
 
-        // }else{
-            if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
-                $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
-                $data = $this->setDataUser($user->id, $asset_name, $countAssets);
-               
-    
-                SendCheckinMail::dispatch($data, $data['user_email']);
-                return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
-            }
-        // }
-       
+            // SendCheckinMail::dispatch($data, $data['user_email']);
+            return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
+        }
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.error')));
     }
 
@@ -2131,9 +2116,9 @@ class AssetsController extends Controller
             }
         }
 
-//        if ((isset($target->rtd_location_id)) && ($asset->rtd_location_id!='')) {
-//            $asset->location_id = $target->rtd_location_id;
-//        }
+        //        if ((isset($target->rtd_location_id)) && ($asset->rtd_location_id!='')) {
+        //            $asset->location_id = $target->rtd_location_id;
+        //        }
 
         $asset->status_id = config('enum.status_id.ASSIGN');
 
@@ -2148,7 +2133,7 @@ class AssetsController extends Controller
                 'link' => config('client.my_assets.link'),
             ];
 
-            SendCheckoutMail::dispatch($data, $user_email);
+            // SendCheckoutMail::dispatch($data, $user_email);
             return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
 

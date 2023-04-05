@@ -17,5 +17,6 @@ class StatuslabelSeeder extends Seeder
         Statuslabel::factory()->outForRepair()->create();
         Statuslabel::factory()->broken()->create();
         Statuslabel::factory()->lost()->create();
+        Statuslabel::factory()->assign()->create(['name' => 'Assign']);
     }
 }

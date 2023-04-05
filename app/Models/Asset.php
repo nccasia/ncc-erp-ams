@@ -278,11 +278,11 @@ class Asset extends Depreciable
         //         return true;
         //     }
         // }
-
-        if ((!$this->deleted_at) && (!$this->assigned_to) && (!$this->withdraw_from) && 
-        (($this->assigned_status === config('enum.assigned_status.DEFAULT'))) && (($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
+        if ((!$this->deleted_at) && (!$this->withdraw_from) && 
+            ($this->status_id === config('enum.status_id.READY_TO_DEPLOY'))) {
             return true;
             }
+        
         return false;
     }
 
@@ -322,12 +322,9 @@ class Asset extends Depreciable
         $this->withdraw_from = $this->assigned_to;
         $this->status_id = $status_id;
         $this->assigned_status = $assigned_status;
-
-
         if ($name != null) {
             $this->name = $name;
         }
-        
         if ($this->save()) {
             if (is_int($admin)) {
                 $checkedInBy = User::findOrFail($admin);
@@ -336,7 +333,7 @@ class Asset extends Depreciable
             } else {
                 $checkedInBy = Auth::user();
             }
-            event(new CheckoutableCheckedIn($this, $target, $checkedInBy, $note, $checkin_at));
+            // event(new CheckoutableCheckedIn($this, $target, $checkedInBy, $note, $checkin_at));
 
             $this->increment('checkin_counter', 1);
 
@@ -370,14 +367,15 @@ class Asset extends Depreciable
         if ($this->is($target)) {
             throw new CheckoutNotAllowed('You cannot check an asset out to itself.');
         }
-
+        
         if ($expected_checkin) {
             $this->expected_checkin = $expected_checkin;
         }
-
+        
         $this->last_checkout = $checkout_at;
-
+        
         $this->assignedTo()->associate($target);
+
 
 
         if ($name != null) {
@@ -398,6 +396,7 @@ class Asset extends Depreciable
             $this->assigned_status = $assigned_status;
         }
 
+
         if ($this->save()) {
             if (is_int($admin)) {
                 $checkedOutBy = User::findOrFail($admin);
@@ -406,7 +405,7 @@ class Asset extends Depreciable
             } else {
                 $checkedOutBy = Auth::user();
             }
-            event(new CheckoutableCheckedOut($this, $target, $checkedOutBy, $note));
+            // event(new CheckoutableCheckedOut($this, $target, $checkedOutBy, $note));
 
             $this->increment('checkout_counter', 1);
 
