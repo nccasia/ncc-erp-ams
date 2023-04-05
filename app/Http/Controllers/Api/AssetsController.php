@@ -1360,7 +1360,7 @@ class AssetsController extends Controller
      */
     public function update(ImageUploadRequest $request, $id)
     {
-        $asset = Asset::find($id);x
+        $asset = Asset::find($id);
         $this->authorize('update', $asset);
 
         if ($asset = Asset::find($id)) {
@@ -1747,8 +1747,7 @@ class AssetsController extends Controller
      */
     public function destroy($id)
     {
-        $asset = Asset::find($id);
-        $this->authorize('delete', $asset);
+        $this->authorize('delete', Asset::class);
 
         if ($asset = Asset::find($id)) {
             $this->authorize('delete', $asset);

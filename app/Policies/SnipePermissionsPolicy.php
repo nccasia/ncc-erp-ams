@@ -106,13 +106,7 @@ abstract class SnipePermissionsPolicy
             $itemConditional = empty($item->deleted_at);
         }
 
-        if ($user->isBranchAdmin() | ($itemConditional & $user->hasAccess($this->columnName().'.delete'))) {
-            if ($user->isSameLocation($user, $item)) {
-                return true;
-            }
-        }
-
-        return false;
+        return $itemConditional && $user->hasAccess($this->columnName().'.delete');
     }
 
     /**

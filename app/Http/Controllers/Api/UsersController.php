@@ -62,6 +62,7 @@ class UsersController extends Controller
             'users.two_factor_optin',
             'users.updated_at',
             'users.username',
+            'users.manager_location',
             'users.zip',
             'users.remote',
             'users.ldap_import',
@@ -142,7 +143,7 @@ class UsersController extends Controller
         }
 
         if ($request->filled('assets_count')) {
-           $users->has('assets', '=', $request->input('assets_count'));
+            $users->has('assets', '=', $request->input('assets_count'));
         }
 
         if ($request->filled('consumables_count')) {
@@ -226,7 +227,7 @@ class UsersController extends Controller
                 'users.avatar',
                 'users.email',
             ]
-            )->where('show_in_list', '=', '1');
+        )->where('show_in_list', '=', '1');
 
         $users = Company::scopeCompanyables($users);
 
@@ -292,7 +293,7 @@ class UsersController extends Controller
         $user->password = bcrypt($request->get('password', $tmp_pass));
 
         app('App\Http\Requests\ImageUploadRequest')->handleImages($user, 600, 'image', 'avatars', 'avatar');
-        
+
         if ($user->save()) {
             if ($request->filled('groups')) {
                 $user->groups()->sync($request->input('groups'));
@@ -344,7 +345,7 @@ class UsersController extends Controller
          * 
          *  Thanks, jerks. You are why we can't have nice things. - snipe
          * 
-         */ 
+         */
 
 
         if ((($id == 1) || ($id == 2)) && (config('app.lock_passwords'))) {
@@ -353,7 +354,7 @@ class UsersController extends Controller
 
 
         $user->fill($request->all());
-        
+
         if ($user->id == $request->input('manager_id')) {
             return response()->json(Helper::formatStandardApiResponse('error', null, 'You cannot be your own manager'));
         }
@@ -372,6 +373,13 @@ class UsersController extends Controller
             if (! Auth::user()->isSuperUser()) {
                 unset($permissions_array['superuser']);
             }
+
+            //Delete list manager_loaction if User isn't a branchadmin
+            $data = json_decode($permissions_array, true);
+            if (!isset($data['branchadmin']) || $data['branchadmin'] != "1") {
+                $user->manager_location = null;
+            }
+
             $user->permissions = $permissions_array;
         }
 
@@ -381,9 +389,9 @@ class UsersController extends Controller
         Asset::where('assigned_type', User::class)
             ->where('assigned_to', $user->id)->update(['location_id' => $request->input('location_id', null)]);
 
-        
+
         app('App\Http\Requests\ImageUploadRequest')->handleImages($user, 600, 'image', 'avatars', 'avatar');
-          
+
         if ($user->save()) {
 
             // Sync group memberships:
@@ -395,7 +403,7 @@ class UsersController extends Controller
             // Check if the request has groups passed and has a value
             if ($request->filled('groups')) {
                 $user->groups()->sync($request->input('groups'));
-            // The groups field has been passed but it is null, so we should blank it out
+                // The groups field has been passed but it is null, so we should blank it out
             } elseif ($request->has('groups')) {
                 $user->groups()->sync([]);
             }
@@ -592,7 +600,7 @@ class UsersController extends Controller
 
             return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/users/message.success.restored')));
         }
-        
+
         $id = $userId;
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/users/message.user_not_found', compact('id'))), 200);
     }
@@ -613,9 +621,9 @@ class UsersController extends Controller
             $userCreate = User::query()->updateOrcreate([
                 "email" => $user['email']
             ], $user);
-            
+
             $token = $userCreate->createToken('google-login')->accessToken;
-    
+
             return response()->json([
                 "token_type" => "Bear",
                 "access_token" => $token,
@@ -631,42 +639,42 @@ class UsersController extends Controller
         $username = explode('@', request()->profile_obj['email'])[0];//todo check email
         $found = User::where('username', $username)->first();
         if(!$found) {
-                return response()->json([
-                    "message" => "User not found",
-                ], 400);
+            return response()->json([
+                "message" => "User not found",
+            ], 400);
         }
         if(Helper::checkValidEmail(request()->profile_obj['email'])){
-                $user = [
-                    "email" => request()->profile_obj['email'],
-                    "username" => $username,
-                    "social_id" => request()->profile_obj['googleId'],
-                    "access_token_social" => request()->client_secret['access_token'],
-                    // "platform" => "google",
-                    // "permissions" => '{"superuser":"1","admin":"0","import":"0","reports.view":"0","assets.view":"0","assets.create":"0","assets.edit":"0","assets.delete":"0","assets.checkin":"0","assets.checkout":"0","assets.audit":"0","assets.view.requestable":"0","accessories.view":"0","accessories.create":"0","accessories.edit":"0","accessories.delete":"0","accessories.checkout":"0","accessories.checkin":"0","consumables.view":"0","consumables.create":"0","consumables.edit":"0","consumables.delete":"0","consumables.checkout":"0","licenses.view":"0","licenses.create":"0","licenses.edit":"0","licenses.delete":"0","licenses.checkout":"0","licenses.keys":"0","licenses.files":"0","components.view":"0","components.create":"0","components.edit":"0","components.delete":"0","components.checkout":"0","components.checkin":"0","kits.view":"0","kits.create":"0","kits.edit":"0","kits.delete":"0","kits.checkout":"0","users.view":"0","users.create":"0","users.edit":"0","users.delete":"0","models.view":"0","models.create":"0","models.edit":"0","models.delete":"0","categories.view":"0","categories.create":"0","categories.edit":"0","categories.delete":"0","departments.view":"0","departments.create":"0","departments.edit":"0","departments.delete":"0","statuslabels.view":"0","statuslabels.create":"0","statuslabels.edit":"0","statuslabels.delete":"0","customfields.view":"0","customfields.create":"0","customfields.edit":"0","customfields.delete":"0","suppliers.view":"0","suppliers.create":"0","suppliers.edit":"0","suppliers.delete":"0","manufacturers.view":"0","manufacturers.create":"0","manufacturers.edit":"0","manufacturers.delete":"0","depreciations.view":"0","depreciations.create":"0","depreciations.edit":"0","depreciations.delete":"0","locations.view":"0","locations.create":"0","locations.edit":"0","locations.delete":"0","companies.view":"0","companies.create":"0","companies.edit":"0","companies.delete":"0","self.two_factor":"0","self.api":"0","self.edit_location":"0","self.checkout_assets":"0"}'// todo 
-                ];
-                $userCreate = User::query()->updateOrcreate([
-                    "username" => $username
-                ], $user);
+            $user = [
+                "email" => request()->profile_obj['email'],
+                "username" => $username,
+                "social_id" => request()->profile_obj['googleId'],
+                "access_token_social" => request()->client_secret['access_token'],
+                // "platform" => "google",
+                // "permissions" => '{"superuser":"1","admin":"0","import":"0","reports.view":"0","assets.view":"0","assets.create":"0","assets.edit":"0","assets.delete":"0","assets.checkin":"0","assets.checkout":"0","assets.audit":"0","assets.view.requestable":"0","accessories.view":"0","accessories.create":"0","accessories.edit":"0","accessories.delete":"0","accessories.checkout":"0","accessories.checkin":"0","consumables.view":"0","consumables.create":"0","consumables.edit":"0","consumables.delete":"0","consumables.checkout":"0","licenses.view":"0","licenses.create":"0","licenses.edit":"0","licenses.delete":"0","licenses.checkout":"0","licenses.keys":"0","licenses.files":"0","components.view":"0","components.create":"0","components.edit":"0","components.delete":"0","components.checkout":"0","components.checkin":"0","kits.view":"0","kits.create":"0","kits.edit":"0","kits.delete":"0","kits.checkout":"0","users.view":"0","users.create":"0","users.edit":"0","users.delete":"0","models.view":"0","models.create":"0","models.edit":"0","models.delete":"0","categories.view":"0","categories.create":"0","categories.edit":"0","categories.delete":"0","departments.view":"0","departments.create":"0","departments.edit":"0","departments.delete":"0","statuslabels.view":"0","statuslabels.create":"0","statuslabels.edit":"0","statuslabels.delete":"0","customfields.view":"0","customfields.create":"0","customfields.edit":"0","customfields.delete":"0","suppliers.view":"0","suppliers.create":"0","suppliers.edit":"0","suppliers.delete":"0","manufacturers.view":"0","manufacturers.create":"0","manufacturers.edit":"0","manufacturers.delete":"0","depreciations.view":"0","depreciations.create":"0","depreciations.edit":"0","depreciations.delete":"0","locations.view":"0","locations.create":"0","locations.edit":"0","locations.delete":"0","companies.view":"0","companies.create":"0","companies.edit":"0","companies.delete":"0","self.two_factor":"0","self.api":"0","self.edit_location":"0","self.checkout_assets":"0"}'// todo 
+            ];
+            $userCreate = User::query()->updateOrcreate([
+                "username" => $username
+            ], $user);
 
-                $permissions = json_decode($userCreate->permissions, TRUE);
-                $scopes = [];
-                foreach($permissions as $key => $value){
-                    if($value == "1"){
-                        $scopes[] = $key;
-                    }
-                } 
-
-                $token = $userCreate->createToken('google-login', $scopes)->accessToken;
-                    return response()->json([
-                        "token_type" => "Bear",
-                        "access_token" => $token,
-                    ]);
-                } 
-        else {
-                return response()->json([
-                    "message" => "Unauthorized",
-                ], 401);
+            $permissions = json_decode($userCreate->permissions, TRUE);
+            $scopes = [];
+            foreach($permissions as $key => $value){
+                if($value == "1"){
+                    $scopes[] = $key;
+                }
             }
+
+            $token = $userCreate->createToken('google-login', $scopes)->accessToken;
+            return response()->json([
+                "token_type" => "Bear",
+                "access_token" => $token,
+            ]);
+        }
+        else {
+            return response()->json([
+                "message" => "Unauthorized",
+            ], 401);
+        }
     }
 
 
@@ -691,8 +699,8 @@ class UsersController extends Controller
             if($value == "1"){
                 $scopes[] = $key;
             }
-        } 
-    
+        }
+
         $token = $user->createToken('google-login', $scopes)->accessToken;
         return response()->json([
             "token_type" => "Bear",

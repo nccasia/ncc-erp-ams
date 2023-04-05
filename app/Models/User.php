@@ -62,7 +62,8 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         'social_id',
         'access_token_social',
         'platform',
-        'permissions'
+        'permissions',
+        'manager_location'
     ];
 
     protected $casts = [
@@ -616,6 +617,10 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     public function decodePermissions()
     {
         return json_decode($this->permissions, true);
+    }
+
+    public function decodeManagerLocation(){
+        return json_decode($this->manager_location, true);
     }
 
     /**

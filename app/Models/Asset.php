@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Watson\Validating\ValidatingTrait;
 use App\Models\Statuslabel;
+use Illuminate\Contracts\Auth\Guard;
 
 /**
  * Model for Assets.
@@ -278,8 +279,9 @@ class Asset extends Depreciable
         //         return true;
         //     }
         // }
-
-        if ((!$this->deleted_at) && (!$this->assigned_to) && (!$this->withdraw_from) && 
+        $guard = app(Guard::class);
+        $user = $guard->user();
+        if ((!$user->isBranchAdmin()) && (!$this->deleted_at) && (!$this->assigned_to) && (!$this->withdraw_from) &&
         (($this->assigned_status === config('enum.assigned_status.DEFAULT'))) && (($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
             return true;
             }
@@ -288,7 +290,9 @@ class Asset extends Depreciable
 
     public function availableForCheckin()
     {
-        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')))) {
+        $guard = app(Guard::class);
+        $user = $guard->user();
+        if ((!$user->isBranchAdmin()) && (!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')))) {
             return true;
         }
         return false;

@@ -167,7 +167,8 @@ class SnipeModel extends Model
         }
         
         if ($user->isBranchAdmin()) {
-            return $query->where('location_id', '=', $user->location_id);
+            $manager_location = $user->decodeManagerLocation();
+            return $query->whereIn('assets.rtd_location_id', $manager_location);
         }
 
         return $query->where('assets.user_id', '=', $user->id);

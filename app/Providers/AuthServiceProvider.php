@@ -90,6 +90,7 @@ class AuthServiceProvider extends ServiceProvider
         Passport::tokensCan([
             'superuser'  => 'test',
             'admin'  => 'test',
+            'branchadmin'  => 'test',
             'import'  => 'test',
             'reports.view'  => 'test',
             'assets.view'  => 'test',
