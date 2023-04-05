@@ -69,12 +69,7 @@ abstract class SnipePermissionsPolicy
      */
     public function create(User $user, $item = null)
     {
-        if ($user->isBranchAdmin() | $user->hasAccess($this->columnName().'.create')) {
-            if ($user->isSameLocation($user, $item)) {
-                return true;
-            }
-        }
-        return false;
+        return $user->hasAccess($this->columnName().'.create');
     }
 
     /**
@@ -85,12 +80,7 @@ abstract class SnipePermissionsPolicy
      */
     public function update(User $user, $item = null)
     {
-        if ($user->isBranchAdmin() | $user->hasAccess($this->columnName().'.edit')) {
-            if ($user->isSameLocation($user, $item)) {
-                return true;
-            }
-        }
-        return false;
+        return $user->hasAccess($this->columnName().'.edit');
     }
 
     /**

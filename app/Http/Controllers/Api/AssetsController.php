@@ -1214,7 +1214,7 @@ class AssetsController extends Controller
      */
     public function store(ImageUploadRequest $request)
     {
-        $this->authorize('create', [Asset::class, (object)$request->only(['location_id'])]);
+        $this->authorize('create', Asset::class);
 
         $asset = new Asset();
         $asset->model()->associate(AssetModel::find((int) $request->get('model_id')));
@@ -1360,8 +1360,7 @@ class AssetsController extends Controller
      */
     public function update(ImageUploadRequest $request, $id)
     {
-        $asset = Asset::find($id);
-        $this->authorize('update', $asset);
+        $this->authorize('update', Asset::class);
 
         if ($asset = Asset::find($id)) {
             $asset->fill($request->all());

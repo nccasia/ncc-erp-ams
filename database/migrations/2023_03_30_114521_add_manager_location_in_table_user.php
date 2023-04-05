@@ -14,7 +14,7 @@ class AddManagerLocationInTableUser extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->text('manager_location')->nullable();
+            $table->json('manager_location')->nullable();
         });
     }
 
@@ -25,10 +25,8 @@ class AddManagerLocationInTableUser extends Migration
      */
     public function down()
     {
-        Schema::table('table_user', function (Blueprint $table) {
-            Schema::table('users', function (Blueprint $table) {
-                $table->dropColumn('manager_location');
-            });
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('manager_location');
         });
     }
 }

@@ -201,16 +201,6 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     }
 
     /**
-     * Checks if the user  is same location with item
-     *
-     * @return bool
-     */
-    public function isSameLocation($user, $item)
-    {
-        return $user->location_id === $item->location_id;
-    }
-
-    /**
      * Establishes the user -> company relationship
      *
      * @author A. Gianotto <snipe@snipe.net>
@@ -618,11 +608,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     {
         return json_decode($this->permissions, true);
     }
-
-    public function decodeManagerLocation(){
-        return json_decode($this->manager_location, true);
-    }
-
+    
     /**
      * Query builder scope to search user by name with spaces in it.
      * We don't use the advancedTextSearch() scope because that searches

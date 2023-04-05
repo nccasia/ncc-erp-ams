@@ -167,7 +167,7 @@ class SnipeModel extends Model
         }
         
         if ($user->isBranchAdmin()) {
-            $manager_location = $user->decodeManagerLocation();
+            $manager_location = json_decode($user->manager_location, true);
             return $query->whereIn('assets.rtd_location_id', $manager_location);
         }
 
