@@ -78,7 +78,7 @@ abstract class SnipePermissionsPolicy
      * @param  \App\Models\User  $user
      * @return mixed
      */
-    public function update(User $user)
+    public function update(User $user, $item = null)
     {
         return $user->hasAccess($this->columnName().'.edit');
     }
