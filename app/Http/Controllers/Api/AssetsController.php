@@ -1638,8 +1638,6 @@ class AssetsController extends Controller
                             $asset->withdraw_from = null;
                             $asset->expected_checkin = null;
                             $asset->last_checkout = null;
-                            // $asset->assigned_to = null;
-                            // $asset->assignedTo()->disassociate($this);
                             $asset->accepted = null;
                             $data['reason'] = 'Lý do: ' . $request->get('reason');
                             if ($id === end($asset_ids)) {
@@ -1905,15 +1903,15 @@ class AssetsController extends Controller
             }
         }
 
-        // $data = [
-        //     'user_name' => $user_name,
-        //     'asset_name' => $asset_name,
-        //     'count' => count($assets),
-        //     'location_address' => $location_address,
-        //     'time' => $current_time->format('d-m-Y'),
-        //     'link' => config('client.my_assets.link'),
-        // ];
-        // SendCheckoutMail::dispatch($data, $user_email);
+        $data = [
+            'user_name' => $user_name,
+            'asset_name' => $asset_name,
+            'count' => count($assets),
+            'location_address' => $location_address,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+        SendCheckoutMail::dispatch($data, $user_email);
         return response()->json(Helper::formatStandardApiResponse('success', ['asset' => e($asset_tag)], trans('admin/hardware/message.checkout.success')));
     }
 
@@ -2011,7 +2009,7 @@ class AssetsController extends Controller
         $asset_name = $asset->name;
         if ($asset->checkIn($target, Auth::user(), $checkin_at, $asset->status_id, $note, $asset->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
             $this->saveAssetHistory($asset_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            // $data = $this->setDataUser($user->id, $asset_name, $countAssets);
+            $data = $this->setDataUser($user->id, $asset_name, $countAssets);
 
 
             SendCheckinMail::dispatch($data, $data['user_email']);
@@ -2114,9 +2112,9 @@ class AssetsController extends Controller
             }
         }
 
-        //        if ((isset($target->rtd_location_id)) && ($asset->rtd_location_id!='')) {
-        //            $asset->location_id = $target->rtd_location_id;
-        //        }
+               if ((isset($target->rtd_location_id)) && ($asset->rtd_location_id!='')) {
+                   $asset->location_id = $target->rtd_location_id;
+               }
 
         $asset->status_id = config('enum.status_id.ASSIGN');
 
