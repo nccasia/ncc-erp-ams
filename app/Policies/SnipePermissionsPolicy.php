@@ -67,7 +67,7 @@ abstract class SnipePermissionsPolicy
      * @param  \App\Models\User  $user
      * @return mixed
      */
-    public function create(User $user, $item = null)
+    public function create(User $user)
     {
         return $user->hasAccess($this->columnName().'.create');
     }
@@ -78,7 +78,7 @@ abstract class SnipePermissionsPolicy
      * @param  \App\Models\User  $user
      * @return mixed
      */
-    public function update(User $user, $item = null)
+    public function update(User $user)
     {
         return $user->hasAccess($this->columnName().'.edit');
     }
