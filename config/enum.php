@@ -23,5 +23,10 @@ return [
   "asset_history" => [
     "CHECK_IN_TYPE" => 1,
     "CHECK_OUT_TYPE" => 0
+  ],
+  "permission_status" => [
+    "ALLOW" => "1",
+    "REFUSE" => "-1",
+    "INHERITANCE" => "0",
   ]
 ];

@@ -374,9 +374,9 @@ class UsersController extends Controller
                 unset($permissions_array['superuser']);
             }
 
-            //Delete list manager_loaction if User isn't a branchadmin
-            $data = json_decode($permissions_array, true);
-            if (!isset($data['branchadmin']) || $data['branchadmin'] != "1") {
+            //Delete list manager_location if User isn't a branchadmin
+            $permissions = json_decode($permissions_array, true);
+            if (isset($permissions['branchadmin']) && $permissions['branchadmin'] != config('enum.permission_status.ALLOW')) {
                 $user->manager_location = null;
             }
 

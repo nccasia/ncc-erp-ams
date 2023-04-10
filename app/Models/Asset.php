@@ -281,7 +281,7 @@ class Asset extends Depreciable
         // }
         $guard = app(Guard::class);
         $user = $guard->user();
-        if ((!$user->isBranchAdmin()) && (!$this->deleted_at) && (!$this->assigned_to) && (!$this->withdraw_from) &&
+        if (($user->isAdmin()) && (!$this->deleted_at) && (!$this->assigned_to) && (!$this->withdraw_from) &&
         (($this->assigned_status === config('enum.assigned_status.DEFAULT'))) && (($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
             return true;
             }
@@ -292,7 +292,7 @@ class Asset extends Depreciable
     {
         $guard = app(Guard::class);
         $user = $guard->user();
-        if ((!$user->isBranchAdmin()) && (!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')))) {
+        if (($user->isAdmin()) && (!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')))) {
             return true;
         }
         return false;
