@@ -1435,13 +1435,12 @@ class AssetsController extends Controller
                          SendConfirmMail::dispatch($data, $it_ncc_email);
 
                     }
-
-                } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
+                } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT') || $asset->assigned_status === config('enum.assigned_status.REJECTREVOKE')) {
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
                         $data['is_confirm'] = 'đã từ chối thu hồi';
-                        $asset->status_id = config('enum.status_id.ASSIGN');
-                        $asset->assigned_status = config('enum.assigned_status.ACCEPT');
+                        $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                        $asset->assigned_status = config('enum.assigned_status.REJECTREVOKE');
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
                         SendRejectRevokeMail::dispatch($data, $it_ncc_email);
                     }
@@ -1627,7 +1626,7 @@ class AssetsController extends Controller
                             }
                             
                         }
-                    } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
+                    } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT') || $asset->assigned_status === config('enum.assigned_status.REJECTREVOKE')) {
                         if($asset->withdraw_from){
                             $data['is_confirm'] = 'đã từ chối thu hồi';
                             $asset->withdraw_from = null;
