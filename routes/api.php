@@ -544,6 +544,44 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
 
         ); // end assets API routes
 
+        
+        // Software API routes
+
+        Route::resource('software.licenses', 
+        Api\SoftwareLicensesController::class,
+        ['names' => 
+            [
+                'index' => 'api.software.licenses.index',
+                'show' => 'api.software.licenses.show',
+                'update' => 'api.software.licenses.update',
+            ],  
+        // 'except' => ['create', 'edit', 'destroy', 'store'],
+        'parameters' => ['softwarelicense' => 'softwarelicense_id'],
+        ]);
+        
+        Route::group(['prefix' => 'software'], function(){
+            
+        });
+
+        
+        Route::resource('software', 
+        Api\SoftwareController::class,
+        ['names' => 
+            [
+                'index' => 'api.software.index',
+                'show' => 'api.software.show',
+                'update' => 'api.software.update',
+                'store' => 'api.software.store',
+                'destroy' => 'api.software.destroy',
+            ],
+        'except' => ['create', 'edit'],
+        'parameters' => ['software' => 'software_id'],
+        ]
+        ); 
+
+
+
+        // end software routes
         /**
          * Asset maintenances API routes
          */
