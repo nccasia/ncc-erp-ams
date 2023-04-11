@@ -279,19 +279,21 @@ class Asset extends Depreciable
         //         return true;
         //     }
         // }
-        if (($this->checkIsAdmin()) && (!$this->deleted_at) && (!$this->assigned_to) && (!$this->withdraw_from) &&
-        (($this->assigned_status === config('enum.assigned_status.DEFAULT'))) && (($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
-            return true;
-            }
-        return false;
+        return $this->checkIsAdmin() && 
+            !$this->deleted_at && 
+            !$this->assigned_to && 
+            !$this->withdraw_from && 
+            $this->assigned_status === config('enum.assigned_status.DEFAULT') && 
+            $this->status_id === config('enum.status_id.READY_TO_DEPLOY');
     }
 
     public function availableForCheckin()
     {
-        if (($this->checkIsAdmin()) && (!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')))) {
-            return true;
-        }
-        return false;
+        return $this->checkIsAdmin() &&
+            !$this->deleted_at && 
+            $this->assigned_to && 
+            in_array($this->assigned_status, [config('enum.assigned_status.ACCEPT'), config('enum.assigned_status.REJECT')]) &&
+            $this->status_id === config('enum.status_id.ASSIGN');    
     }
 
     /**
@@ -302,10 +304,7 @@ class Asset extends Depreciable
     public function checkIsAdmin() {
         $guard = app(Guard::class);
         $user = $guard->user();
-        if($user->isAdmin()){
-            return true;
-        }
-        return false;
+        return $user->isAdmin();
     }
 
     /**
