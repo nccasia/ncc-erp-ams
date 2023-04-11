@@ -157,10 +157,10 @@ class SnipeModel extends Model
     }
 
     /**
-     * Query builder scope to filter location by role
+     * Query builder scope to filter assets by role
      *
      */
-    public function scopeFilterLocationByRole($query, $user)
+    public function scopeFilterAssetByRole($query, $user)
     {
         if ($user->isAdmin()) {
             return $query;  
