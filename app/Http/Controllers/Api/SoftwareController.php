@@ -97,8 +97,9 @@ class SoftwareController extends Controller
         $software->version = $request->get('version');
         $software->category_id = $request->get('category_id');
         $software->manufacturer_id = $request->get('manufacturer_id');
+        $software->notes = $request->get('notes');
         $software->user_id = Auth::id();
-        if($software->save()){
+        if ($software->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/licenses/message.create.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()));
@@ -127,7 +128,18 @@ class SoftwareController extends Controller
      */
     public function update(Request $request, $id)
     {
-        
+        $this->authorize('update', License::class);
+
+        $software = Software::find($id);
+        if ($software) {
+            $software->fill($request->all());
+            if ($software->save()) {
+                return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/software/message.update.success')));
+            }
+            return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()), 200);
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/software/message.does_not_exist')), 200);
     }
 
     /**
@@ -138,6 +150,14 @@ class SoftwareController extends Controller
      */
     public function destroy($id)
     {
-        //
+        $software = Software::findOrFail($id);
+
+        $this->authorize('delete', $software);
+        if($software->delete()){
+            return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/software/message.delete.success')));
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/software/message.does_not_exist')), 200);
+
     }
 }
