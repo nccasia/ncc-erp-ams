@@ -25,10 +25,10 @@ class Software extends Depreciable
 
     protected $rules = [
         'name' => 'required|string|min:3|max:255',
-        'software_tag' => 'required|string|min:3|max:255',
+        'software_tag' => 'unique:softwares|required|string|min:3|max:255',
         'category_id' => 'required|exists:categories,id',
         'manufacturer_id' => 'required|exists:manufacturers,id',
-        'name' => 'required|string|min:3|max:255',
+        'version' => 'unique:softwares|required|string|min:3|max:255',
         'notes' => 'string|nullable',
     ];
 
