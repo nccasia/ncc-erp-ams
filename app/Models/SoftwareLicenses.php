@@ -4,11 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Watson\Validating\ValidatingTrait;
 
 class SoftwareLicenses extends Model
 {
-    use HasFactory, ValidatingTrait;
+    use HasFactory, ValidatingTrait, SoftDeletes;
 
     public $timestamps = true;
     protected $guarded = 'id';
@@ -16,7 +17,7 @@ class SoftwareLicenses extends Model
 
     protected $rules =[
         'software_id' => 'required|exists:softwares,id',
-        'licenses' => 'required',
+        'licenses' => 'required|unique:software_licenses|min:3',
         'seats' => 'required|min:1|integer',
         'purchase_date' => 'required',
         'purchase_cost' => 'required',
@@ -49,12 +50,11 @@ class SoftwareLicenses extends Model
 
     public function assignedUsers()
     {
-        return $this->belongsToMany(User::class, 'software_licenses_users', 'assigned_to', 'license_id');
+        return $this->belongsToMany(User::class, 'software_licenses_users', 'assigned_to', 'software_licenses_id');
     }
     
     public function freeSeats(){
-        return $this->hasMany(LicensesUsers::class)
-        ->whereNull('deleted_at'); 
+        return $this->hasMany(LicensesUsers::class)->whereNull('assigned_to')->whereNull('deleted_at');
     }
     
 }

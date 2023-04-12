@@ -552,12 +552,19 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         ['names' => 
             [
                 'index' => 'api.software.licenses.index',
-                'show' => 'api.software.licenses.show',
-                'update' => 'api.software.licenses.update',
             ],  
         // 'except' => ['create', 'edit', 'destroy', 'store'],
         'parameters' => ['softwarelicense' => 'softwarelicense_id'],
         ]);
+
+
+        Route::group(['prefix' => 'software/licenses'], function () {
+            Route::get('/{id}', [Api\SoftwareLicensesController::class, 'show'])->name('api.software.licenses.show');
+            Route::put('{id}', [Api\SoftwareLicensesController::class, 'update'])->name('api.software.licenses.update');
+            Route::delete('/{id}', [Api\SoftwareLicensesController::class, 'destroy'])->name('api.software.licenses.destroy');
+            Route::post('/{id}/checkout', [Api\SoftwareLicensesController::class, 'checkOut'])->name('api.software.licenses.checkOut');
+            Route::post('/checkout', [Api\SoftwareLicensesController::class, 'multiCheckout'])->name('api.software.licenses.multiCheckout');
+        });
 
         Route::resource('license.users',
         Api\LicensesUsersController::class,
@@ -570,12 +577,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         // 'except' => ['create', 'edit', 'destroy', 'store'],
         // 'parameters' => ['softwarelicense' => 'softwarelicense_id'],
         ]);
-        
-        Route::group(['prefix' => 'software'], function(){
-            
-        });
 
-        
+
         Route::resource('software', 
         Api\SoftwareController::class,
         ['names' => 

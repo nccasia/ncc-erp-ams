@@ -100,7 +100,7 @@ class SoftwareController extends Controller
         $software->notes = $request->get('notes');
         $software->user_id = Auth::id();
         if ($software->save()) {
-            return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/licenses/message.create.success')));
+            return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/software/message.create.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()));
     }

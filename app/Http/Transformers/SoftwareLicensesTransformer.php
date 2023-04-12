@@ -24,9 +24,9 @@ class SoftwareLicensesTransformer
     {
         $array = [
             'id' => (int) $license->id,
-            'license' => e($license->licenses),
+            'licenses' => e($license->licenses),
             'seats' => (int) $license->seats,
-            'freeSeats' => (int) $license->seats,
+            'free_seats_count' => (int) $license->free_seats_count,
             'software' =>  ($license->software) ? ['id' => (int) $license->software->id, 'name'=> e($license->software->name)] : null,
             'purchase_date' => Helper::getFormattedDateObject($license->purchase_date, 'datetime'),
             'expiration_date' => Helper::getFormattedDateObject($license->expiration_date, 'datetime'),
