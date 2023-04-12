@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\SoftwaresTransformer;
 use App\Models\Company;
 use App\Models\Software;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SoftwareController extends Controller
 {
@@ -79,16 +81,6 @@ class SoftwareController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
      * Store a newly created resource in storage.
      *
      * @param  \Illuminate\Http\Request  $request
@@ -96,7 +88,20 @@ class SoftwareController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $this->authorize('create', Software::class);
+
+        $software = new Software();
+
+        $software->name = $request->get('name');
+        $software->software_tag = $request->get('software_tag');
+        $software->version = $request->get('version');
+        $software->category_id = $request->get('category_id');
+        $software->manufacturer_id = $request->get('manufacturer_id');
+        $software->user_id = Auth::id();
+        if($software->save()){
+            return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/licenses/message.create.success')));
+        }
+        return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()));
     }
 
     /**
@@ -107,18 +112,10 @@ class SoftwareController extends Controller
      */
     public function show($id)
     {
-        //
-    }
+        $this->authorize('view', Software::class);
+        $software = Software::withCount('totalLicenses as total_licenses')->with('softwareLicenses')->findOrFail($id);
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
+        return (new SoftwaresTransformer)->transformSoftware($software);
     }
 
     /**
@@ -130,7 +127,7 @@ class SoftwareController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        
     }
 
     /**

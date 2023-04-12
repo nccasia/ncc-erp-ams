@@ -26,9 +26,21 @@ class SoftwaresTransformer
             'name' => e($software->name),
             'software_tag' => e($software->software_tag),
             'user' =>  ($software->user) ? ['id' => (int) $software->user->id, 'name'=> e($software->user->username)] : null,
-            'manufacturer' =>  ($software->manufacturer) ? ['id' => (int) $software->manufacturer->id, 'name'=> e($software->manufacturer->name)] : null,
-            'category' =>  ($software->category) ? ['id' => (int) $software->category->id, 'name'=> e($software->category->name)] : null,
+            'manufacturer' =>  ($software->manufacturer) ? [
+                'id' => (int) $software->manufacturer->id, 
+                'name'=> e($software->manufacturer->name),
+                'url'=> e($software->manufacturer->url),
+                'support_url'=> e($software->manufacturer->support_url),
+                'support_phone'=> e($software->manufacturer->support_phone),
+                'support_email'=> e($software->manufacturer->support_email),
+                ] : null,
+            'category' =>  ($software->category) ? [
+                'id' => (int) $software->category->id, 
+                'name'=> e($software->category->name),
+                'category_type'=> e($software->category->category_type)
+                ] : null,
             'total_licenses' => (int) $software->total_licenses,
+            'softwareLicenses' => $software->softwareLicenses,
             'notes' => e($software->notes),
             'created_at' => Helper::getFormattedDateObject($software->created_at, 'datetime'),
             'updated_at' => Helper::getFormattedDateObject($software->updated_at, 'datetime'),
