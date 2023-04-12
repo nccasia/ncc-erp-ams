@@ -27,8 +27,6 @@ class SoftwareFactory extends Factory
             'notes'   => 'Created by DB seeder',
             'category_id' => Category::where('category_type', '=', 'software')->inRandomOrder()->first()->id,
             'manufacturer_id' => $this->faker->numberBetween(1, 11),
-            'created_at' => $this->faker->dateTime(),
-            'updated_at' => $this->faker->dateTime(),
             'deleted_at' => null,
         ];
     }

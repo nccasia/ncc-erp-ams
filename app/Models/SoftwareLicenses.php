@@ -47,8 +47,13 @@ class SoftwareLicenses extends Model
         return $query->join('softwares', 'software_licenses.software_id', '=', 'softwares.id')->orderBy('softwares.name', $order);
     }
 
+    public function assignedUsers()
+    {
+        return $this->belongsToMany(User::class, 'software_licenses_users', 'assigned_to', 'license_id');
+    }
+    
     public function freeSeats(){
-        return $this->hasMany(SoftwareLicenses::class)
+        return $this->hasMany(LicensesUsers::class)
         ->whereNull('deleted_at'); 
     }
     

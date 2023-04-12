@@ -39,6 +39,7 @@ class Software extends Depreciable
         'category_id',
         'manufacturer_id',
         'user_id',
+        'created_at',
     ];
     use Searchable;
 
@@ -66,7 +67,7 @@ class Software extends Depreciable
     }
 
     public function totalLicenses(){
-        return $this->hasMany(softwareLicenses::class);
+        return $this->hasMany(softwareLicenses::class)->whereNull('deleted_at');
     }
 
     public function scopeOrderManufacturer($query, $order)
@@ -78,13 +79,23 @@ class Software extends Depreciable
     {
         return $query->where(function ($query) use ($filter) {
             foreach ($filter as $key => $search_val) {
-                $fieldname = str_replace('custom_fields.', '', $key);
-                if ($fieldname == 'manufacturer' || $fieldname == 'category') {
-                    $query->where('software.' . $fieldname, '=', '%' . $search_val . '%');
+                $fieldname = $key;
+                if ($fieldname == 'manufacturer') {
+                    $query->whereHas('manufacturer', function ($query) use ($search_val) {
+                        $query->where('manufacturers.name', 'LIKE', '%' . $search_val . '%');
+                    });
+                }
+
+                if ($fieldname == 'category') {
+                    $query->whereHas('category', function ($query) use ($search_val) {
+                        $query->where(function ($query) use ($search_val) {
+                            $query->where('categories.name', 'LIKE', '%' . $search_val . '%');
+                        });
+                    });
                 }
 
                 if ($fieldname != 'category' &&  $fieldname != 'manufacturer') {
-                    $query->where('software.' . $fieldname, 'LIKE', '%' . $search_val . '%');
+                    $query->where('softwares.' . $fieldname, 'LIKE', '%' . $search_val . '%');
                 }
             }
         });
@@ -94,8 +105,6 @@ class Software extends Depreciable
         $query = $query->leftJoin('users as softwares_user', function ($leftJoin) {
             $leftJoin->on('softwares_user.id', '=', 'softwares.user_id');
         });
-
-
 
         $query = $query->leftJoin('categories as softwares_category', function ($leftJoin) {
             $leftJoin->on('softwares_category.id', '=', 'softwares.category_id');
@@ -113,6 +122,7 @@ class Software extends Depreciable
                 ->orWhereRaw('CONCAT(' . DB::getTablePrefix() . 'softwares_user.first_name," ",' . DB::getTablePrefix() . 'softwares_user.last_name) LIKE ?', ["%$term%"])
                 ->orwhere('softwares_category.name', 'LIKE', '%' . $term . '%')
                 ->orwhere('softwares_manufacturer.name', 'LIKE', '%' . $term . '%')
+                ->orwhere('softwares.name', 'LIKE', '%' . $term . '%')
                 ->orwhere('softwares.version', 'LIKE', '%' . $term . '%')
                 ->orwhere('softwares.notes', 'LIKE', '%' . $term . '%')
                 ->orwhere('softwares.software_tag', 'LIKE', '%' . $term . '%')

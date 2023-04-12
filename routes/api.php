@@ -558,6 +558,18 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         // 'except' => ['create', 'edit', 'destroy', 'store'],
         'parameters' => ['softwarelicense' => 'softwarelicense_id'],
         ]);
+
+        Route::resource('license.users',
+        Api\LicensesUsersController::class,
+        ['names' => 
+            [
+                'index' => 'api.software.license.users.index',
+                'show' => 'api.software.license.users.show',
+                'update' => 'api.software.license.users.update',
+            ],
+        // 'except' => ['create', 'edit', 'destroy', 'store'],
+        // 'parameters' => ['softwarelicense' => 'softwarelicense_id'],
+        ]);
         
         Route::group(['prefix' => 'software'], function(){
             

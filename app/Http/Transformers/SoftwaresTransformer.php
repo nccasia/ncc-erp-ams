@@ -24,6 +24,7 @@ class SoftwaresTransformer
         $array = [
             'id' => (int) $software->id,
             'name' => e($software->name),
+            'software_tag' => e($software->software_tag),
             'user' =>  ($software->user) ? ['id' => (int) $software->user->id, 'name'=> e($software->user->username)] : null,
             'manufacturer' =>  ($software->manufacturer) ? ['id' => (int) $software->manufacturer->id, 'name'=> e($software->manufacturer->name)] : null,
             'category' =>  ($software->category) ? ['id' => (int) $software->category->id, 'name'=> e($software->category->name)] : null,
@@ -35,10 +36,10 @@ class SoftwaresTransformer
         ];
 
         $permissions_array['available_actions'] = [
-            'checkout' => Gate::allows('checkout', License::class),
-            'clone' => Gate::allows('create', License::class),
-            'update' => Gate::allows('update', License::class),
-            'delete' => Gate::allows('delete', License::class),
+            'checkout' => Gate::allows('checkout', Software::class),
+            'clone' => Gate::allows('create', Software::class),
+            'update' => Gate::allows('update', Software::class),
+            'delete' => Gate::allows('delete', Software::class),
         ];
 
         $array += $permissions_array;

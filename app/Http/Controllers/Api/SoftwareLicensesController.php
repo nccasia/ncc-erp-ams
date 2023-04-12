@@ -33,6 +33,18 @@ class SoftwareLicensesController extends Controller
             'purchase_cost'
         ];
 
+        $filter = [];
+
+        if ($request->filled('filter')) {
+            $filter = json_decode($request->input('filter'), true);
+        }
+
+        if ((!is_null($filter)) && (count($filter)) > 0) {
+            $licenses->ByFilter($filter);
+        } elseif ($request->filled('search')) {
+            $licenses->TextSearch($request->input('search'));
+        }
+
         $total = $licenses->count();
         $offset = (($licenses) && ($request->get('offset') > $licenses->count()))
             ? $licenses->count()
@@ -44,12 +56,11 @@ class SoftwareLicensesController extends Controller
 
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
 
-        $field_sort = str_replace('custom_fields.', '', $request->input('sort'));
-
+        $field_sort = $request->input('sort');
         $default_sort = in_array($field_sort, $allowed_columns) ? $field_sort : 'software_licenses.created_at';
 
         $licenses->orderBy($default_sort, $order);
-
+        
         $licenses = $licenses->skip($offset)->take($limit)->get();
         return (new SoftwareLicensesTransformer)->transformSoftwareLicenses($licenses, $total);
     }   

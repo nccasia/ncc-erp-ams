@@ -53,7 +53,11 @@ class SoftwareController extends Controller
 
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
 
-        $sort = str_replace('custom_fields.', '', $request->input('sort'));
+        if ($request->filled('dateFrom', 'dateTo')) {
+            $softwares->whereBetween('softwares.created_at', [$request->input('dateFrom'), $request->input('dateTo')]);
+        }
+
+        $sort = $request->input('sort');
 
         $default_sort = in_array($sort, $allowed_columns) ? $sort : 'softwares.created_at';
 
@@ -71,7 +75,6 @@ class SoftwareController extends Controller
         }
 
         $softwares = $softwares->skip($offset)->take($limit)->get();
-
         return (new SoftwaresTransformer)->transformSoftwares($softwares, $total);
     }
 
