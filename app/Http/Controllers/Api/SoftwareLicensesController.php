@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\SoftwareLicensesTransformer;
+use App\Jobs\SendCheckoutMail;
 use App\Models\Company;
 use App\Models\LicensesUsers;
 use App\Models\Software;
 use App\Models\SoftwareLicenses;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -160,8 +162,9 @@ class SoftwareLicensesController extends Controller
                 ], 
                 trans('admin/hardware/message.checkout.not_available')));
             }
-
-            $license = SoftwareLicenses::where('software_id', $software_id)->where('seats','>' , 0)->first();
+            $license = SoftwareLicenses::where('software_id', $software_id)->with('allocatedSeats')
+            ->where('seats','>' , 0);
+            dd($license->where($license->allocatedSeats->count() ,'<', $license->seats)->first());
             $license_user = new LicensesUsers();
             $license_user->software_licenses_id = $license->id;
             $license_user->assigned_to = $request->input('assigned_user');
@@ -170,9 +173,21 @@ class SoftwareLicensesController extends Controller
 
             if($license_user->save()){
                 array_push($licenses_active, $license_user->license->licenses);
+                $user = User::find($request->get('assigned_user'));
+                $user_email = $user->email;
+                $user_name = $user->first_name . ' ' . $user->last_name;
+                $current_time = Carbon::now();
+                $data = [
+                    'user_name' => $user_name,
+                    'asset_name' => $software->name,
+                    'count' => 1,
+                    'location_address' => null,
+                    'time' => $current_time->format('d-m-Y'),
+                    'link' => config('client.my_assets.link'),
+                ];
+                SendCheckoutMail::dispatch($data, $user_email);
             }
         }
-
         return response()->json(Helper::formatStandardApiResponse('success', ['license' => $licenses_active], trans('admin/licenses/message.checkout.success')));
     }
 
@@ -196,8 +211,22 @@ class SoftwareLicensesController extends Controller
         $license_user->assigned_to = $request->input('assigned_user');
         $license_user->created_at = Carbon::now();
         $license_user->user_id = Auth::id();
+        
         if ($license_user->save()) {
-                return response()->json(Helper::formatStandardApiResponse('success', ['license' => e($license_user->license->licenses)], trans('admin/licenses/message.checkout.success')));
+            $user = User::find($request->get('assigned_user'));
+            $user_email = $user->email;
+            $user_name = $user->first_name . ' ' . $user->last_name;
+            $current_time = Carbon::now();
+            $data = [
+                'user_name' => $user_name,
+                'asset_name' => $license->name,
+                'count' => 1,
+                'location_address' => null,
+                'time' => $current_time->format('d-m-Y'),
+                'link' => config('client.my_assets.link'),
+            ];
+            SendCheckoutMail::dispatch($data, $user_email);
+            return response()->json(Helper::formatStandardApiResponse('success', ['license' => e($license_user->license->licenses)], trans('admin/licenses/message.checkout.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $license_user->getErrors()), 200);
     }

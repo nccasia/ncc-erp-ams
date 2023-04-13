@@ -553,12 +553,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             [
                 'index' => 'api.software.licenses.index',
             ],  
-        // 'except' => ['create', 'edit', 'destroy', 'store'],
+        'except' => ['create', 'edit', 'destroy', 'store'],
         'parameters' => ['softwarelicense' => 'softwarelicense_id'],
         ]);
 
 
         Route::group(['prefix' => 'software/licenses'], function () {
+            Route::post('', [Api\SoftwareLicensesController::class, 'store'])->name('api.software.licenses.store');
             Route::get('/{id}', [Api\SoftwareLicensesController::class, 'show'])->name('api.software.licenses.show');
             Route::put('{id}', [Api\SoftwareLicensesController::class, 'update'])->name('api.software.licenses.update');
             Route::delete('/{id}', [Api\SoftwareLicensesController::class, 'destroy'])->name('api.software.licenses.destroy');

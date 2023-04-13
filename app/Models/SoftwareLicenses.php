@@ -58,7 +58,7 @@ class SoftwareLicenses extends Model
 
     public function allocatedSeats()
     {
-        return $this->hasMany(LicensesUsers::class);
+        return $this->hasMany(LicensesUsers::class)->whereNull('deleted_at');
     }
 
     public function scopeByFilter($query, $filter)
