@@ -26,7 +26,7 @@ class SoftwareLicensesController extends Controller
         $licenses = Company::scopeCompanyables(
             SoftwareLicenses::select('software_licenses.*')
                 ->with('software')
-                ->withCount('freeSeats as free_seats_count')
+                ->withCount('allocatedSeats as allocated_seats_count')
                 ->where('software_id', '=', $softwareId)
         );
         $allowed_columns = [
@@ -34,6 +34,7 @@ class SoftwareLicensesController extends Controller
             'software_id',
             'licenses',
             'seats',
+            'allocated_seats_count',
             'free_seats_count',
             'purchase_date',
             'expiration_date',
@@ -101,7 +102,7 @@ class SoftwareLicensesController extends Controller
     public function show($id)
     {
         $this->authorize('view', SoftwareLicenses::class);
-        $license = SoftwareLicenses::withCount('freeSeats as free_seats_count')
+        $license = SoftwareLicenses::withCount('allocatedSeats as allocated_seats_count')
             ->with('assignedUsers')->findOrFail($id);
         return (new SoftwareLicensesTransformer)->transformSoftwareLicense($license);
     }
@@ -147,35 +148,56 @@ class SoftwareLicensesController extends Controller
     public function multiCheckout(Request $request){
         $this->authorize('checkout', SoftwareLicenses::class);
         $softwares = $request->get('softwares');
+        $licenses_active = array();
+
         foreach( $softwares as $software_id ){
-            $software = Software::find($software_id);
-            $license = SoftwareLicenses::where('software_id', $software_id)->first();
+            $software = Software::findOrFail($software_id);
+
+            if (!$software->availableForCheckout()) {
+                return response()->json(Helper::formatStandardApiResponse('error', 
+                [
+                    'software'=> e($software->name),
+                ], 
+                trans('admin/hardware/message.checkout.not_available')));
+            }
+
+            $license = SoftwareLicenses::where('software_id', $software_id)->where('seats','>' , 0)->first();
             $license_user = new LicensesUsers();
             $license_user->software_licenses_id = $license->id;
             $license_user->assigned_to = $request->input('assigned_user');
             $license_user->created_at = Carbon::now();
             $license_user->user_id = Auth::id();
-            $license_user->save();
-            $license_user->license->seats -= 1;
-            $license_user->license->save();
+
+            if($license_user->save()){
+                array_push($licenses_active, $license_user->license->licenses);
+            }
         }
 
-        return response()->json(Helper::formatStandardApiResponse('success', ['license' => e($license_user->license->licenses)], trans('admin/licenses/message.checkout.success')));
+        return response()->json(Helper::formatStandardApiResponse('success', ['license' => $licenses_active], trans('admin/licenses/message.checkout.success')));
     }
 
     public function checkOut(Request $request, $id)
     {
         $this->authorize('checkout', SoftwareLicenses::class);
+        $license = SoftwareLicenses::findOrFail($id);
+        if(!$license->availableForCheckout()){
+            return response()->json(Helper::formatStandardApiResponse('error',      
+            [
+                'license'=> e($license->licenses),
+                'seats'=> e($license->seats),
+                'allocated seats'=> e($license->allocatedSeats()->count()),
+            ], 
+            trans('admin/hardware/message.checkout.not_available')));
+        }
+        $this->authorize('checkout', $license);
+
         $license_user = new LicensesUsers();
         $license_user->software_licenses_id = $id;
         $license_user->assigned_to = $request->input('assigned_user');
         $license_user->created_at = Carbon::now();
         $license_user->user_id = Auth::id();
         if ($license_user->save()) {
-            $license_user->license->seats -= 1;
-            if($license_user->license->save()){
                 return response()->json(Helper::formatStandardApiResponse('success', ['license' => e($license_user->license->licenses)], trans('admin/licenses/message.checkout.success')));
-            }
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $license_user->getErrors()), 200);
     }

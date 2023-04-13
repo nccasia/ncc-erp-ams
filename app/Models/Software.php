@@ -75,6 +75,10 @@ class Software extends Depreciable
         return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')->orderBy('manufacturers.name', $order);
     }
 
+    public function scopeOrderFreeSeats($query, $order){
+        
+    }
+
     public function scopeByFilter($query, $filter)
     {
         return $query->where(function ($query) use ($filter) {
@@ -130,6 +134,11 @@ class Software extends Depreciable
         }
         return $query;
     }
-
+    public function availableForCheckout(){
+        if($this->totalLicenses()->count() == 0){
+            return false;
+        }
+        return true;
+    }
 
 }

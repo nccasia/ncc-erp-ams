@@ -26,7 +26,8 @@ class SoftwareLicensesTransformer
             'id' => (int) $license->id,
             'licenses' => e($license->licenses),
             'seats' => (int) $license->seats,
-            'free_seats_count' => (int) $license->free_seats_count,
+            'allocated_seats_count' => (int) $license->allocated_seats_count,
+            'free_seats_count' => (int) $license->seats - $license->allocated_seats_count,
             'software' =>  ($license->software) ? ['id' => (int) $license->software->id, 'name'=> e($license->software->name)] : null,
             'purchase_date' => Helper::getFormattedDateObject($license->purchase_date, 'datetime'),
             'expiration_date' => Helper::getFormattedDateObject($license->expiration_date, 'datetime'),
@@ -35,7 +36,7 @@ class SoftwareLicensesTransformer
             'created_at' => Helper::getFormattedDateObject($license->created_at, 'datetime'),
             'updated_at' => Helper::getFormattedDateObject($license->updated_at, 'datetime'),
             'deleted_at' => Helper::getFormattedDateObject($license->deleted_at, 'datetime'),
-            'user_can_checkout' => (bool) ($license->seats > 0),
+            'user_can_checkout' => (bool) ($license->allocated_seats_count < $license->seats),
         ];
 
         $permissions_array['available_actions'] = [

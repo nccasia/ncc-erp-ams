@@ -25,6 +25,7 @@ class SoftwaresTransformer
             'id' => (int) $software->id,
             'name' => e($software->name),
             'software_tag' => e($software->software_tag),
+            'version' => e($software->version),
             'user' =>  ($software->user) ? ['id' => (int) $software->user->id, 'name'=> e($software->user->username)] : null,
             'manufacturer' =>  ($software->manufacturer) ? [
                 'id' => (int) $software->manufacturer->id, 
@@ -42,6 +43,7 @@ class SoftwaresTransformer
             'total_licenses' => (int) $software->total_licenses,
             'softwareLicenses' => $software->softwareLicenses,
             'notes' => e($software->notes),
+            'user_can_checkout'=> $software->total_licenses > 0 ? true : false,
             'created_at' => Helper::getFormattedDateObject($software->created_at, 'datetime'),
             'updated_at' => Helper::getFormattedDateObject($software->updated_at, 'datetime'),
             'deleted_at' => Helper::getFormattedDateObject($software->deleted_at, 'datetime'),
