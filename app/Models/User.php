@@ -62,7 +62,8 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         'social_id',
         'access_token_social',
         'platform',
-        'permissions'
+        'permissions',
+        'manager_location'
     ];
 
     protected $casts = [
@@ -190,6 +191,14 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         return $this->checkPermissionSection('admin');
     }
 
+    /**
+     * Checks if the user is a BranchAdmin
+     *
+     * @return bool
+     */
+    public function isBranchAdmin() {
+        return $this->checkPermissionSection('branchadmin');
+    }
 
     /**
      * Establishes the user -> company relationship
@@ -599,7 +608,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     {
         return json_decode($this->permissions, true);
     }
-
+    
     /**
      * Query builder scope to search user by name with spaces in it.
      * We don't use the advancedTextSearch() scope because that searches

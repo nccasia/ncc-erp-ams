@@ -130,6 +130,7 @@ class AssetsController extends Controller
         ->with('location', 'assetstatus', 'company', 'defaultLoc','assignedTo',
         'model.category', 'model.manufacturer', 'model.fieldset','supplier'); //it might be tempting to add 'assetlog' here, but don't. It blows up update-heavy users.
         
+         $assets->filterAssetByRole($request->user());
         // if ($request->filled('type')) {
         //     $type = $request->filled('type');
 
@@ -248,7 +249,7 @@ class AssetsController extends Controller
         }
 
 
-
+        
         // This is used by the sidenav, mostly
 
         // We switched from using query scopes here because of a Laravel bug
