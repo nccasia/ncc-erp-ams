@@ -567,7 +567,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             Route::post('/checkout', [Api\SoftwareLicensesController::class, 'multiCheckout'])->name('api.software.licenses.multiCheckout');
         });
 
-        Route::resource('license.users',
+        Route::resource('software/license.users',
         Api\LicensesUsersController::class,
         ['names' => 
             [
