@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 use Watson\Validating\ValidatingTrait;
 
 class SoftwareLicenses extends Model
@@ -30,6 +31,7 @@ class SoftwareLicenses extends Model
         'purchase_date' => 'datetime',
         'expiration_date' => 'datetime',
         'seats'   => 'integer',
+        'checkout_count'   => 'integer',
         'software_id'   => 'integer',
     ];
     protected $fillable = [
@@ -38,6 +40,7 @@ class SoftwareLicenses extends Model
         'purchase_date',
         'seats',
         'user_id',
+        'checkout_count',
         'software_id'
     ];
 
@@ -75,6 +78,11 @@ class SoftwareLicenses extends Model
         });
     }
 
+    public function scopeOrderAllocatedSeats($query, $order){
+        return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')->orderBy('manufacturers.name', $order);
+    }
+
+
     public function advancedTextSearch(Builder $query, array $terms)
     {  
         foreach ($terms as $term) {
@@ -93,5 +101,18 @@ class SoftwareLicenses extends Model
             return false;
         }
         return true;
+    }
+
+    public function getFirstLicenseAvailableForCheckout($softwareId){
+        return $this->leftJoin('software_licenses_users', 'software_licenses.id', '=', 'software_licenses_users.software_licenses_id')
+        ->select('software_licenses.id', 'software_licenses.checkout_count',
+            'software_licenses.seats', 'software_licenses.licenses',
+            DB::raw('count(software_licenses_users.id) as allocatedSeat'))
+        ->where('software_id', '=', $softwareId)
+        ->where('seats', '>', config('enum.seats.MIN'))
+        ->groupBy('software_licenses_users.software_licenses_id')
+        ->havingRaw('software_licenses.seats > allocatedSeat')
+        ->orderBy('id')
+        ->first();
     }
 }

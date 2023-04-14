@@ -40,10 +40,10 @@ class SoftwaresTransformer
                 'name'=> e($software->category->name),
                 'category_type'=> e($software->category->category_type)
                 ] : null,
-            'total_licenses' => (int) $software->total_licenses,
-            'softwareLicenses' => $software->softwareLicenses,
+            'total_licenses' => (int) $software->licenses_sum_seats,
+            'checkout_count' => (int) $software->licenses_sum_checkout_count,
             'notes' => e($software->notes),
-            'user_can_checkout'=> $software->total_licenses > 0 ? true : false,
+            'user_can_checkout'=> ($software->licenses_sum_seats > 0 && $software->licenses_sum_checkout_count < $software->licenses_sum_seats ) ? true : false,
             'created_at' => Helper::getFormattedDateObject($software->created_at, 'datetime'),
             'updated_at' => Helper::getFormattedDateObject($software->updated_at, 'datetime'),
             'deleted_at' => Helper::getFormattedDateObject($software->deleted_at, 'datetime'),

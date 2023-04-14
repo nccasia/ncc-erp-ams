@@ -20,15 +20,16 @@ class SoftwareController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view', Software::class);
-
-        $softwares = Company::scopeCompanyables(Software::select('softwares.*')->with('category', 'manufacturer')->withCount('totalLicenses as total_licenses'));
+        $softwares = Company::scopeCompanyables(Software::select('softwares.*')->with('category', 'manufacturer', 'licenses')
+                                                    ->withSum('licenses', 'seats')
+                                                    ->withSum('licenses', 'checkout_count')
+                                                );
 
         $allowed_columns = [
             'id',
             'name',
             'category_id',
             'munufacturer_id',
-            'total_licenses',
             'created_at',
             'notes',
         ];

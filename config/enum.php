@@ -28,5 +28,8 @@ return [
   "asset_history" => [
     "CHECK_IN_TYPE" => 1,
     "CHECK_OUT_TYPE" => 0
+  ],
+  "seats" =>[
+    "MIN" => 0,
   ]
 ];

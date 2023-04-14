@@ -68,8 +68,12 @@ class SoftwareLicensesController extends Controller
 
         $field_sort = $request->input('sort');
         $default_sort = in_array($field_sort, $allowed_columns) ? $field_sort : 'software_licenses.created_at';
+        if($field_sort  == 'free_seats_count'){
+            // $licenses->OrderFreeSeats($order);
+        }else{
+            $licenses->orderBy($default_sort, $order);
+        }
 
-        $licenses->orderBy($default_sort, $order);
 
         $licenses = $licenses->skip($offset)->take($limit)->get();
         return (new SoftwareLicensesTransformer)->transformSoftwareLicenses($licenses, $total);
@@ -122,7 +126,9 @@ class SoftwareLicensesController extends Controller
         $license = SoftwareLicenses::find($id);
         if ($license) {
             $license->fill($request->all());
-            $license->licenses = $request->get('licenses');
+            if($request->get('licenses')){
+                $license->licenses = $request->get('licenses');
+            }
             if ($license->save()) {
                 return response()->json(Helper::formatStandardApiResponse('success', $license, trans('admin/licenses/message.update.success')));
             }
@@ -160,11 +166,11 @@ class SoftwareLicensesController extends Controller
                 [
                     'software'=> e($software->name),
                 ], 
-                trans('admin/hardware/message.checkout.not_available')));
+                trans('admin/software/message.checkout.not_available')));
             }
-            $license = SoftwareLicenses::where('software_id', $software_id)->with('allocatedSeats')
-            ->where('seats','>' , 0);
-            dd($license->where($license->allocatedSeats->count() ,'<', $license->seats)->first());
+
+            $license = new SoftwareLicenses;
+            $license = $license->getFirstLicenseAvailableForCheckout($software_id);
             $license_user = new LicensesUsers();
             $license_user->software_licenses_id = $license->id;
             $license_user->assigned_to = $request->input('assigned_user');
@@ -172,6 +178,8 @@ class SoftwareLicensesController extends Controller
             $license_user->user_id = Auth::id();
 
             if($license_user->save()){
+                $licenseUpdate = SoftwareLicenses::findOrFail($license->id);
+                $licenseUpdate->update(['checkout_count' => $licenseUpdate->checkout_count + 1 ]);
                 array_push($licenses_active, $license_user->license->licenses);
                 $user = User::find($request->get('assigned_user'));
                 $user_email = $user->email;
@@ -213,13 +221,14 @@ class SoftwareLicensesController extends Controller
         $license_user->user_id = Auth::id();
         
         if ($license_user->save()) {
+            $license->update(['checkout_count' => $license->checkout_count + 1]);
             $user = User::find($request->get('assigned_user'));
             $user_email = $user->email;
             $user_name = $user->first_name . ' ' . $user->last_name;
             $current_time = Carbon::now();
             $data = [
                 'user_name' => $user_name,
-                'asset_name' => $license->name,
+                'asset_name' => $license->software->name,
                 'count' => 1,
                 'location_address' => null,
                 'time' => $current_time->format('d-m-Y'),

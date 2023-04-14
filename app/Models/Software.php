@@ -62,21 +62,13 @@ class Software extends Depreciable
         return $query->join('categories', 'softwares.category_id', '=', 'categories.id')->orderBy('categories.name', $order);
     }
 
-    public function softwareLicenses(){
+    public function licenses(){
         return $this->hasMany(softwareLicenses::class);
     }
-
-    public function totalLicenses(){
-        return $this->hasMany(softwareLicenses::class)->whereNull('deleted_at');
-    }
-
+    
     public function scopeOrderManufacturer($query, $order)
     {
         return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')->orderBy('manufacturers.name', $order);
-    }
-
-    public function scopeOrderFreeSeats($query, $order){
-        
     }
 
     public function scopeByFilter($query, $filter)
@@ -135,7 +127,7 @@ class Software extends Depreciable
         return $query;
     }
     public function availableForCheckout(){
-        if($this->totalLicenses()->count() == 0){
+        if($this->licenses()->count() == 0){
             return false;
         }
         return true;

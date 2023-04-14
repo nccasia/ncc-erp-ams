@@ -24,6 +24,7 @@ class SoftwareLicensesFactory extends Factory
             'created_at' => $this->faker->dateTime(),
             'updated_at' => $this->faker->dateTime(),
             'deleted_at' => null,
+            'checkout_count' => 0,
         ];
     }
 }
