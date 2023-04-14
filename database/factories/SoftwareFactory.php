@@ -22,7 +22,7 @@ class SoftwareFactory extends Factory
         return [
             'user_id' => 1,
             'name' => $this->faker->name,
-            'version' => $this->faker->unixTime('now'),
+            'version' => $this->faker->unixTime('now').'',
             'software_tag' => $this->faker->unixTime('now').'',
             'notes'   => 'Created by DB seeder',
             'category_id' => Category::where('category_type', '=', 'software')->inRandomOrder()->first()->id,
@@ -35,6 +35,17 @@ class SoftwareFactory extends Factory
     {
         return $this->state(function () {
             return [
+                'notes' => $this->faker->sentence,
+            ];
+        });
+    }
+
+    public function visualStudio()
+    {
+        return $this->state(function () {
+            return [
+                'name'=>'Visual Studio',
+                'category_id' => 17,
                 'notes' => $this->faker->sentence,
             ];
         });

@@ -47,6 +47,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DepreciationSeeder::class);
         $this->call(StatuslabelSeeder::class);
         $this->call(AccessorySeeder::class);
+        $this->call(SoftwareSeeder::class);
         $this->call(AssetSeeder::class);
         $this->call(LicenseSeeder::class);
         $this->call(ComponentSeeder::class);
@@ -54,8 +55,7 @@ class DatabaseSeeder extends Seeder
         $this->call(ActionlogSeeder::class);
         $this->call(CustomFieldSeeder::class);
         $this->call(SoftwareLicensesSeeder::class);
-        $this->call(SoftwareSeeder::class);
-
+        
         Artisan::call('snipeit:sync-asset-locations', ['--output' => 'all']);
         $output = Artisan::output();
         Log::info($output);
