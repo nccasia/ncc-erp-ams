@@ -28,8 +28,8 @@ class SoftwareLicenses extends Model
     ];
 
     protected $casts = [
-        'purchase_date' => 'datetime',
-        'expiration_date' => 'datetime',
+        'purchase_date' => 'date',
+        'expiration_date' => 'date',
         'seats'   => 'integer',
         'checkout_count'   => 'integer',
         'software_id'   => 'integer',
