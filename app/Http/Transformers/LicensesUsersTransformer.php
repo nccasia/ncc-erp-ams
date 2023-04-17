@@ -2,6 +2,7 @@
 
 namespace App\Http\Transformers;
 
+use App\Helpers\Helper;
 use App\Models\License;
 use App\Models\LicenseSeat;
 use App\Models\LicensesUsers;
@@ -29,23 +30,22 @@ class LicensesUsersTransformer
             'id' => (int) $licenseUsers->id,
             'license_active' => [
                 'id' => (int) $licenseUsers->license->id,
-                'name'=>  $licenseUsers->license->licenses,
+                'name'=>  e($licenseUsers->license->licenses),
             ],
             'assigned_user' => ($licenseUsers->user) ? [
                 'id' => (int) $licenseUsers->user->id,
-                'name'=> e($licenseUsers->user->present()->fullName),
+                'name'=> e($licenseUsers->user->fullName),
+                'department' => $licenseUsers->user->department ? [
+                    'id' => (int) $licenseUsers->user->department->id,
+                    'name' => e($licenseUsers->user->department->name),
+                    'location' => [
+                        'id'=>(int) $licenseUsers->user->department->location->id,
+                        'name'=>e($licenseUsers->user->department->location->name),
+                        ]
+                ]:null,
             ] : null,
-            'user_can_checkout' => $licenseUsers->assigned_to == '',
+            'checkout_at'=>  Helper::getFormattedDateObject($licenseUsers->checkout_at, 'datetime'),
         ];
-        $permissions_array['available_actions'] = [
-            'checkout' => Gate::allows('checkout', Software::class),
-            'checkin' => Gate::allows('checkin', Software::class),
-            'clone' => Gate::allows('create', Software::class),
-            'update' => Gate::allows('update', Software::class),
-            'delete' => Gate::allows('delete', Software::class),
-        ];
-
-        $array += $permissions_array;
 
         return $array;
     }

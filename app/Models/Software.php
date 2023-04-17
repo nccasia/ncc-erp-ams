@@ -66,9 +66,19 @@ class Software extends Depreciable
         return $this->hasMany(softwareLicenses::class);
     }
     
+    public function totalLicenses(){
+        return $this->hasMany(softwareLicenses::class, 'id')->whereNull('deleted_at');
+    }
+
     public function scopeOrderManufacturer($query, $order)
     {
         return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')->orderBy('manufacturers.name', $order);
+    }
+
+    public function scopeOrderCheckoutCount($query, $order)
+    {
+        return $query->with('licenses')->withSum('licenses', 'checkout_count')
+        ->orderBy('licenses_sum_checkout_count', $order);
     }
 
     public function scopeByFilter($query, $filter)
@@ -90,7 +100,15 @@ class Software extends Depreciable
                     });
                 }
 
-                if ($fieldname != 'category' &&  $fieldname != 'manufacturer') {
+                if ($fieldname == 'user') {
+                    $query->whereHas('user', function ($query) use ($search_val) {
+                        $query->where(function ($query) use ($search_val) {
+                            $query->whereRaw('CONCAT(' . DB::getTablePrefix() . 'users.first_name," ",' . DB::getTablePrefix() . 'users.last_name) LIKE ?', ["%$search_val%"]);
+                        });
+                    });
+                }
+
+                if ($fieldname != 'category' &&  $fieldname != 'manufacturer'&&  $fieldname != 'user') {
                     $query->where('softwares.' . $fieldname, 'LIKE', '%' . $search_val . '%');
                 }
             }

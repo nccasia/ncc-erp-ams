@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\DateFormatter;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\SoftwareLicensesTransformer;
@@ -13,6 +14,7 @@ use App\Models\Software;
 use App\Models\SoftwareLicenses;
 use App\Models\User;
 use Carbon\Carbon;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -37,11 +39,9 @@ class SoftwareLicensesController extends Controller
             'software_id',
             'licenses',
             'seats',
-            'allocated_seats_count',
-            'free_seats_count',
             'purchase_date',
             'expiration_date',
-            'purchase_cost'
+            'purchase_cost',
         ];
 
         $filter = [];
@@ -54,6 +54,11 @@ class SoftwareLicensesController extends Controller
             $licenses->ByFilter($filter);
         } elseif ($request->filled('search')) {
             $licenses->TextSearch($request->input('search'));
+        }
+
+        if ($request->filled('dateFrom', 'dateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('dateFrom'), $request->input('dateTo'));
+            $licenses->whereBetween('software_licenses.purchase_date', [$filterByDate]);
         }
 
         $total = $licenses->count();
@@ -70,11 +75,10 @@ class SoftwareLicensesController extends Controller
         $field_sort = $request->input('sort');
         $default_sort = in_array($field_sort, $allowed_columns) ? $field_sort : 'software_licenses.created_at';
         if($field_sort  == 'free_seats_count'){
-            // $licenses->OrderFreeSeats($order);
+            $licenses->OrderFreeSeats($order);
         }else{
             $licenses->orderBy($default_sort, $order);
         }
-
 
         $licenses = $licenses->skip($offset)->take($limit)->get();
         return (new SoftwareLicensesTransformer)->transformSoftwareLicenses($licenses, $total);
@@ -174,21 +178,22 @@ class SoftwareLicensesController extends Controller
             foreach($assigned_users as $assigned_user){
                 if(User::find($assigned_user)){
                     $license = new SoftwareLicenses;
-                    $license = $license->getFirstLicenseAvailableForCheckout($software_id);
-                    $license_user = new LicensesUsers();
-                    $license_user->software_licenses_id = $license->id;
-                    $license_user->assigned_to = $assigned_user;
-                    $license_user->checkout_at = $request->input('checkout_at');
-                    $license_user->created_at = Carbon::now();
-                    $license_user->user_id = Auth::id();
-                    if($license_user->save()){
-                        $licenseUpdate = SoftwareLicenses::findOrFail($license->id);
-                        $licenseUpdate->update(['checkout_count' => $licenseUpdate->checkout_count + 1 ]);
-                        array_push($licenses_active, $license_user->license->licenses);
-                        $this->sendMailCheckOut($assigned_user, $licenseUpdate);
+                    $license = $license->getFirstLicenseAvailableForCheckout($software_id, $assigned_user);
+                    if($license){
+                        $license_user = new LicensesUsers();
+                        $license_user->software_licenses_id = $license->id;
+                        $license_user->assigned_to = $assigned_user;
+                        $license_user->checkout_at = $request->input('checkout_at');
+                        $license_user->created_at = Carbon::now();
+                        $license_user->user_id = Auth::id();
+                        if($license_user->save()){
+                            $licenseUpdate = SoftwareLicenses::findOrFail($license->id);
+                            $licenseUpdate->update(['checkout_count' => $licenseUpdate->checkout_count + 1 ]);
+                            array_push($licenses_active, $license_user->license->licenses);
+                            // $this->sendMailCheckOut($assigned_user, $licenseUpdate);
+                        }
                     }
                 }
-                
             }
             }
             
@@ -199,7 +204,8 @@ class SoftwareLicensesController extends Controller
     {
         $this->authorize('checkout', SoftwareLicenses::class);
         $license = SoftwareLicenses::findOrFail($license_id);
-        if(!$license->availableForCheckout()){
+        $assigned_users = $request->get('assigned_users');
+        if(!$license->availableForCheckout($assigned_users, $license)){
             return response()->json(Helper::formatStandardApiResponse('error',      
             [
                 'license'=> e($license->licenses),
@@ -210,7 +216,7 @@ class SoftwareLicensesController extends Controller
         }
 
         $this->authorize('checkout', $license);
-        $assigned_users = $request->get('assigned_users');
+        
         foreach($assigned_users as $assigned_user){
             if(User::find($assigned_user)){
                 $license_user = new LicensesUsers();
@@ -221,7 +227,7 @@ class SoftwareLicensesController extends Controller
                 $license_user->checkout_at = $request->input('checkout_at');
                 if ($license_user->save()) {
                     $license->update(['checkout_count' => $license->checkout_count + 1]);
-                    $this->sendMailCheckOut($assigned_user, $license);
+                    // $this->sendMailCheckOut($assigned_user, $license);
                 }
             }
         }

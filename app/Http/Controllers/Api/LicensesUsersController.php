@@ -2,22 +2,25 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\DateFormatter;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\LicensesUsersTransformer;
 use App\Models\Company;
 use App\Models\LicensesUsers;
 use App\Models\SoftwareLicenses;
+use DateTime;
 use Illuminate\Http\Request;
 
 class LicensesUsersController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display the specified resource.
      *
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request, $licenseId)
+    public function show(Request $request, $licenseId)
     {
         if (SoftwareLicenses::find($licenseId)) {
             $this->authorize('view', LicensesUsers::class);
@@ -25,7 +28,6 @@ class LicensesUsersController extends Controller
                 ->where('software_licenses_users.software_licenses_id', $licenseId));
 
             $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
-            $licenseUsers->orderBy('id', $order);
 
             ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit')))
                 ? $limit = $request->input('limit')
@@ -41,25 +43,40 @@ class LicensesUsersController extends Controller
                 $licenseUsers->TextSearch($request->input('search'));
             }
 
-
             $allowed_columns = [
                 'id',
-                'assigned_to',
                 'software_licenses_id',
+                'assigned_to',
                 'created_at',
+                'checkout_at'
             ];
+
+            if ($request->filled('dateFrom', 'dateTo')) {
+                $filterByDate = DateFormatter::formatDate($request->input('dateFrom'), $request->input('dateTo'));
+                $licenseUsers->whereBetween('software_licenses_users.checkout_at', [$filterByDate]);
+            }
 
             $sort = $request->input('sort');
 
             $default_sort = in_array($sort, $allowed_columns) ? $sort : 'software_licenses_users.created_at';
 
             switch ($sort) {
-                case 'license':
-                    $licenseUsers->OrderLicense($order);
+                case 'license_active':
+                    $licenseUsers->OrderBy('checkout_at', $order);
                     break;
-                case 'assigned':
+                    
+                case 'assigned_user':
                     $licenseUsers->OrderAssigned($order);
                     break;
+                    
+                case 'department':
+                    $licenseUsers->OrderDepartment($order);
+                    break;
+                    
+                case 'location':
+                    $licenseUsers->OrderLocation($order);
+                    break;
+                    
                 default:
                     $licenseUsers->OrderBy($default_sort, $order);
             }
@@ -73,72 +90,5 @@ class LicensesUsersController extends Controller
             }
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/licenses/message.does_not_exist')), 200);
-    }
-
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
     }
 }

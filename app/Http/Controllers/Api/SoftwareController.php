@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\DateFormatter;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\SoftwaresTransformer;
 use App\Models\Company;
 use App\Models\Software;
+use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -29,7 +31,7 @@ class SoftwareController extends Controller
             'id',
             'name',
             'category_id',
-            'munufacturer_id',
+            'manufacturer_id',
             'created_at',
             'notes',
         ];
@@ -45,7 +47,6 @@ class SoftwareController extends Controller
             $softwares->TextSearch($request->input('search'));
         }
 
-        $total = $softwares->count();
         $offset = (($softwares) && ($request->get('offset') > $softwares->count()))
             ? $softwares->count()
             : $request->get('offset', 0);
@@ -57,7 +58,8 @@ class SoftwareController extends Controller
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
 
         if ($request->filled('dateFrom', 'dateTo')) {
-            $softwares->whereBetween('softwares.created_at', [$request->input('dateFrom'), $request->input('dateTo')]);
+            $filterByDate = DateFormatter::formatDate($request->input('dateFrom'), $request->input('dateTo'));
+            $softwares->whereBetween('softwares.created_at', [$filterByDate]);
         }
 
         $sort = $request->input('sort');
@@ -72,11 +74,14 @@ class SoftwareController extends Controller
             case 'manufacturer':
                 $softwares->OrderManufacturer($order);
                 break;
-                
+            case 'checkout_count':
+                $softwares->OrderCheckoutCount($order);
+                break;
             default:
                 $softwares->OrderBy($default_sort, $order);
         }
 
+        $total = $softwares->count();
         $softwares = $softwares->skip($offset)->take($limit)->get();
         return (new SoftwaresTransformer)->transformSoftwares($softwares, $total);
     }
@@ -115,7 +120,7 @@ class SoftwareController extends Controller
     public function show($id)
     {
         $this->authorize('view', Software::class);
-        $software = Software::withCount('totalLicenses as total_licenses')->with('softwareLicenses')->findOrFail($id);
+        $software = Software::withCount('licenses as total_licenses')->with('licenses')->findOrFail($id);
 
         return (new SoftwaresTransformer)->transformSoftware($software);
     }

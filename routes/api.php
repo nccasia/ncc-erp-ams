@@ -550,10 +550,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         Route::resource('software.licenses', 
         Api\SoftwareLicensesController::class,
         ['names' => 
-            [
-                'index' => 'api.software.licenses.index',
-            ],  
-        'except' => ['create', 'edit', 'destroy', 'store'],
+            ['index' => 'api.software.licenses.index',], 
+            ['store' => 'api.software.licenses.store',], 
+        'except' => ['create', 'edit', 'destroy'],
         'parameters' => ['softwarelicense' => 'softwarelicense_id'],
         ]);
 
@@ -567,18 +566,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             Route::post('/checkout', [Api\SoftwareLicensesController::class, 'multiCheckout'])->name('api.software.licenses.multiCheckout');
         });
 
-        Route::resource('software/license.users',
-        Api\LicensesUsersController::class,
-        ['names' => 
-            [
-                'index' => 'api.software.license.users.index',
-                'show' => 'api.software.license.users.show',
-                'update' => 'api.software.license.users.update',
-            ],
-        // 'except' => ['create', 'edit', 'destroy', 'store'],
-        // 'parameters' => ['softwarelicense' => 'softwarelicense_id'],
-        ]);
-
+        Route::get('software/license/{id}/users', [Api\LicensesUsersController::class, 'show'])->name('api.software.license.users.show');
 
         Route::resource('software', 
         Api\SoftwareController::class,

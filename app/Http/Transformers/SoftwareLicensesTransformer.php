@@ -39,14 +39,6 @@ class SoftwareLicensesTransformer
             'user_can_checkout' => (bool) ($license->allocated_seats_count < $license->seats),
         ];
 
-        $permissions_array['available_actions'] = [
-            'checkout' => Gate::allows('checkout', License::class),
-            'clone' => Gate::allows('create', License::class),
-            'update' => Gate::allows('update', License::class),
-            'delete' => Gate::allows('delete', License::class),
-        ];
-
-        $array += $permissions_array;
 
         return $array;
     }

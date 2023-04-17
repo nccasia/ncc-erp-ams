@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\Searchable;
+use DateTime;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -49,11 +50,6 @@ class SoftwareLicenses extends Model
         return $this->belongsTo(Software::class, 'software_id');
     }
 
-    public function scopeOrderSoftware($query, $order)
-    {
-        return $query->join('softwares', 'software_licenses.software_id', '=', 'softwares.id')->orderBy('softwares.name', $order);
-    }
-
     public function assignedUsers()
     {
         return $this->belongsToMany(User::class, 'software_licenses_users', 'assigned_to', 'software_licenses_id');
@@ -62,6 +58,15 @@ class SoftwareLicenses extends Model
     public function allocatedSeats()
     {
         return $this->hasMany(LicensesUsers::class)->whereNull('deleted_at');
+    }
+
+    public function scopeOrderSoftware($query, $order)
+    {
+        return $query->join('softwares', 'software_licenses.software_id', '=', 'softwares.id')->orderBy('softwares.name', $order);
+    }
+
+    public function scopeOrderFreeSeats($query, $order){
+        return $query->withCount('allocatedSeats as allocated_seats_count')->orderBy('allocated_seats_count', $order);
     }
 
     public function scopeByFilter($query, $filter)
@@ -78,32 +83,35 @@ class SoftwareLicenses extends Model
         });
     }
 
-    public function scopeOrderAllocatedSeats($query, $order){
-        return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')->orderBy('manufacturers.name', $order);
-    }
-
-
     public function advancedTextSearch(Builder $query, array $terms)
     {  
+        $query = $query->leftJoin('softwares as softwares', function ($leftJoin) {
+            $leftJoin->on('softwares.id', '=', 'software_licenses.software_id');
+        });
+
         foreach ($terms as $term) {
             $query = $query
                 ->Where('software_licenses.seats', $term)
                 ->orwhere('software_licenses.purchase_cost',  $term)
+                ->orwhere('softwares.name', 'LIKE', '%' . $term . '%')
                 ->orwhere('software_licenses.licenses', 'LIKE', '%' . $term . '%');
         }
         return $query;
     }
 
-    public function availableForCheckout()
+    public function availableForCheckout($assigned_user, $license)
     {
         $allocatedSeats = $this->allocatedSeats()->count();
-        if ($this->deleted != null || $allocatedSeats == $this->seats || $this->seats == 0) {
+        $license_user = $license->allocatedSeats()->where('assigned_to', $assigned_user)->first();
+        if ($this->deleted != null || $allocatedSeats == $this->seats || 
+            $this->seats == 0 || $this->seats <  $this->checkout_count || 
+            $license_user) {
             return false;
         }
         return true;
     }
 
-    public function getFirstLicenseAvailableForCheckout($softwareId){
+    public function getFirstLicenseAvailableForCheckout($softwareId, $assigned_user){
         return $this->leftJoin('software_licenses_users', 'software_licenses.id', '=', 'software_licenses_users.software_licenses_id')
         ->select('software_licenses.id', 'software_licenses.checkout_count',
             'software_licenses.seats', 'software_licenses.licenses',
@@ -112,6 +120,12 @@ class SoftwareLicenses extends Model
         ->where('seats', '>', config('enum.seats.MIN'))
         ->groupBy('software_licenses_users.software_licenses_id')
         ->havingRaw('software_licenses.seats > allocatedSeat')
+        ->whereNotExists(function ($query) use ($assigned_user){
+            $query->select(DB::raw(1))
+                ->from('software_licenses_users as su')
+                ->whereRaw('su.software_licenses_id = software_licenses.id')
+                ->whereRaw('su.assigned_to = ?', [$assigned_user]);
+        })
         ->orderBy('id')
         ->first();
     }
