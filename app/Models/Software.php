@@ -81,6 +81,11 @@ class Software extends Depreciable
         ->orderBy('licenses_sum_checkout_count', $order);
     }
 
+    public function scopeByManufacturer($query, $manufacturer_id)
+    {
+        return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')->where('softwares.manufacturer_id', '=', $manufacturer_id);
+    }
+
     public function scopeByFilter($query, $filter)
     {
         return $query->where(function ($query) use ($filter) {
