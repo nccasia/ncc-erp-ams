@@ -34,6 +34,8 @@ class SoftwareController extends Controller
             'manufacturer_id',
             'created_at',
             'notes',
+            'software_tag',
+            'version'
         ];
 
         $filter = [];
@@ -47,6 +49,9 @@ class SoftwareController extends Controller
             $softwares->TextSearch($request->input('search'));
         }
 
+        if($request->filled('manufacturer_id')){
+            $softwares->ByManufacturer($request->input('manufacturer_id'));
+        }
         $offset = (($softwares) && ($request->get('offset') > $softwares->count()))
             ? $softwares->count()
             : $request->get('offset', 0);
@@ -106,7 +111,7 @@ class SoftwareController extends Controller
         $software->notes = $request->get('notes');
         $software->user_id = Auth::id();
         if ($software->save()) {
-            return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/software/message.create.success')));
+            return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/softwares/message.create.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()));
     }
@@ -140,12 +145,12 @@ class SoftwareController extends Controller
         if ($software) {
             $software->fill($request->all());
             if ($software->save()) {
-                return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/software/message.update.success')));
+                return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/softwares/message.update.success')));
             }
             return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()), 200);
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/software/message.does_not_exist')), 200);
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.does_not_exist')), 200);
     }
 
     /**
@@ -160,10 +165,10 @@ class SoftwareController extends Controller
 
         $this->authorize('delete', $software);
         if($software->delete()){
-            return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/software/message.delete.success')));
+            return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/softwares/message.delete.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/software/message.does_not_exist')), 200);
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.does_not_exist')), 200);
 
     }
 }

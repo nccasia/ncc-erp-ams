@@ -166,7 +166,7 @@ class SoftwareLicensesController extends Controller
         foreach( $softwares as $software_id ){
             $software = Software::find($software_id);
 
-            if ($software && !$software->availableForCheckout()) {
+            if (!$software || !$software->availableForCheckout()) {
                 return response()->json(Helper::formatStandardApiResponse('error', 
                 [
                     'software'=> e($software->name),
@@ -180,12 +180,7 @@ class SoftwareLicensesController extends Controller
                     $license = new SoftwareLicenses;
                     $license = $license->getFirstLicenseAvailableForCheckout($software_id, $assigned_user);
                     if($license){
-                        $license_user = new LicensesUsers();
-                        $license_user->software_licenses_id = $license->id;
-                        $license_user->assigned_to = $assigned_user;
-                        $license_user->checkout_at = $request->input('checkout_at');
-                        $license_user->created_at = Carbon::now();
-                        $license_user->user_id = Auth::id();
+                        $license_user = $this->setDataLicenseUser($license, $assigned_user, $request);
                         if($license_user->save()){
                             $licenseUpdate = SoftwareLicenses::findOrFail($license->id);
                             $licenseUpdate->update(['checkout_count' => $licenseUpdate->checkout_count + 1 ]);
@@ -205,34 +200,42 @@ class SoftwareLicensesController extends Controller
         $this->authorize('checkout', SoftwareLicenses::class);
         $license = SoftwareLicenses::findOrFail($license_id);
         $assigned_users = $request->get('assigned_users');
-        if(!$license->availableForCheckout($assigned_users, $license)){
-            return response()->json(Helper::formatStandardApiResponse('error',      
-            [
-                'license'=> e($license->licenses),
-                'seats'=> e($license->seats),
-                'allocated seats'=> e($license->allocatedSeats()->count()),
-            ], 
-            trans('admin/licenses/message.checkout.not_available')));
-        }
 
         $this->authorize('checkout', $license);
         
         foreach($assigned_users as $assigned_user){
+
+            if(!$license->availableForCheckout($assigned_user)){
+                return response()->json(Helper::formatStandardApiResponse('error',      
+                [
+                    'license'=> e($license->licenses),
+                    'seats'=> e($license->seats),
+                    'allocated seats'=> e($license->allocatedSeats()->count()),
+                ], 
+                trans('admin/licenses/message.checkout.not_available')));
+            }
+
             if(User::find($assigned_user)){
-                $license_user = new LicensesUsers();
-                $license_user->software_licenses_id = $license_id;
-                $license_user->assigned_to = $assigned_user;
-                $license_user->created_at = Carbon::now();
-                $license_user->user_id = Auth::id();
-                $license_user->checkout_at = $request->input('checkout_at');
+                $license_user = $this->setDataLicenseUser($license, $assigned_user, $request);
                 if ($license_user->save()) {
                     $license->update(['checkout_count' => $license->checkout_count + 1]);
                     // $this->sendMailCheckOut($assigned_user, $license);
                 }
             }
+
         }
         
         return response()->json(Helper::formatStandardApiResponse('success', ['license' => e($license_user->license->licenses)], trans('admin/licenses/message.checkout.success')));
+    }
+
+    public function setDataLicenseUser($license, $assigned_user, $request){
+        $license_user = new LicensesUsers();
+        $license_user->software_licenses_id = $license->id;
+        $license_user->assigned_to = $assigned_user;
+        $license_user->checkout_at = $request->input('checkout_at');
+        $license_user->created_at = Carbon::now();
+        $license_user->user_id = Auth::id();
+        return $license_user;
     }
 
     public function sendMailCheckOut($assigned_user, $license){
@@ -245,7 +248,6 @@ class SoftwareLicensesController extends Controller
             'software_name' => $license->software->name,
             'license' => $license->licenses,
             'count' => 1,
-            'location_address' => null,
             'time' => $current_time->format('d-m-Y'),
             'link' => config('client.my_assets.link'),
         ];

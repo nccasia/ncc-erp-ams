@@ -99,13 +99,15 @@ class SoftwareLicenses extends Model
         return $query;
     }
 
-    public function availableForCheckout($assigned_user, $license)
+    public function availableForCheckout($assigned_user)
     {
         $allocatedSeats = $this->allocatedSeats()->count();
-        $license_user = $license->allocatedSeats()->where('assigned_to', $assigned_user)->first();
-        if ($this->deleted != null || $allocatedSeats == $this->seats || 
-            $this->seats == 0 || $this->seats <  $this->checkout_count || 
-            $license_user) {
+        $license_user = $this->allocatedSeats()->where('assigned_to', $assigned_user)->first();
+        if($license_user){
+            return false;
+        }
+        if ($allocatedSeats == $this->seats || 
+            $this->seats == 0) {
             return false;
         }
         return true;
