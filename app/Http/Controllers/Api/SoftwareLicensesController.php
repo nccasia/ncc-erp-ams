@@ -212,7 +212,7 @@ class SoftwareLicensesController extends Controller
                     'seats'=> e($license->seats),
                     'allocated seats'=> e($license->allocatedSeats()->count()),
                 ], 
-                trans('admin/licenses/message.checkout.not_available')));
+                trans('admin/licenses/message.not_available')), 500);
             }
 
             if(User::find($assigned_user)){

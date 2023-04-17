@@ -86,8 +86,8 @@ class SoftwareController extends Controller
                 $softwares->OrderBy($default_sort, $order);
         }
 
-        $total = $softwares->count();
         $softwares = $softwares->skip($offset)->take($limit)->get();
+        $total = $softwares->count();
         return (new SoftwaresTransformer)->transformSoftwares($softwares, $total);
     }
 
