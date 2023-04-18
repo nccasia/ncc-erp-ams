@@ -162,19 +162,34 @@ class SoftwareLicensesController extends Controller
         $this->authorize('checkout', SoftwareLicenses::class);
         $softwares = $request->get('softwares');
         $licenses_active = array();
+        $assigned_users = $request->get('assigned_users');
+        $errors = [];
 
         foreach( $softwares as $software_id ){
-            $software = Software::find($software_id);
+            $software = Software::where('id', $software_id)
+                        ->withSum('licenses', 'seats')
+                        ->withSum('licenses', 'checkout_count')
+                        ->first();
 
             if (!$software || !$software->availableForCheckout()) {
                 return response()->json(Helper::formatStandardApiResponse('error', 
                 [
                     'software'=> e($software->name),
                 ], 
-                trans('admin/licenses/message.checkout.not_available')));
+                trans('admin/licenses/message.checkout.not_available')), 500);
             }
 
-            $assigned_users = $request->get('assigned_users');
+            $freeSeatsCount = $software->licenses_sum_seats - $software->licenses_sum_checkout_count;
+
+            if($freeSeatsCount < count($assigned_users)){
+                array_push($errors, $software->name .' '. trans('admin/licenses/message.checkout.not_available'));
+                return response()->json(Helper::formatStandardApiResponse('error', null , ['assigned_users'=> $errors]), 500);
+            }
+        }
+        
+        foreach( $softwares as $software_id ){
+            $software = Software::find( $software_id);
+
             foreach($assigned_users as $assigned_user){
                 if(User::find($assigned_user)){
                     $license = new SoftwareLicenses;
@@ -190,8 +205,7 @@ class SoftwareLicensesController extends Controller
                     }
                 }
             }
-            }
-            
+        }
         return response()->json(Helper::formatStandardApiResponse('success', ['license' => $licenses_active], trans('admin/licenses/message.checkout.success')));
     }
 
@@ -202,7 +216,16 @@ class SoftwareLicensesController extends Controller
         $assigned_users = $request->get('assigned_users');
 
         $this->authorize('checkout', $license);
-        
+        if(count($assigned_users) > $license->seats){
+            return response()->json(Helper::formatStandardApiResponse('error',
+                [
+                    'license'=> e($license->licenses),
+                    'seats'=> e($license->seats),
+                    'allocated seats'=> e($license->allocatedSeats()->count()),
+                ], 
+                trans('admin/licenses/message.not_available')), 500);
+        }
+
         foreach($assigned_users as $assigned_user){
 
             if(!$license->availableForCheckout($assigned_user)){

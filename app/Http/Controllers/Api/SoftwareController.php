@@ -52,6 +52,7 @@ class SoftwareController extends Controller
         if($request->filled('manufacturer_id')){
             $softwares->ByManufacturer($request->input('manufacturer_id'));
         }
+        
         $offset = (($softwares) && ($request->get('offset') > $softwares->count()))
             ? $softwares->count()
             : $request->get('offset', 0);
@@ -112,7 +113,11 @@ class SoftwareController extends Controller
         $software->user_id = Auth::id();
         
         if(!$software->checkExistsSoftware()){
-            return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.errorDuplicate')));
+            $errors = [
+                'software_tag'=>[trans('admin/softwares/message.errorDuplicate')],
+                'version'=>[trans('admin/softwares/message.errorDuplicate')]
+        ];
+            return response()->json(Helper::formatStandardApiResponse('error', null, $errors), 422);
         }
         if ( $software->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/softwares/message.create.success')));
@@ -149,7 +154,7 @@ class SoftwareController extends Controller
         if ($software) {
             $software->fill($request->all());
             if(!$software->checkExistsSoftware()){
-                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.errorDuplicate')));
+                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.errorDuplicate')), 500);
             }
             if ($software->save()) {
                 return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/softwares/message.update.success')));

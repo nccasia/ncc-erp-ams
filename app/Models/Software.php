@@ -67,7 +67,7 @@ class Software extends Depreciable
     }
     
     public function totalLicenses(){
-        return $this->hasMany(softwareLicenses::class, 'id')->whereNull('deleted_at');
+        return $this->hasMany(softwareLicenses::class)->whereNull('deleted_at');
     }
 
     public function scopeOrderManufacturer($query, $order)
