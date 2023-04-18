@@ -156,4 +156,14 @@ class Software extends Depreciable
         return true;
     }
 
+    public function checkExistsSoftware(){
+        $software = Software::where('name', $this->name)->where(function ($query){
+            $query->orWhere('software_tag', $this->software_tag)
+                    ->orWhere('version', $this->version);
+        })->first();
+        if($software){
+            return false;
+        }
+        return true;
+    }
 }

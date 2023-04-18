@@ -110,7 +110,11 @@ class SoftwareController extends Controller
         $software->manufacturer_id = $request->get('manufacturer_id');
         $software->notes = $request->get('notes');
         $software->user_id = Auth::id();
-        if ($software->save()) {
+        
+        if(!$software->checkExistsSoftware()){
+            return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.errorDuplicate')));
+        }
+        if ( $software->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/softwares/message.create.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()));
@@ -144,6 +148,9 @@ class SoftwareController extends Controller
         $software = Software::find($id);
         if ($software) {
             $software->fill($request->all());
+            if(!$software->checkExistsSoftware()){
+                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.errorDuplicate')));
+            }
             if ($software->save()) {
                 return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/softwares/message.update.success')));
             }

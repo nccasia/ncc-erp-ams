@@ -5,7 +5,8 @@ return array(
     'does_not_exist' => 'Software does not exist.',
     'user_does_not_exist' => 'User does not exist.',
     'not_found' => 'Software not found',
-
+    'errorDuplicate' => 'Exits software name with software tag or version',
+    
     'create' => [
         'error'   => 'Software was not created, please try again.',
         'success' => 'Software created successfully.',
