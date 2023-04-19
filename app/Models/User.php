@@ -168,7 +168,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
      */
     public function hasAccess($section)
     {
-        if ($this->isSuperUser()) {
+        if ($this->isSuperUser() || $this->isBranchAdmin()) {
             return true;
         }
 

@@ -14,6 +14,7 @@ return array(
     'ldap_not_configured'        => 'LDAP integration has not been configured for this installation.',
     'password_resets_sent'      => 'The selected users who are activated and have a valid email addresses have been sent a password reset link.',
     'password_reset_sent'       => 'A password reset link has been sent to :email!',
+    'manager_location'          => 'Please select at least 1 branch to manage',
 
 
     'success' => [

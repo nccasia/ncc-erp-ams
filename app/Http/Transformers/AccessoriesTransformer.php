@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use App\Models\Accessory;
 use Gate;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class AccessoriesTransformer
@@ -55,7 +56,7 @@ class AccessoriesTransformer
 
         $permissions_array['user_can_checkout'] = false;
 
-        if ($accessory->numRemaining() > 0) {
+        if ($accessory->numRemaining() > 0 && Auth::user()->isAdmin()) {
             $permissions_array['user_can_checkout'] = true;
         }
 
