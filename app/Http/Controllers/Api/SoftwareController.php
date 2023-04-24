@@ -8,7 +8,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Transformers\SoftwaresTransformer;
 use App\Models\Company;
 use App\Models\Software;
-use DateTime;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,15 +16,18 @@ class SoftwareController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @return \Illuminate\Http\Response
+     * @param Request $request 
+     * @return array
      */
     public function index(Request $request)
     {
         $this->authorize('view', Software::class);
-        $softwares = Company::scopeCompanyables(Software::select('softwares.*')->with('category', 'manufacturer', 'licenses')
-                                                    ->withSum('licenses', 'seats')
-                                                    ->withSum('licenses', 'checkout_count')
-                                                );
+
+        $softwares = Company::scopeCompanyables(
+            Software::select('softwares.*')->with('category', 'manufacturer', 'licenses')
+                ->withSum('licenses', 'seats')
+                ->withSum('licenses', 'checkout_count')
+        );
 
         $allowed_columns = [
             'id',
@@ -49,10 +51,10 @@ class SoftwareController extends Controller
             $softwares->TextSearch($request->input('search'));
         }
 
-        if($request->filled('manufacturer_id')){
+        if ($request->filled('manufacturer_id')) {
             $softwares->ByManufacturer($request->input('manufacturer_id'));
         }
-        
+
         $offset = (($softwares) && ($request->get('offset') > $softwares->count()))
             ? $softwares->count()
             : $request->get('offset', 0);
@@ -86,17 +88,17 @@ class SoftwareController extends Controller
             default:
                 $softwares->OrderBy($default_sort, $order);
         }
-
-        $softwares = $softwares->skip($offset)->take($limit)->get();
+        
         $total = $softwares->count();
+        $softwares = $softwares->skip($offset)->take($limit)->get();
         return (new SoftwaresTransformer)->transformSoftwares($softwares, $total);
     }
 
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * @param  \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
@@ -111,15 +113,8 @@ class SoftwareController extends Controller
         $software->manufacturer_id = $request->get('manufacturer_id');
         $software->notes = $request->get('notes');
         $software->user_id = Auth::id();
-        
-        if(!$software->checkExistsSoftware()){
-            $errors = [
-                'software_tag'=>[trans('admin/softwares/message.errorDuplicate')],
-                'version'=>[trans('admin/softwares/message.errorDuplicate')]
-        ];
-            return response()->json(Helper::formatStandardApiResponse('error', null, $errors), 422);
-        }
-        if ( $software->save()) {
+
+        if ($software->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/softwares/message.create.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()));
@@ -129,7 +124,7 @@ class SoftwareController extends Controller
      * Display the specified resource.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return array
      */
     public function show($id)
     {
@@ -144,43 +139,37 @@ class SoftwareController extends Controller
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, $id)
     {
-        $this->authorize('update', License::class);
+        $this->authorize('update', Software::class);
 
         $software = Software::find($id);
         if ($software) {
             $software->fill($request->all());
-            if(!$software->checkExistsSoftware()){
-                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.errorDuplicate')), 500);
-            }
             if ($software->save()) {
                 return response()->json(Helper::formatStandardApiResponse('success', $software, trans('admin/softwares/message.update.success')));
             }
-            return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()), 200);
+            return response()->json(Helper::formatStandardApiResponse('error', null, $software->getErrors()));
         }
-
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.does_not_exist')), 200);
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.does_not_exist')));
     }
 
     /**
      * Remove the specified resource from storage.
      *
      * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy($id)
     {
         $software = Software::findOrFail($id);
 
         $this->authorize('delete', $software);
-        if($software->delete()){
+        if ($software->delete()) {
             return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/softwares/message.delete.success')));
         }
-
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.does_not_exist')), 200);
-
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/softwares/message.does_not_exist')));
     }
 }

@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class ChangeTypeCheckoutAtToSoftwareLicensesUsersTable extends Migration
+class AddNotesToSoftwareLicensesUsersTable extends Migration
 {
     /**
      * Run the migrations.
@@ -14,7 +14,7 @@ class ChangeTypeCheckoutAtToSoftwareLicensesUsersTable extends Migration
     public function up()
     {
         Schema::table('software_licenses_users', function (Blueprint $table) {
-            $table->datetime('checkout_at')->nullable()->change();
+            $table->text('notes')->nullable();
         });
     }
 
@@ -26,7 +26,7 @@ class ChangeTypeCheckoutAtToSoftwareLicensesUsersTable extends Migration
     public function down()
     {
         Schema::table('software_licenses_users', function (Blueprint $table) {
-            $table->date('checkout_at')->nullable()->change();
+            $table->dropColumn('notes');
         });
     }
 }

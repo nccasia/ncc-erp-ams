@@ -556,7 +556,6 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         'parameters' => ['softwarelicense' => 'softwarelicense_id'],
         ]);
 
-
         Route::group(['prefix' => 'software/licenses'], function () {
             Route::post('', [Api\SoftwareLicensesController::class, 'store'])->name('api.software.licenses.store');
             Route::get('/{id}', [Api\SoftwareLicensesController::class, 'show'])->name('api.software.licenses.show');
@@ -564,9 +563,11 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             Route::delete('/{id}', [Api\SoftwareLicensesController::class, 'destroy'])->name('api.software.licenses.destroy');
             Route::post('/{id}/checkout', [Api\SoftwareLicensesController::class, 'checkOut'])->name('api.software.licenses.checkOut');
             Route::post('/checkout', [Api\SoftwareLicensesController::class, 'multiCheckout'])->name('api.software.licenses.multiCheckout');
-        });
 
-        Route::get('software/license/{id}/users', [Api\LicensesUsersController::class, 'show'])->name('api.software.license.users.show');
+        });
+        Route::get('software/license/assign', [Api\SoftwareLicensesController::class, 'assign'])->name('api.software.licenses.assign');
+        Route::get('software/license/{id}/users', [Api\LicensesUsersController::class, 'showUsersLicense'])->name('api.software.license.users.showUsersLicense');
+        Route::get('software/{id}/users', [Api\LicensesUsersController::class, 'showUsersSoftware'])->name('api.software.license.users.showUsersSoftware');
 
         Route::resource('software', 
         Api\SoftwareController::class,
@@ -582,10 +583,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         'parameters' => ['software' => 'software_id'],
         ]
         ); 
-
-
-
         // end software routes
+
         /**
          * Asset maintenances API routes
          */

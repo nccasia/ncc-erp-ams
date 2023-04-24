@@ -13,6 +13,7 @@ return array(
     'create' => [
         'error'   => 'License was not created, please try again.',
         'success' => 'License created successfully.',
+        'expiration_date' => 'Expiration date cannot be less than purchase date'
     ],
 
     'deletefile' => [
@@ -41,7 +42,8 @@ return array(
     'checkout' => [
         'error'   => 'There was an issue checking out the license. Please try again.',
         'success' => 'The license was checked out successfully',
-        'not_available'=> 'The license was not available'
+        'not_available'=> 'The license was not available',
+        'user_not_available' => 'Already checkout key to '
     ],
 
     'checkin' => [

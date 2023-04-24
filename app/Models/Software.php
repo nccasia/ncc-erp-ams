@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Models\Traits\Searchable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 use Watson\Validating\ValidatingTrait;
@@ -25,7 +24,7 @@ class Software extends Depreciable
 
     protected $rules = [
         'name' => 'required|string|min:3|max:255',
-        'software_tag' => 'required|string|min:3|max:255',
+        'software_tag' => 'required|unique|string|min:3|max:255',
         'category_id' => 'required|exists:categories,id',
         'manufacturer_id' => 'required|exists:manufacturers,id',
         'version' => 'required|string|min:3|max:255',
@@ -39,6 +38,7 @@ class Software extends Depreciable
         'category_id',
         'manufacturer_id',
         'user_id',
+        'notes',
         'created_at',
     ];
     use Searchable;
@@ -57,35 +57,84 @@ class Software extends Depreciable
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    public function licenses()
+    {
+        return $this->hasMany(SoftwareLicenses::class);
+    }
+
+    /**
+     * Get total liceneses of software
+     * 
+     * @return  \Illuminate\Database\Query\Builder 
+     */
+    public function totalLicenses()
+    {
+        return $this->hasMany(SoftwareLicenses::class)->whereNull('deleted_at');
+    }
+
+    /**
+     * Sort software by category
+     * 
+     * @param  Builder $query
+     * @param  string $order
+     * 
+     * @return  \Illuminate\Database\Query\Builder 
+     */
     public function scopeOrderCategory($query, $order)
     {
         return $query->join('categories', 'softwares.category_id', '=', 'categories.id')->orderBy('categories.name', $order);
     }
 
-    public function licenses(){
-        return $this->hasMany(softwareLicenses::class);
-    }
-    
-    public function totalLicenses(){
-        return $this->hasMany(softwareLicenses::class)->whereNull('deleted_at');
-    }
-
+    /**
+     * Sort software by manufacturer
+     * 
+     * @param  Builder $query
+     * @param  string $order
+     * 
+     * @return  \Illuminate\Database\Query\Builder 
+     */
     public function scopeOrderManufacturer($query, $order)
     {
         return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')->orderBy('manufacturers.name', $order);
     }
 
+    /**
+     * Sort software by checkout_count
+     * 
+     * @param  Builder $query
+     * @param  string $order
+     * 
+     * @return  \Illuminate\Database\Query\Builder 
+     */
     public function scopeOrderCheckoutCount($query, $order)
     {
         return $query->with('licenses')->withSum('licenses', 'checkout_count')
-        ->orderBy('licenses_sum_checkout_count', $order);
+            ->orderBy('licenses_sum_checkout_count', $order);
     }
 
+    /**
+     * Search software by manufacturer_id
+     * 
+     * @param  Builder $query
+     * @param  int  $manufacturer_id
+     * 
+     * @return  \Illuminate\Database\Query\Builder 
+     */
     public function scopeByManufacturer($query, $manufacturer_id)
     {
-        return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')->where('softwares.manufacturer_id', '=', $manufacturer_id);
+        return $query->join('manufacturers', 'softwares.manufacturer_id', '=', 'manufacturers.id')
+            ->where('softwares.manufacturer_id', '=', $manufacturer_id);
     }
 
+    /**
+     * Filter softwares by manufacturer, category
+     * 
+     * @param  Builder $query
+     * @param  array  $filter
+     * 
+     * @return  \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeByFilter($query, $filter)
     {
         return $query->where(function ($query) use ($filter) {
@@ -113,12 +162,21 @@ class Software extends Depreciable
                     });
                 }
 
-                if ($fieldname != 'category' &&  $fieldname != 'manufacturer'&&  $fieldname != 'user') {
+                if ($fieldname != 'category' && $fieldname != 'manufacturer' && $fieldname != 'user') {
                     $query->where('softwares.' . $fieldname, 'LIKE', '%' . $search_val . '%');
                 }
             }
         });
     }
+
+    /**
+     * Search software by information of software
+     * 
+     * @param  Builder $query
+     * @param  array  $terms
+     * 
+     * @return  \Illuminate\Database\Query\Builder
+     */
     public function advancedTextSearch(Builder $query, array $terms)
     {
         $query = $query->leftJoin('users as softwares_user', function ($leftJoin) {
@@ -149,21 +207,9 @@ class Software extends Depreciable
         }
         return $query;
     }
-    public function availableForCheckout(){
-        if($this->licenses()->count() == 0){
-            return false;
-        }
-        return true;
-    }
 
-    public function checkExistsSoftware(){
-        $software = Software::where('name', $this->name)->where(function ($query){
-            $query->orWhere('software_tag', $this->software_tag)
-                    ->orWhere('version', $this->version);
-        })->first();
-        if($software){
-            return false;
-        }
-        return true;
+    public function availableForCheckout()
+    {
+        return $this->licenses()->count() != 0 && !$this->deleted_at;
     }
 }

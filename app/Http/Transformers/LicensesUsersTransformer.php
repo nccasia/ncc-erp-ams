@@ -3,11 +3,7 @@
 namespace App\Http\Transformers;
 
 use App\Helpers\Helper;
-use App\Models\License;
-use App\Models\LicenseSeat;
 use App\Models\LicensesUsers;
-use App\Models\Software;
-use Gate;
 use Illuminate\Database\Eloquent\Collection;
 
 class LicensesUsersTransformer
@@ -33,16 +29,10 @@ class LicensesUsersTransformer
                 'name'=>  e($licenseUsers->license->licenses),
             ],
             'assigned_user' => ($licenseUsers->user) ? [
-                'id' => (int) $licenseUsers->user->id,
+                'user_id' => (int) $licenseUsers->user->id,
                 'name'=> e($licenseUsers->user->fullName),
-                'department' => $licenseUsers->user->department ? [
-                    'id' => (int) $licenseUsers->user->department->id,
-                    'name' => e($licenseUsers->user->department->name),
-                    'location' => [
-                        'id'=>(int) $licenseUsers->user->department->location->id,
-                        'name'=>e($licenseUsers->user->department->location->name),
-                        ]
-                ]:null,
+                'department' => $licenseUsers->user->department ? e($licenseUsers->user->department->name) : null,
+                'location' => $licenseUsers->user->department ? e($licenseUsers->user->department->location->name) : null
             ] : null,
             'checkout_at'=>  Helper::getFormattedDateObject($licenseUsers->checkout_at, 'datetime'),
         ];

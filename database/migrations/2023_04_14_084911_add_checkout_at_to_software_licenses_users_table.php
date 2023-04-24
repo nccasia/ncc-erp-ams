@@ -26,7 +26,7 @@ class AddCheckoutAtToSoftwareLicensesUsersTable extends Migration
     public function down()
     {
         Schema::table('software_licenses_users', function (Blueprint $table) {
-            //
+            $table->dropColumn('checkout_at');
         });
     }
 }
