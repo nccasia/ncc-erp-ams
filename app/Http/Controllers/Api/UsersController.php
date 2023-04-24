@@ -62,6 +62,7 @@ class UsersController extends Controller
             'users.two_factor_optin',
             'users.updated_at',
             'users.username',
+            'users.manager_location',
             'users.zip',
             'users.remote',
             'users.ldap_import',
@@ -372,6 +373,13 @@ class UsersController extends Controller
             if (! Auth::user()->isSuperUser()) {
                 unset($permissions_array['superuser']);
             }
+
+            //Delete list manager_location if User isn't a branchadmin
+            $permissions = json_decode($permissions_array, true);
+            if (isset($permissions['branchadmin']) && $permissions['branchadmin'] != config('enum.permission_status.ALLOW')) {
+                $user->manager_location = null;
+            }
+
             $user->permissions = $permissions_array;
         }
 
@@ -395,7 +403,7 @@ class UsersController extends Controller
             // Check if the request has groups passed and has a value
             if ($request->filled('groups')) {
                 $user->groups()->sync($request->input('groups'));
-            // The groups field has been passed but it is null, so we should blank it out
+                // The groups field has been passed but it is null, so we should blank it out
             } elseif ($request->has('groups')) {
                 $user->groups()->sync([]);
             }

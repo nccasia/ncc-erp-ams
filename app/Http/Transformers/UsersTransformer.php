@@ -57,6 +57,7 @@ class UsersTransformer
                 ] : null,
                 'notes'=> e($user->notes),
                 'permissions' => $user->decodePermissions(),
+                'manager_location' => json_decode($user->manager_location, true),
                 'activated' => ($user->activated == '1') ? true : false,
                 'ldap_import' => ($user->ldap_import == '1') ? true : false,
                 'two_factor_activated' => ($user->two_factor_active()) ? true : false,

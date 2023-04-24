@@ -31,5 +31,10 @@ return [
   ],
   "seats" =>[
     "MIN" => 0,
+  ],
+  "permission_status" => [
+    "ALLOW" => 1,
+    "REFUSE" => -1,
+    "INHERITANCE" => 0,
   ]
 ];
