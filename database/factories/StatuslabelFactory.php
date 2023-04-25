@@ -45,15 +45,6 @@ class StatuslabelFactory extends Factory
         });
     }
 
-    public function assign()
-    {
-        return $this->state(function () {
-            return [
-                'notes' => $this->faker->sentence,
-            ];
-        });
-    }
-
     public function pending()
     {
         return $this->state(function () {
@@ -115,5 +106,4 @@ class StatuslabelFactory extends Factory
             ];
         });
     }
-
 }

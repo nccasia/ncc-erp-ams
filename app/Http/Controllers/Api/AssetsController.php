@@ -1418,7 +1418,7 @@ class AssetsController extends Controller
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
                         $data['is_confirm'] = 'đã xác nhận thu hồi';
-                        if($asset->status_id == config('enum.status_id.ARCHIVED') || $asset->status_id == config('enum.status_id.ASSIGN')  ){
+                        if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                         }
                         $asset->assigned_status = config('enum.assigned_status.DEFAULT');
@@ -1436,23 +1436,26 @@ class AssetsController extends Controller
                          SendConfirmMail::dispatch($data, $it_ncc_email);
 
                     }
-                } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT') || $asset->assigned_status === config('enum.assigned_status.REJECTREVOKE')) {
+
+                } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
                         $data['is_confirm'] = 'đã từ chối thu hồi';
-                        $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
-                        $asset->assigned_status = config('enum.assigned_status.REJECTREVOKE');
+                        $asset->status_id = config('enum.status_id.ASSIGN');
+                        $asset->assigned_status = config('enum.assigned_status.ACCEPT');
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
                         SendRejectRevokeMail::dispatch($data, $it_ncc_email);
                     }
                     else{
                         $data['is_confirm'] = 'đã từ chối nhận';
                         $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
-                        $asset->assigned_status = config('enum.assigned_status.REJECT');
+                        $asset->assigned_status = config('enum.assigned_status.DEFAULT');
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
                         $asset->withdraw_from = null;
                         $asset->expected_checkin = null;
                         $asset->last_checkout = null;
+                        $asset->assigned_to = null;
+                        $asset->assignedTo()->disassociate($this);
                         $asset->accepted = null;
                         SendRejectAllocateMail::dispatch($data, $it_ncc_email);
                     }
@@ -1602,7 +1605,7 @@ class AssetsController extends Controller
                         // $data['asset_count'] = 1;
                         if($asset->withdraw_from){
                             $data['is_confirm'] = 'đã xác nhận thu hồi';
-                            if($asset->status_id == config('enum.status_id.ASSIGN') || $asset->status_id == config('enum.status_id.ARCHIVED')) {
+                            if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
                                 $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                             }
                             $asset->assigned_status = config('enum.assigned_status.DEFAULT');
@@ -1627,7 +1630,7 @@ class AssetsController extends Controller
                             }
                             
                         }
-                    } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT') || $asset->assigned_status === config('enum.assigned_status.REJECTREVOKE')) {
+                    } elseif ($asset->assigned_status === config('enum.assigned_status.REJECT')) {
                         if($asset->withdraw_from){
                             $data['is_confirm'] = 'đã từ chối thu hồi';
                             $asset->withdraw_from = null;
@@ -1642,10 +1645,12 @@ class AssetsController extends Controller
                         else{
                             $data['is_confirm'] = 'đã từ chối nhận';
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
-                            $asset->assigned_status = config('enum.assigned_status.REJECT');
+                            $asset->assigned_status = config('enum.assigned_status.DEFAULT');
                             $asset->withdraw_from = null;
                             $asset->expected_checkin = null;
                             $asset->last_checkout = null;
+                            $asset->assigned_to = null;
+                            $asset->assignedTo()->disassociate($this);
                             $asset->accepted = null;
                             $data['reason'] = 'Lý do: ' . $request->get('reason');
 
@@ -2011,7 +2016,7 @@ class AssetsController extends Controller
         if ($request->has('status_id')) {
             $asset->status_id = $request->input('status_id');
         }
-        if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY') || $request->status_id == config('enum.status_id.ARCHIVED') ){
+        if ($request->status_id == config('enum.status_id.READY_TO_DEPLOY')){
             $asset->status_id = config('enum.status_id.ASSIGN');
         }
         $asset_name = $asset->name;

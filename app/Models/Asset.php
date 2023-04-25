@@ -335,9 +335,12 @@ class Asset extends Depreciable
         $this->withdraw_from = $this->assigned_to;
         $this->status_id = $status_id;
         $this->assigned_status = $assigned_status;
+
+
         if ($name != null) {
             $this->name = $name;
         }
+        
         if ($this->save()) {
             if (is_int($admin)) {
                 $checkedInBy = User::findOrFail($admin);
