@@ -459,12 +459,11 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     }
 
     public function softwares(){
-        return $this->belongsToMany(Software::class);
+        return $this->hasMany(Software::class)->whereNull('deleted_at');
     }
 
-    
-    public function softwareLicenses(){
-        return $this->belongsToMany(LicensesUsers::class, 'software_licenses_users', 'assigned_to', 'software_license_id')->withPivot('id');
+    public function softwareLicensesUsers(){
+        return $this->hasMany(LicensesUsers::class, 'assigned_to');
     }
 
     /**
