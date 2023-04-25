@@ -48,6 +48,8 @@ class AccessoriesController extends Controller
 
         $accessories = Accessory::select('accessories.*')->with('category', 'company', 'manufacturer', 'users', 'location', 'supplier');
 
+        $accessories->FilterAccessoriesByRole($request->user());
+
         if ($request->filled('search')) {
             $accessories = $accessories->TextSearch($request->input('search'));
         }

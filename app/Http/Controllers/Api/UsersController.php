@@ -286,6 +286,19 @@ class UsersController extends Controller
             if (! Auth::user()->isSuperUser()) {
                 unset($permissions_array['superuser']);
             }
+
+            // Return error if user is branchadmin but haven't manager_location
+            $permissions = json_decode($permissions_array, true);
+            $manager_location = json_decode($request->input('manager_location'), true);
+            if (
+                isset($permissions['branchadmin']) &&
+                $permissions['branchadmin'] == config('enum.permission_status.ALLOW') &&
+                empty($manager_location)
+            ) {
+                $error['manager_location'] = trans('admin/users/message.manager_location');
+                return response()->json(Helper::formatStandardApiResponse('error', null, $error));
+            }
+
             $user->permissions = $permissions_array;
         }
 
@@ -373,11 +386,21 @@ class UsersController extends Controller
             if (! Auth::user()->isSuperUser()) {
                 unset($permissions_array['superuser']);
             }
-
-            //Delete list manager_location if User isn't a branchadmin
+            
             $permissions = json_decode($permissions_array, true);
-            if (isset($permissions['branchadmin']) && $permissions['branchadmin'] != config('enum.permission_status.ALLOW')) {
-                $user->manager_location = null;
+            if (isset($permissions['branchadmin'])) {
+
+                //Delete list manager_location if User isn't a branchadmin
+                if ($permissions['branchadmin'] != config('enum.permission_status.ALLOW')) {
+                    $user->manager_location = null;
+                }
+                
+                //Return error if user is branchadmin but haven't manager_location
+                $manager_location = json_decode($request->input('manager_location'), true);
+                if ($permissions['branchadmin'] == config('enum.permission_status.ALLOW') && empty($manager_location)) {
+                    $error['manager_location'] = trans('admin/users/message.manager_location');
+                    return response()->json(Helper::formatStandardApiResponse('error', null, $error));
+                }
             }
 
             $user->permissions = $permissions_array;

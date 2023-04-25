@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\Location;
 use App\Models\Statuslabel;
+use Illuminate\Support\Facades\Auth;
 
 class DashboardService
 {
@@ -93,7 +94,13 @@ class DashboardService
 
     public function getAllLocaltions($purchase_date_from, $purchase_date_to)
     {
-        $locations = Location::select(['id', 'name']);
+        $user = Auth::user();
+        if($user->isAdmin()){
+            $locations = Location::select(['id', 'name']);
+        }else{
+            $manager_location = json_decode($user->manager_location, true);
+            $locations = Location::select(['id', 'name'])->whereIn('id', $manager_location);
+        }
         if ($purchase_date_from == null && $purchase_date_to == null) {
             $locations = $locations->withCount(['rtd_assets as assets_count', 'rtd_consumables as consumables_count', 'rtd_accessories as accessories_count'])->get();
         } else {
