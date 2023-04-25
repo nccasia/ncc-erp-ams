@@ -390,17 +390,17 @@ class SoftwareLicensesController extends Controller
         $licenses = Company::scopeCompanyables(
             SoftwareLicenses::select('software_licenses.*')
                 ->join('software_licenses_users', 'software_licenses_users.software_licenses_id', 'software_licenses.id')
-                ->where('assigned_to', $user_id)
                 ->with([
                     'software' => function ($query) {
                         $query->whereNull('deleted_at');
-                    }
-                ])
-                ->with([
+                    },
                     'allocatedSeats' => function ($query) use ($user_id) {
                         $query->where('assigned_to', $user_id);
                     }
                 ])
+                ->whereHas('software')
+                ->where('assigned_to', $user_id)
+
         );
 
         $offset = (($licenses) && ($request->get('offset') > $licenses->count())) ? $licenses->count() : $request->get('offset', 0);
