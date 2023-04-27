@@ -24,11 +24,11 @@ class Software extends Depreciable
 
     protected $rules = [
         'name' => 'required|string|min:3|max:255',
-        'software_tag' => 'required|unique|string|min:3|max:255',
+        'software_tag' => 'nullable|string|max:255',
         'category_id' => 'required|exists:categories,id',
         'manufacturer_id' => 'required|exists:manufacturers,id',
         'version' => 'required|string|min:3|max:255',
-        'notes' => 'string|nullable',
+        'notes' => 'nullable|string',
     ];
 
     protected $fillable = [
