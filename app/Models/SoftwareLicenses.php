@@ -186,7 +186,7 @@ class SoftwareLicenses extends Model
             ->whereNull('software_licenses.deleted_at')
             ->where('software_id', '=', $softwareId)
             ->where('seats', '>', config('enum.seats.MIN'))
-            ->where('expiration_date', '>', Carbon::now())
+            ->where('expiration_date', '>=', Carbon::now()->format('Y-m-d'))
             ->groupBy('software_licenses_users.software_licenses_id')
             ->havingRaw('software_licenses.seats > allocatedSeat')
             ->whereNotExists(function ($query) use ($assigned_user) {
