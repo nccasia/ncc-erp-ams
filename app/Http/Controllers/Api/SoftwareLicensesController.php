@@ -202,7 +202,6 @@ class SoftwareLicensesController extends Controller
         $licenses_active = array();
         $assigned_users = $request->get('assigned_users');
 
-        //Checkout multi softwares to multi users
         foreach ($softwares as $software_id) {
             $software = Software::where('id', $software_id)
                 ->withSum([
@@ -224,34 +223,42 @@ class SoftwareLicensesController extends Controller
                     Helper::formatStandardApiResponse(
                         'error',
                         null,
-                        ['assigned_users' => $software->name . ' ' . trans('admin/licenses/message.checkout.not_available')]
+                        ['assigned_users' => $software->name . ' ' . trans('admin/softwares/message.checkout.not_enough_quantity')]
                     )
                 );
             }
 
-            //Checkout license to assigned users
-            $software = Software::find($software_id);
+            // check if the software license has been sent to the user
             foreach ($assigned_users as $assigned_user) {
-                if (User::find($assigned_user)) {
+                if ($user = User::findOrFail($assigned_user)) {
                     $license = new SoftwareLicenses;
                     $license = $license->getFirstLicenseAvailableForCheckout($software_id, $assigned_user);
-                    if ($license) {
-                        $license_user = $this->setDataLicenseUser($license, $assigned_user, $request);
-                        if ($license_user->save()) {
-                            $licenseUpdate = SoftwareLicenses::findOrFail($license->id);
-                            $licenseUpdate->update(['checkout_count' => $licenseUpdate->checkout_count + 1]);
-                            array_push($licenses_active, $license_user->license->licenses);
-                            $this->sendMailCheckOut($assigned_user, $licenseUpdate);
-                        }
-                    } else {
+                    if (!$license) {
                         return response()->json(
                             Helper::formatStandardApiResponse(
                                 'error',
                                 null,
-                                ['assigned_users' => $software->name . ' ' . trans('admin/licenses/message.checkout.not_available')]
+                                ['assigned_users' => trans('admin/licenses/message.checkout.user_not_available') . $user->username]
                             )
                         );
                     }
+                }
+            }
+        }
+
+        //Checkout multi softwares to multi users
+        foreach ($softwares as $software_id) {
+            //Checkout license to assigned users
+            $software = Software::find($software_id);
+            foreach ($assigned_users as $assigned_user) {
+                $license = new SoftwareLicenses;
+                $license = $license->getFirstLicenseAvailableForCheckout($software_id, $assigned_user);
+                $license_user = $this->setDataLicenseUser($license, $assigned_user, $request);
+                if ($license_user->save()) {
+                    $licenseUpdate = SoftwareLicenses::findOrFail($license->id);
+                    $licenseUpdate->update(['checkout_count' => $licenseUpdate->checkout_count + 1]);
+                    array_push($licenses_active, $license_user->license->licenses);
+                    $this->sendMailCheckOut($assigned_user, $licenseUpdate);
                 }
             }
         }
@@ -288,12 +295,13 @@ class SoftwareLicensesController extends Controller
             );
         }
 
+        // checkout license to user
         foreach ($assigned_users as $assigned_user) {
 
             // Return error if licenses already checkout to User
-            $license_user = $license->allocatedSeats()->where('assigned_to', $assigned_user)->first();
-            if ($license_user) {
-                $user = User::find($license_user->assigned_to);
+            $license_user_exists = $license->allocatedSeats()->where('assigned_to', $assigned_user)->first();
+            if ($license_user_exists) {
+                $user = User::find($license_user_exists->assigned_to);
                 return response()->json(
                     Helper::formatStandardApiResponse(
                         'error',
@@ -303,12 +311,21 @@ class SoftwareLicensesController extends Controller
                 );
             }
 
-            if (User::find($assigned_user)) {
-                $license_user = $this->setDataLicenseUser($license, $assigned_user, $request);
-                if ($license_user->save()) {
-                    $license->update(['checkout_count' => $license->checkout_count + 1]);
-                    $this->sendMailCheckOut($assigned_user, $license);
-                }
+            // check user not found
+            if(!User::find($assigned_user)){
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error',
+                        null,
+                        ['assigned_users' => trans('admin/users/message.user_not_found', ['id' => $assigned_user])]
+                    )
+                );
+            }
+
+            $license_user = $this->setDataLicenseUser($license, $assigned_user, $request);
+            if ($license_user->save()) {
+                $license->update(['checkout_count' => $license->checkout_count + 1]);
+                $this->sendMailCheckOut($assigned_user, $license);
             }
         }
 
