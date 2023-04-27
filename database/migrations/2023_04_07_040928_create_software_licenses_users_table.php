@@ -18,6 +18,8 @@ class CreateSoftwareLicensesUsersTable extends Migration
             $table->integer('software_licenses_id');
             $table->integer('assigned_to');
             $table->integer('user_id');
+            $table->datetime('checkout_at')->nullable();
+            $table->text('notes')->nullable();
             $table->softDeletes();
             $table->timestamps();
         });

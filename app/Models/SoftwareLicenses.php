@@ -47,7 +47,7 @@ class SoftwareLicenses extends Model
 
     public function software()
     {
-        return $this->belongsTo(Software::class, 'software_id');
+        return $this->belongsTo(Software::class);
     }
 
     public function assignedUsers()

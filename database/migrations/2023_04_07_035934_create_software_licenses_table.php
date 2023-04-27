@@ -16,12 +16,13 @@ class CreateSoftwareLicensesTable extends Migration
         Schema::create('software_licenses', function (Blueprint $table) {
             $table->id();
             $table->string('software_id');
-            $table->integer('licenses');
+            $table->string('licenses');
             $table->integer('seats');
             $table->date('purchase_date');
             $table->date('expiration_date');
             $table->decimal('purchase_cost', 20, 2);
             $table->integer('user_id');
+            $table->integer('checkout_count')->default(0);
             $table->softDeletes();
             $table->timestamps();
         });
