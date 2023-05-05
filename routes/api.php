@@ -543,28 +543,25 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
 
 
         ); // end assets API routes
-
         
         // Software API routes
-
         Route::resource('software.licenses', 
         Api\SoftwareLicensesController::class,
         ['names' => 
             ['index' => 'api.software.licenses.index',], 
             ['store' => 'api.software.licenses.store',], 
-        'except' => ['create', 'edit', 'destroy'],
-        'parameters' => ['softwarelicense' => 'softwarelicense_id'],
+        'except' => ['create', 'edit', 'destroy']
         ]);
 
+        Route::group(['prefix' => 'software'], function () {
+            Route::resource('licenses', Api\SoftwareLicensesController::class)->only('store', 'update', 'show', 'destroy');
+        });
+
         Route::group(['prefix' => 'software/licenses'], function () {
-            Route::post('', [Api\SoftwareLicensesController::class, 'store'])->name('api.software.licenses.store');
-            Route::get('/{id}', [Api\SoftwareLicensesController::class, 'show'])->name('api.software.licenses.show');
-            Route::put('{id}', [Api\SoftwareLicensesController::class, 'update'])->name('api.software.licenses.update');
-            Route::delete('/{id}', [Api\SoftwareLicensesController::class, 'destroy'])->name('api.software.licenses.destroy');
             Route::post('/{id}/checkout', [Api\SoftwareLicensesController::class, 'checkOut'])->name('api.software.licenses.checkOut');
             Route::post('/checkout', [Api\SoftwareLicensesController::class, 'multiCheckout'])->name('api.software.licenses.multiCheckout');
-
         });
+        
         Route::get('software/license/assign', [Api\SoftwareLicensesController::class, 'assign'])->name('api.software.licenses.assign');
         Route::get('software/license/{id}/users', [Api\LicensesUsersController::class, 'showUsersLicense'])->name('api.software.license.users.showUsersLicense');
         Route::get('software/{id}/users', [Api\LicensesUsersController::class, 'showUsersSoftware'])->name('api.software.license.users.showUsersSoftware');

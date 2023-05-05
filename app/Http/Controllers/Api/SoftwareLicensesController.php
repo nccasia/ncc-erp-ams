@@ -238,7 +238,7 @@ class SoftwareLicensesController extends Controller
                             Helper::formatStandardApiResponse(
                                 'error',
                                 null,
-                                ['assigned_users' => $software->name . ' ' . trans('admin/licenses/message.checkout.user_not_available') . $user->username]
+                                ['assigned_users' => $software->name . ' ' . trans('admin/licenses/message.checkout.not_available')]
                             )
                         );
                     }
