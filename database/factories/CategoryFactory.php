@@ -179,4 +179,31 @@ class CategoryFactory extends Factory
          ]);
      }
 
+    // usage: Category::factory()->applicationsSoftwareCategory();
+    public function applicationsSoftwareCategory()
+    {
+        return Category::factory()->create([
+            'name' => 'Application Software',
+            'category_type' => 'software',
+        ]);
+    }
+
+   // usage: Category::factory()->programmingSoftwareCategory();
+    public function programmingSoftwareCategory()
+    {
+        return Category::factory()->create([
+            'name' => 'Programming Software',
+            'category_type' => 'software',
+        ]);
+    }
+
+   // usage: Category::factory()->operatingSoftwareCategory();
+    public function operatingSoftwareCategory()
+    {
+        return Category::factory()->create([
+            'name' => 'Operating Software',
+            'category_type' => 'software',
+        ]);
+    }
+
 }
