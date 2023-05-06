@@ -102,4 +102,9 @@ class Manufacturer extends SnipeModel
     {
         return $this->hasMany(\App\Models\Consumable::class, 'manufacturer_id');
     }
+    
+    public function softwares()
+    {
+        return $this->hasMany(Software::class);
+    }
 }

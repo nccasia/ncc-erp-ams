@@ -51,6 +51,8 @@ class ConsumablesController extends Controller
             Consumable::select('consumables.*')
                 ->with('company', 'location', 'category', 'users', 'manufacturer')
         );
+        
+        $consumables->FilterConsumablesByRole($request->user());
 
         if ($request->filled('search')) {
             $consumables = $consumables->TextSearch(e($request->input('search')));

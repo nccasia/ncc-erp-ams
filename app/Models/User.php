@@ -168,7 +168,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
      */
     public function hasAccess($section)
     {
-        if ($this->isSuperUser()) {
+        if ($this->isSuperUser() || $this->isBranchAdmin()) {
             return true;
         }
 
@@ -458,11 +458,18 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         return $this->belongsToMany(Asset::class, 'checkout_requests', 'user_id', 'requestable_id')->whereNull('canceled_at');
     }
 
+    public function softwares(){
+        return $this->hasMany(Software::class)->whereNull('deleted_at');
+    }
+
+    public function softwareLicensesUsers(){
+        return $this->hasMany(LicensesUsers::class, 'assigned_to');
+    }
+
     public function tools() 
     {
         return $this->belongsToMany(Tools::class, 'tools_users', 'assigned_to', 'tool_id')->whereNull('deleted_at');
     }
-
 
     /**
      * Query builder scope to return NOT-deleted users
