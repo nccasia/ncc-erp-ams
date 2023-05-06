@@ -179,4 +179,12 @@ class CategoryFactory extends Factory
          ]);
      }
 
+      // usage: Category::factory()->applicationsSoftwareCategory();
+    public function toolsCategory()
+    {
+        return Category::factory()->create([
+            'name' => 'Tool',
+            'category_type' => 'tool',
+        ]);
+    }
 }

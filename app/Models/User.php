@@ -458,6 +458,11 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         return $this->belongsToMany(Asset::class, 'checkout_requests', 'user_id', 'requestable_id')->whereNull('canceled_at');
     }
 
+    public function tools() 
+    {
+        return $this->belongsToMany(Tools::class, 'tools_users', 'assigned_to', 'tool_id')->whereNull('deleted_at');
+    }
+
 
     /**
      * Query builder scope to return NOT-deleted users

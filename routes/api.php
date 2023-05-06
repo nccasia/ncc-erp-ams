@@ -544,6 +544,24 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
 
         ); // end assets API routes
 
+        //Tools routes
+
+        Route::group(['prefix' => 'tools'], function () {
+            Route::get('', [Api\ToolController::class, 'index'])->name('api.tools.index');
+            Route::get('/checkout', [Api\ToolController::class, 'getToolsCheckout'])->name('api.tools.getToolsCheckout');
+            Route::get('/assign', [Api\ToolController::class, 'assign'])->name('api.tools.assign');
+            Route::post('', [Api\ToolController::class, 'store'])->name('api.tools.store');
+            Route::get('/{id}', [Api\ToolController::class, 'show'])->name('api.tools.show');
+            Route::put('{id}', [Api\ToolController::class, 'update'])->name('api.tools.update');
+            Route::delete('/{id}', [Api\ToolController::class, 'destroy'])->name('api.tools.destroy');
+            Route::post('/{id}/checkout', [Api\ToolController::class, 'checkout'])->name('api.tools.checkout');
+            Route::post('/multicheckout', [Api\ToolController::class, 'multiCheckout'])->name('api.tools.multiCheckout');
+            Route::post('/{id}/checkin', [Api\ToolController::class, 'checkin'])->name('api.tools.checkin');
+            Route::post('/multicheckin', [Api\ToolController::class, 'multiCheckin'])->name('api.tools.multiCheckin');
+        });
+
+        //end tools routes
+
         /**
          * Asset maintenances API routes
          */
