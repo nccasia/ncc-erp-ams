@@ -1333,6 +1333,27 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         //     Route::get('/', [Api\DashboardController::class, 'index1']);
         // });
 
+    // route digital signatures
+    Route::resource(
+        'digital_signatures',
+        Api\DigitalSignaturesController::class,
+        [
+            'names' =>
+            [
+                'index' => 'api.digital_signatures.index',
+                'show' => 'api.digital_signatures.show',
+                'update' => 'api.digital_signatures.update',
+                'store' => 'api.digital_signatures.store',
+                'destroy' => 'api.digital_signatures.destroy',
+            ],
+            'except' => ['create', 'edit'],
+        ]
+    );
+    Route::group(['prefix' => 'digital_signatures'], function () {
+        Route::post('/{id}/checkout', [Api\DigitalSignaturesController::class, 'checkOut'])->name('api.digital_signatures.checkOut');
+        Route::post('/checkout', [Api\DigitalSignaturesController::class, 'multiCheckout'])->name('api.digital_signatures.multiCheckout');
+    });
+    //end route digital signatures
 
 }); // end API routes
 
