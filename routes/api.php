@@ -701,7 +701,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 'getDataViewAssets'
             ]
             )->name('api.locations.viewassets');
-    
+
+            Route::get('branchadmin', 
+                [
+                    Api\LocationsController::class, 
+                    'getLocationsBranchadmin'
+                ]
+            )->name('api.locations.branchadmin');  
         }); 
     
         Route::resource('locations', 

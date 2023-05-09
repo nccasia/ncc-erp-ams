@@ -15,6 +15,7 @@ return array(
     'password_resets_sent'      => 'The selected users who are activated and have a valid email addresses have been sent a password reset link.',
     'password_reset_sent'       => 'A password reset link has been sent to :email!',
     'manager_location'          => 'Please select at least 1 branch to manage',
+    'user_not_branchadmin'     => "User isn't a branchadmin",
 
 
     'success' => [

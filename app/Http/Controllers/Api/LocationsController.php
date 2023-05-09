@@ -8,9 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Transformers\LocationsTransformer;
 use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Location;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class LocationsController extends Controller
 {
@@ -268,5 +270,78 @@ class LocationsController extends Controller
 
         //return [];
         return (new SelectlistTransformer)->transformSelectlist($paginated_results);
+    }
+
+    public function getLocationsBranchadmin(Request $request)
+    {
+        $this->authorize('view', Location::class);
+        $allowed_columns = [
+            'id', 'name', 'address', 'address2', 'city', 'state', 'country', 'zip', 'created_at',
+            'updated_at', 'manager_id', 'image',
+            'assigned_assets_count', 'users_count', 'assets_count', 'currency', 'ldap_ou', ];
+
+        $user = User::find(Auth::id());
+
+        if(!$user->isBranchadmin()){
+            return response()
+            ->json(Helper::formatStandardApiResponse('error', null, trans('admin/users/message.user_not_branchadmin')));
+        }
+
+        $manager_location = json_decode($user->manager_location, true);
+
+        $locations = Location::with('parent', 'manager', 'children')->select([
+            'locations.id',
+            'locations.name',
+            'locations.address',
+            'locations.address2',
+            'locations.city',
+            'locations.state',
+            'locations.zip',
+            'locations.country',
+            'locations.parent_id',
+            'locations.manager_id',
+            'locations.created_at',
+            'locations.updated_at',
+            'locations.image',
+            'locations.ldap_ou',
+            'locations.currency',
+        ])->withCount('assignedAssets as assigned_assets_count')
+            ->withCount('assets as assets_count')
+            ->withCount('users as users_count')
+            ->whereIn('id', $manager_location);
+
+        if ($request->filled('search')) {
+            $locations = $locations->TextSearch($request->input('search'));
+        }
+
+        if ($request->filled('location_id')) {
+            $locations = $locations->where('id','=', $request->input('location_id'));
+        }
+
+        $offset = (($locations) && (request('offset') > $locations->count())) ? $locations->count() : request('offset', 0);
+
+        // Check to make sure the limit is not higher than the max allowed
+        ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit'))) ? $limit = $request->input('limit') : $limit = config('app.max_results');
+
+        $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
+        $sort = in_array($request->input('sort'), $allowed_columns) ? $request->input('sort') : 'created_at';
+
+        switch ($request->input('sort')) {
+            case 'parent':
+                $locations->OrderParent($order);
+                break;
+            case 'manager':
+                $locations->OrderManager($order);
+                break;
+            default:
+                $locations->orderBy($sort, $order);
+                break;
+        }
+
+
+        $total = $locations->count();
+        $locations = $locations->skip($offset)->take($limit)->get();
+
+        return (new LocationsTransformer)->transformLocations($locations, $total);
     }
 }
