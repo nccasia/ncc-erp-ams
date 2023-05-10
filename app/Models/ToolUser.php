@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class ToolUser extends Model
 {
     use HasFactory, ValidatingTrait, Searchable, SoftDeletes;
+    
     public $timestamps = true;
     protected $guarded = 'id';
     protected $table = 'tools_users';
@@ -27,7 +28,6 @@ class ToolUser extends Model
     protected $fillable = [
         'tool_id',
         'assigned_to',
-        'user_id',
         'deleted_at',
         'created_at',
         'checkout_at',
@@ -40,7 +40,7 @@ class ToolUser extends Model
         return $this->belongsTo(User::class, 'assigned_to');
     }
 
-    public function tools()
+    public function tool()
     {
         return $this->belongsTo(Tool::class);
     }

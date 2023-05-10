@@ -40,16 +40,5 @@ class ToolFactory extends Factory
             ];
         });
     }
-
-    public function timeSheet()
-    {
-        return $this->state(function () {
-            return [
-                'name'=>'Time Sheet',
-                'category_id' => 17,
-                'notes' => $this->faker->sentence,
-            ];
-        });
-    }
-    
+     
 }

@@ -7,6 +7,8 @@ use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\ToolCheckoutTransformer;
 use App\Http\Transformers\ToolsTransformer;
+use App\Jobs\SendCheckinMailTool;
+use App\Jobs\SendCheckoutMailTool;
 use App\Models\Company;
 use App\Models\Tool;
 use App\Models\ToolUser;
@@ -51,7 +53,7 @@ class ToolController extends Controller
             'version'
         ];
 
-        return $this->getDataTool($request, $tools, $allowed_columns);
+        return $this->getDataTools($request, $tools, $allowed_columns);
     }
 
     /**
@@ -124,7 +126,7 @@ class ToolController extends Controller
     /**
      * Checkout a tool to users
      *
-     * @param  int  $id
+     * @param  int  $tool_id
      * @param  Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -151,28 +153,30 @@ class ToolController extends Controller
                     )
                 );
             }
-
         }
 
         foreach ($assigned_users as $assigned_user) {
             if (User::find($assigned_user)) {
                 $tool_user = $this->setDataCheckout($tool, $assigned_user, $request);
-                if (!$tool_user->save()) {
+                if ($tool_user->save()) {
+                    $this->sendMailCheckOut($assigned_user, $tool);
+                } else {
                     return response()->json(Helper::formatStandardApiResponse('error', null, $tool_user->getErrors()));
                 }
             }
         }
+
         return response()->json(
             Helper::formatStandardApiResponse(
                 'success',
-                ['tool' => e($tool_user->tools->name)],
+                ['tool' => e($tool_user->tool->name)],
                 trans('admin/licenses/message.checkout.success')
             )
         );
     }
 
     /**
-     *Checkout multiple tools to users
+     * Checkout multiple tools to users
      *
      * @param  Request  $request
      * @return \Illuminate\Http\JsonResponse
@@ -212,7 +216,9 @@ class ToolController extends Controller
             foreach ($assigned_users as $assigned_user) {
                 if (User::find($assigned_user)) {
                     $tool_user = $this->setDataCheckout($tool, $assigned_user, $request);
-                    if (!$tool_user->save()) {
+                    if ($tool_user->save()) {
+                        $this->sendMailCheckOut($assigned_user, $tool);
+                    } else {
                         return response()->json(Helper::formatStandardApiResponse('error', null, $tool_user->getErrors()));
                     }
                 }
@@ -254,14 +260,16 @@ class ToolController extends Controller
 
         if (User::find($assigned_user)) {
             $tool_user = $this->setDataCheckin($tool, $assigned_user, $request);
-            if (!$tool_user->save()) {
+            if ($tool_user->save()) {
+                $this->sendMailCheckin($assigned_user, $tool);
+            } else {
                 return response()->json(Helper::formatStandardApiResponse('error', null, $tool_user->getErrors()));
             }
         }
         return response()->json(
             Helper::formatStandardApiResponse(
                 'success',
-                ['tool' => e($tool_user->tools->name)],
+                ['tool' => e($tool_user->tool->name)],
                 trans('admin/tools/message.checkin.success')
             )
         );
@@ -279,6 +287,8 @@ class ToolController extends Controller
 
         $tools_id = $request->get('tools');
         $assigned_users = $request->get('assigned_users');
+
+        // Check tools are available for checkin
         for ($i = 0; $i < count($tools_id); $i++) {
             $tool = Tool::find($tools_id[$i]);
             if (!$tool->availableForCheckin($assigned_users[$i])) {
@@ -296,7 +306,9 @@ class ToolController extends Controller
             $tool = Tool::find($tools_id[$i]);
             if (User::find($assigned_users[$i])) {
                 $tool_user = $this->setDataCheckin($tool, $assigned_users[$i], $request);
-                if (!$tool_user->save()) {
+                if ($tool_user->save()) {
+                    $this->sendMailCheckin($assigned_users[$i], $tool);
+                } else {
                     return response()->json(Helper::formatStandardApiResponse('error', null, $tool_user->getErrors()));
                 }
             }
@@ -324,7 +336,7 @@ class ToolController extends Controller
             ToolUser::select('tools_users.*')
                 ->whereNotNull('checkout_at')
                 ->whereNull('checkin_at')
-                ->with('tools', 'user')
+                ->with('tool', 'user')
         );
 
         $allowed_columns = [
@@ -438,7 +450,7 @@ class ToolController extends Controller
             'checkout_at',
             'version'
         ];
-        return $this->getDataTool($request, $tools, $allowed_columns);
+        return $this->getDataTools($request, $tools, $allowed_columns);
     }
 
     /**
@@ -483,12 +495,12 @@ class ToolController extends Controller
     /**
      * Get data tools
      *
-     * @param  Tool $tool
+     * @param  mixed $tools
      * @param  array $allowed_columns
      * @param  Request $request
      * @return array
      */
-    public function getDataTool($request, $tools, $allowed_columns)
+    public function getDataTools($request, $tools, $allowed_columns)
     {
         $filter = [];
         if ($request->filled('filter')) {
@@ -528,7 +540,6 @@ class ToolController extends Controller
             case 'category':
                 $tools->OrderCategory($order);
                 break;
-
             case 'manufacturer':
                 $tools->OrderManufacturer($order);
                 break;
@@ -541,5 +552,51 @@ class ToolController extends Controller
         $total = $tools->count();
         $tools = $tools->skip($offset)->take($limit)->get();
         return (new ToolsTransformer)->transformTools($tools, $total);
+    }
+
+    /**
+     * Send mail to user when checkout
+     *
+     * @param  int $assigned_user
+     * @param  Tool $tool
+     * @return void
+     */
+    public function sendMailCheckout($assigned_user, $tool)
+    {
+        $user = User::find($assigned_user);
+        $user_email = $user->email;
+        $user_name = $user->first_name . ' ' . $user->last_name;
+        $current_time = Carbon::now();
+        $data = [
+            'user_name' => $user_name,
+            'tool_name' => $tool->name,
+            'count' => 1,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+        SendCheckoutMailTool::dispatch($data, $user_email);
+    }
+
+    /**
+     * Send mail to user when checkout
+     *
+     * @param  int $assigned_user
+     * @param  Tool $tool
+     * @return void
+     */
+    public function sendMailCheckin($assigned_user, $tool)
+    {
+        $user = User::find($assigned_user);
+        $user_email = $user->email;
+        $user_name = $user->first_name . ' ' . $user->last_name;
+        $current_time = Carbon::now();
+        $data = [
+            'user_name' => $user_name,
+            'tool_name' => $tool->name,
+            'count' => 1,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+        SendCheckinMailTool::dispatch($data, $user_email);
     }
 }

@@ -22,7 +22,7 @@ class Tool extends Model
         'name' => 'required|unique|string|min:3|max:255',
         'category_id' => 'required|exists:categories,id',
         'purchase_cost' => 'required',
-        'purchase_date' => 'required',  
+        'purchase_date' => 'required',
         'manufacturer_id' => 'required|exists:manufacturers,id',
         'version' => 'required|string|min:3|max:255',
         'notes' => 'string',
@@ -85,7 +85,8 @@ class Tool extends Model
      */
     public function scopeOrderManufacturer($query, $order)
     {
-        return $query->join('manufacturers', 'tools.manufacturer_id', '=', 'manufacturers.id')->orderBy('manufacturers.name', $order);
+        return $query->join('manufacturers', 'tools.manufacturer_id', '=', 'manufacturers.id')
+            ->orderBy('manufacturers.name', $order);
     }
 
     /**
@@ -160,10 +161,6 @@ class Tool extends Model
      */
     public function advancedTextSearch(Builder $query, array $terms)
     {
-        $query = $query->leftJoin('users as tools_users', function ($leftJoin) {
-            $leftJoin->on('tools_users.id', '=', 'tools.user_id');
-        });
-
         $query = $query->leftJoin('categories as tools_category', function ($leftJoin) {
             $leftJoin->on('tools_category.id', '=', 'tools.category_id');
         });
@@ -174,22 +171,31 @@ class Tool extends Model
 
         foreach ($terms as $term) {
             $query = $query
-                ->orwhere('tools_category.name', 'LIKE', '%' . $term . '%')
+                ->where('tools_category.name', 'LIKE', '%' . $term . '%')
                 ->orwhere('tools_manufacturer.name', 'LIKE', '%' . $term . '%')
                 ->orwhere('tools.name', 'LIKE', '%' . $term . '%')
                 ->orwhere('tools.version', 'LIKE', '%' . $term . '%')
-                ->orwhere('tools.notes', 'LIKE', '%' . $term . '%')
-                ->orwhere('tools.key', 'LIKE', '%' . $term . '%')
                 ->orwhere('tools.id', '=', $term);
         }
         return $query;
     }
 
+    /**
+     * Check tool available for checkout
+     * 
+     * @return  boolean
+     */
     public function availableForCheckout()
     {
         return !$this->deleted_at;
     }
 
+    /**
+     * Check tool available for checkin 
+     * 
+     * @param  int $assigned_user
+     * @return  boolean
+     */
     public function availableForCheckin($assigned_user)
     {
         $tool_user = $this->toolsUsers()
