@@ -8,9 +8,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Transformers\LocationsTransformer;
 use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Location;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 
 class LocationsController extends Controller
 {
@@ -48,6 +50,12 @@ class LocationsController extends Controller
         ])->withCount('assignedAssets as assigned_assets_count')
             ->withCount('assets as assets_count')
             ->withCount('users as users_count');
+        
+        $user = User::find(Auth::id());
+        if($user->isBranchadmin()){     
+            $manager_locations = json_decode($user->manager_location, true);
+            $locations->whereIn('id', $manager_locations);
+        }
 
         if ($request->filled('search')) {
             $locations = $locations->TextSearch($request->input('search'));
