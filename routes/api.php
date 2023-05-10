@@ -701,7 +701,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 'getDataViewAssets'
             ]
             )->name('api.locations.viewassets');
-            
+    
         }); 
     
         Route::resource('locations', 
