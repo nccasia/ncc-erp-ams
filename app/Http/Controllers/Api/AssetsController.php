@@ -162,8 +162,10 @@ class AssetsController extends Controller
         }
         
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
-            $assets->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+            $assets->where(function ($query) use ($request){
+                $query->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
                    ->orWhere('assets.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
         }
  
         if ($request->filled('status_id')) {
@@ -465,7 +467,7 @@ class AssetsController extends Controller
         ->with('location', 'assetstatus', 'company', 'defaultLoc','assignedTo',
         'model.category', 'model.manufacturer', 'model.fieldset','supplier'); //it might be tempting to add 'assetlog' here, but don't. It blows up update-heavy users.
         
-
+        $assets->filterAssetByRole($request->user());
         if ($filter_non_deprecable_assets) {
             $non_deprecable_models = AssetModel::select('id')->whereNotNull('depreciation_id')->get();
 
@@ -484,8 +486,10 @@ class AssetsController extends Controller
         }
         
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
-            $assets->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+            $assets->where(function ($query) use ($request){
+                $query->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
                    ->orWhere('assets.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
         }
  
         if ($request->filled('status_id')) {
