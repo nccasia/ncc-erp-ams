@@ -43,10 +43,11 @@ return array(
     'checkout' => array(
         'error'   => 'Có vấn đề xảy ra khi checkout bản quyền. Xin vui lòng thử lại.',
         'success' => 'Bản quyền đã được checkout thành công',
-        'not_enough_quantity' => "Số lượng key không đủ để cấp phát",
-        'already_checkout' => 'Key đã cấp phát cho người dùng ',
-        'expired' => "Key đã hết hạn sử dụng",
-        'not_available' => "Key không sẵn sàng để cấp phát. Xin vui lòng kiểm tra lại"
+        'not_enough_quantity' => "không đủ số lượng key để cấp phát",
+        'already_checkout' => ' đã cấp phát cho người dùng ',
+        'key_of' => "Key của ",
+        'expired' => " đã hết hạn sử dụng",
+        'not_available' => " không sẵn sàng để cấp phát. Xin vui lòng kiểm tra lại"
     ),
 
     'checkin' => array(

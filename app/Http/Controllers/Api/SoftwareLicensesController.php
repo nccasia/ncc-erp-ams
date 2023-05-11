@@ -228,17 +228,60 @@ class SoftwareLicensesController extends Controller
                 );
             }
 
-            // check if the software license has been sent to the user
+            // check if the software license has been sent to the user or license expiration_date > current date 
             foreach ($assigned_users as $assigned_user) {
                 if ($user = User::findOrFail($assigned_user)) {
                     $license = new SoftwareLicenses;
                     $license = $license->getFirstLicenseAvailableForCheckout($software_id, $assigned_user);
                     if (!$license) {
+                        $license = new SoftwareLicenses;
+                        $license_last = $license->getLastLicenseOfSoftware($software_id);
+                        //Return error license expiration_date > current date 
+                        $now = Carbon::now();
+                        $expirationDate = Carbon::parse($license_last->expiration_date);
+                        if ($now->diffInDays($expirationDate, false) < 0) {
+                            return response()->json(
+                                Helper::formatStandardApiResponse(  
+                                    'error',
+                                    null,
+                                    [
+                                        'software' => trans('admin/softwares/message.checkout.key_of',) .
+                                        $software->name .
+                                        trans('admin/softwares/message.checkout.expired')
+                                    ]
+                                )
+                            );
+                        }
+
+                        // Return error licenses already checkout to User
+                        if ($user = User::findOrFail($assigned_user)) {
+                            $license_user_exists = $license_last->allocatedSeats()->where('assigned_to', $assigned_user)->first();
+                            if ($license_user_exists) {
+                                $user = User::find($license_user_exists->assigned_to);
+                                return response()->json(
+                                    Helper::formatStandardApiResponse(
+                                        'error',
+                                        null,
+                                        [
+                                            'assigned_users' => trans('admin/softwares/message.checkout.key_of') .
+                                            $software->name .
+                                            trans('admin/softwares/message.checkout.already_checkout') . $user->username
+                                        ]
+                                    )
+                                );
+                            }
+                        }
+
+                        // Return error licenses not available for checkout
                         return response()->json(
                             Helper::formatStandardApiResponse(
                                 'error',
                                 null,
-                                ['assigned_users' => $software->name . ' ' . trans('admin/licenses/message.checkout.not_available')]
+                                [
+                                    'software' => trans('admin/softwares/message.checkout.key_of') .
+                                    $software->name .
+                                    trans('admin/softwares/message.checkout.not_available')
+                                ]
                             )
                         );
                     }
@@ -259,6 +302,8 @@ class SoftwareLicensesController extends Controller
                     $licenseUpdate->update(['checkout_count' => $licenseUpdate->checkout_count + 1]);
                     array_push($licenses_active, $license_user->license->licenses);
                     $this->sendMailCheckOut($assigned_user, $licenseUpdate);
+                } else {
+                    return response()->json(Helper::formatStandardApiResponse('error', null, $license_user->getErrors()));
                 }
             }
         }
@@ -284,13 +329,26 @@ class SoftwareLicensesController extends Controller
         $assigned_users = $request->get('assigned_users');
         $this->authorize('checkout', $license);
 
+        //Check license expiration_date > current date 
+        $now = Carbon::now();
+        $expirationDate = Carbon::parse($license->expiration_date);
+        if ($now->diffInDays($expirationDate, false) < 0) {
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'error',
+                    null,
+                    ['licenses' => trans('admin/licenses/message.checkout.expired')]
+                )
+            );
+        }
+
         // Return error if assigned user > seats of license or license not available for checkout
         if (count($assigned_users) > ($license->seats - $license->checkout_count) || !$license->availableForCheckout()) {
             return response()->json(
                 Helper::formatStandardApiResponse(
                     'error',
                     null,
-                    ['assigned_users' => trans('admin/licenses/message.checkout.not_available')]
+                    ['assigned_users' => trans('admin/licenses/message.checkout.not_enough_quantity')]
                 )
             );
         }
@@ -306,18 +364,18 @@ class SoftwareLicensesController extends Controller
                     Helper::formatStandardApiResponse(
                         'error',
                         null,
-                        ['assigned_users' => trans('admin/licenses/message.checkout.user_not_available') . $user->username]
+                        ['assigned_users' => trans('admin/licenses/message.checkout.already_checkout') . $user->username]
                     )
                 );
             }
 
             // check user not found
-            if(!User::find($assigned_user)){
+            if (!User::find($assigned_user)) {
                 return response()->json(
                     Helper::formatStandardApiResponse(
                         'error',
                         null,
-                        ['assigned_users' => trans('admin/users/message.user_not_found', ['id' => $assigned_user])]
+                        ['assigned_users' => trans('admin/users/message.user_not_found'), ['id' => $assigned_user]]
                     )
                 );
             }
