@@ -106,7 +106,7 @@ class SoftwareLicensesController extends Controller
                 Helper::formatStandardApiResponse(
                     'error',
                     null,
-                    ['expiration_date' => trans('admin/licenses/message.create.expiration_date', [], 'vi')]
+                    ['expiration_date' => trans('admin/licenses/message.create.expiration_date')]
                 )
             );
         }
@@ -114,7 +114,7 @@ class SoftwareLicensesController extends Controller
         $license->licenses = $request->get('licenses');
         $license->user_id = Auth::id();
         if ($license->save()) {
-            return response()->json(Helper::formatStandardApiResponse('success', $license, trans('admin/licenses/message.create.success', [], 'vi')));
+            return response()->json(Helper::formatStandardApiResponse('success', $license, trans('admin/licenses/message.create.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, $license->getErrors()));
     }
@@ -153,7 +153,7 @@ class SoftwareLicensesController extends Controller
                     Helper::formatStandardApiResponse(
                         'error',
                         null,
-                        ['expiration_date' => trans('admin/licenses/message.create.expiration_date', [], 'vi')]
+                        ['expiration_date' => trans('admin/licenses/message.create.expiration_date')]
                     )
                 );
             }
@@ -166,7 +166,7 @@ class SoftwareLicensesController extends Controller
             }
             return response()->json(Helper::formatStandardApiResponse('error', null, $license->getErrors()));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/licenses/message.does_not_exist', [], 'vi')));
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/licenses/message.does_not_exist')));
     }
 
     /**
@@ -185,7 +185,7 @@ class SoftwareLicensesController extends Controller
         return response()->json(Helper::formatStandardApiResponse(
             'error',
             null,
-            trans('admin/licenses/message.does_not_exist', [], 'vi')
+            trans('admin/licenses/message.does_not_exist')
         ), Response::HTTP_NOT_FOUND);
     }
 
@@ -223,7 +223,7 @@ class SoftwareLicensesController extends Controller
                     Helper::formatStandardApiResponse(
                         'error',
                         null,
-                        ['assigned_users' => $software->name . ' ' . trans('admin/softwares/message.checkout.not_enough_quantity', [], 'vi')]
+                        ['assigned_users' => $software->name . ' ' . trans('admin/softwares/message.checkout.not_enough_quantity')]
                     )
                 );
             }
@@ -241,13 +241,13 @@ class SoftwareLicensesController extends Controller
                         $expirationDate = Carbon::parse($license_last->expiration_date);
                         if ($now->diffInDays($expirationDate, false) < 0) {
                             return response()->json(
-                                Helper::formatStandardApiResponse(
+                                Helper::formatStandardApiResponse(  
                                     'error',
                                     null,
                                     [
-                                        'software' => trans('admin/softwares/message.checkout.key_of', [], 'vi') .
+                                        'software' => trans('admin/softwares/message.checkout.key_of',) .
                                         $software->name .
-                                        trans('admin/softwares/message.checkout.expired', [], 'vi')
+                                        trans('admin/softwares/message.checkout.expired')
                                     ]
                                 )
                             );
@@ -263,9 +263,9 @@ class SoftwareLicensesController extends Controller
                                         'error',
                                         null,
                                         [
-                                            'assigned_users' => trans('admin/softwares/message.checkout.key_of', [], 'vi') .
+                                            'assigned_users' => trans('admin/softwares/message.checkout.key_of') .
                                             $software->name .
-                                            trans('admin/softwares/message.checkout.already_checkout', [], 'vi') . $user->username
+                                            trans('admin/softwares/message.checkout.already_checkout') . $user->username
                                         ]
                                     )
                                 );
@@ -278,9 +278,9 @@ class SoftwareLicensesController extends Controller
                                 'error',
                                 null,
                                 [
-                                    'software' => trans('admin/softwares/message.checkout.key_of', [], 'vi') .
+                                    'software' => trans('admin/softwares/message.checkout.key_of') .
                                     $software->name .
-                                    trans('admin/softwares/message.checkout.not_available', [], 'vi')
+                                    trans('admin/softwares/message.checkout.not_available')
                                 ]
                             )
                         );
@@ -311,7 +311,7 @@ class SoftwareLicensesController extends Controller
             Helper::formatStandardApiResponse(
                 'success',
                 ['license' => $licenses_active],
-                trans('admin/licenses/message.checkout.success', [], 'vi')
+                trans('admin/licenses/message.checkout.success')
             )
         );
     }
@@ -337,7 +337,7 @@ class SoftwareLicensesController extends Controller
                 Helper::formatStandardApiResponse(
                     'error',
                     null,
-                    ['licenses' => trans('admin/licenses/message.checkout.expired', [], 'vi')]
+                    ['licenses' => trans('admin/licenses/message.checkout.expired')]
                 )
             );
         }
@@ -348,7 +348,7 @@ class SoftwareLicensesController extends Controller
                 Helper::formatStandardApiResponse(
                     'error',
                     null,
-                    ['assigned_users' => trans('admin/licenses/message.checkout.not_enough_quantity', [], 'vi')]
+                    ['assigned_users' => trans('admin/licenses/message.checkout.not_enough_quantity')]
                 )
             );
         }
@@ -364,7 +364,7 @@ class SoftwareLicensesController extends Controller
                     Helper::formatStandardApiResponse(
                         'error',
                         null,
-                        ['assigned_users' => trans('admin/licenses/message.checkout.already_checkout', [], 'vi') . $user->username]
+                        ['assigned_users' => trans('admin/licenses/message.checkout.already_checkout') . $user->username]
                     )
                 );
             }
@@ -375,7 +375,7 @@ class SoftwareLicensesController extends Controller
                     Helper::formatStandardApiResponse(
                         'error',
                         null,
-                        ['assigned_users' => trans('admin/users/message.user_not_found', [], 'vi'), ['id' => $assigned_user]]
+                        ['assigned_users' => trans('admin/users/message.user_not_found'), ['id' => $assigned_user]]
                     )
                 );
             }
@@ -391,7 +391,7 @@ class SoftwareLicensesController extends Controller
             Helper::formatStandardApiResponse(
                 'success',
                 ['license' => e($license_user->license->licenses)],
-                trans('admin/licenses/message.checkout.success', [], 'vi')
+                trans('admin/licenses/message.checkout.success')
             )
         );
     }

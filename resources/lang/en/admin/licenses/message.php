@@ -43,8 +43,9 @@ return array(
         'error'   => 'There was an issue checking out the license. Please try again.',
         'success' => 'The license was checked out successfully',
         'not_available'=> 'The license was not available',
-        'user_not_available' => 'Already checkout key to ',
-        'not_enough_quantity' => 'The license not enough quantity'
+        'already_checkout' => 'Already checkout key to ',
+        'not_enough_quantity' => "The license not enough quantity",
+        'expired' => "The key has expired",
     ],
 
     'checkin' => [
