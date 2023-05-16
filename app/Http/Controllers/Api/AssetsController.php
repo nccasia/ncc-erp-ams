@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\CheckoutableCheckedIn;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
