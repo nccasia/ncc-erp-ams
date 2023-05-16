@@ -1350,7 +1350,7 @@ class AssetsController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $asset->getErrors()), 200);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $asset->getErrors()),  Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
 
@@ -1421,6 +1421,7 @@ class AssetsController extends Controller
                     // $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
+                        $asset->increment('checkin_counter', 1);
                         $data['is_confirm'] = 'đã xác nhận thu hồi';
                         if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
@@ -1435,6 +1436,7 @@ class AssetsController extends Controller
                         SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
 
                     }else{
+                        $asset->increment('checkout_counter', 1);
                         $data['is_confirm'] = 'đã xác nhận cấp phát';
                         $asset->status_id = config('enum.status_id.ASSIGN');
                          SendConfirmMail::dispatch($data, $it_ncc_email);

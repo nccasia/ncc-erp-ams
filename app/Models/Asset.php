@@ -351,8 +351,6 @@ class Asset extends Depreciable
             }
             event(new CheckoutableCheckedIn($this, $target, $checkedInBy, $note, $checkin_at));
 
-            $this->increment('checkin_counter', 1);
-
             return true;
         }
 
@@ -420,8 +418,6 @@ class Asset extends Depreciable
                 $checkedOutBy = Auth::user();
             }
             event(new CheckoutableCheckedOut($this, $target, $checkedOutBy, $note));
-
-            $this->increment('checkout_counter', 1);
 
             return true;
         }

@@ -24,7 +24,7 @@ class DashboardService
 
     public function addCategoriesToLocation($location, $categories)
     {
-        $location['categories'] = !$location['rtd_assets']->isEmpty() || !$location['rtd_consumables']->isEmpty() || !$location['rtd_accessories']->isEmpty() ? $this->mapStatusToCategory($location['rtd_assets'], $categories, $location['rtd_consumables'], $location['rtd_accessories']) : [];
+        $location['categories'] = $this->mapStatusToCategory($location['rtd_assets'], $categories, $location['rtd_consumables'], $location['rtd_accessories']);
         return $location;
     }
 
