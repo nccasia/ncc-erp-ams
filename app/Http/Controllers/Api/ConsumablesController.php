@@ -11,6 +11,7 @@ use App\Models\Consumable;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 
 class ConsumablesController extends Controller
 {
@@ -151,7 +152,7 @@ class ConsumablesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()), Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     /**

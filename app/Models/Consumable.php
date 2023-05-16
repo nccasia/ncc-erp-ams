@@ -35,7 +35,7 @@ class Consumable extends SnipeModel
      * Category validation rules
      */
     public $rules = [
-        'name'        => 'required|min:3|max:255',
+        'name'        => 'required|max:255',
         'qty'         => 'required|integer|min:0',
         'category_id' => 'required|integer',
         'company_id'  => 'integer|nullable',
