@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use App\Models\Consumable;
 use Gate;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class ConsumablesTransformer
@@ -47,7 +48,7 @@ class ConsumablesTransformer
 
         $permissions_array['user_can_checkout'] = false;
 
-        if ($consumable->numRemaining() > 0) {
+        if ($consumable->numRemaining() > 0 && Auth::user()->isAdmin()) {
             $permissions_array['user_can_checkout'] = true;
         }
 

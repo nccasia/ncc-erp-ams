@@ -250,7 +250,9 @@ class AssetModelsController extends Controller
             'models.model_number',
             'models.manufacturer_id',
             'models.category_id',
-        ])->with('manufacturer', 'category');
+        ])->join('categories as category', 'category.id', 'models.category_id')
+        ->where('category.category_type', 'asset')
+        ->with('manufacturer', 'category');
 
         $settings = \App\Models\Setting::getSettings();
 

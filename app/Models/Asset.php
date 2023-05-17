@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Watson\Validating\ValidatingTrait;
 use App\Models\Statuslabel;
+use Illuminate\Contracts\Auth\Guard;
 
 /**
  * Model for Assets.
@@ -278,20 +279,32 @@ class Asset extends Depreciable
         //         return true;
         //     }
         // }
-
-        if ((!$this->deleted_at) && (!$this->assigned_to) && (!$this->withdraw_from) && 
-        (($this->assigned_status === config('enum.assigned_status.DEFAULT'))) && (($this->status_id === config('enum.status_id.READY_TO_DEPLOY')))) {
-            return true;
-            }
-        return false;
+        return $this->checkIsAdmin() && 
+            !$this->deleted_at && 
+            !$this->assigned_to && 
+            !$this->withdraw_from && 
+            $this->assigned_status === config('enum.assigned_status.DEFAULT') && 
+            $this->status_id === config('enum.status_id.READY_TO_DEPLOY');
     }
 
     public function availableForCheckin()
     {
-        if ((!$this->deleted_at) && ($this->assigned_to) && (($this->assigned_status === config('enum.assigned_status.ACCEPT'))) || (($this->assigned_status === config('enum.assigned_status.REJECT'))) && (($this->status_id === config('enum.status_id.ASSIGN')))) {
-            return true;
-        }
-        return false;
+        return $this->checkIsAdmin() &&
+            !$this->deleted_at && 
+            $this->assigned_to && 
+            in_array($this->assigned_status, [config('enum.assigned_status.ACCEPT'), config('enum.assigned_status.REJECT')]) &&
+            $this->status_id === config('enum.status_id.ASSIGN');    
+    }
+
+    /**
+     * Check current User is admin
+     *
+     * @return bool
+     */
+    public function checkIsAdmin() {
+        $guard = app(Guard::class);
+        $user = $guard->user();
+        return $user->isAdmin();
     }
 
     /**
@@ -337,8 +350,6 @@ class Asset extends Depreciable
                 $checkedInBy = Auth::user();
             }
             event(new CheckoutableCheckedIn($this, $target, $checkedInBy, $note, $checkin_at));
-
-            $this->increment('checkin_counter', 1);
 
             return true;
         }
@@ -407,8 +418,6 @@ class Asset extends Depreciable
                 $checkedOutBy = Auth::user();
             }
             event(new CheckoutableCheckedOut($this, $target, $checkedOutBy, $note));
-
-            $this->increment('checkout_counter', 1);
 
             return true;
         }

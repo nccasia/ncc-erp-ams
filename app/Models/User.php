@@ -62,7 +62,8 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         'social_id',
         'access_token_social',
         'platform',
-        'permissions'
+        'permissions',
+        'manager_location'
     ];
 
     protected $casts = [
@@ -167,7 +168,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
      */
     public function hasAccess($section)
     {
-        if ($this->isSuperUser()) {
+        if ($this->isSuperUser() || $this->isBranchAdmin()) {
             return true;
         }
 
@@ -190,6 +191,14 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         return $this->checkPermissionSection('admin');
     }
 
+    /**
+     * Checks if the user is a BranchAdmin
+     *
+     * @return bool
+     */
+    public function isBranchAdmin() {
+        return $this->checkPermissionSection('branchadmin');
+    }
 
     /**
      * Establishes the user -> company relationship
@@ -449,6 +458,13 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         return $this->belongsToMany(Asset::class, 'checkout_requests', 'user_id', 'requestable_id')->whereNull('canceled_at');
     }
 
+    public function softwares(){
+        return $this->hasMany(Software::class)->whereNull('deleted_at');
+    }
+
+    public function softwareLicensesUsers(){
+        return $this->hasMany(LicensesUsers::class, 'assigned_to');
+    }
 
     /**
      * Query builder scope to return NOT-deleted users
@@ -599,7 +615,7 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
     {
         return json_decode($this->permissions, true);
     }
-
+    
     /**
      * Query builder scope to search user by name with spaces in it.
      * We don't use the advancedTextSearch() scope because that searches

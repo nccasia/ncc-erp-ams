@@ -26,5 +26,8 @@ class CategorySeeder extends Seeder
         Category::factory()->count(1)->componentRamCategory()->create(); // 13
         Category::factory()->count(1)->licenseGraphicsCategory()->create(); // 14
         Category::factory()->count(1)->licenseOfficeCategory()->create(); // 15
+        Category::factory()->count(1)->applicationsSoftwareCategory()->create(); // 16
+        Category::factory()->count(1)->programmingSoftwareCategory()->create(); // 17
+        Category::factory()->count(1)->operatingSoftwareCategory()->create(); // 18
     }
 }

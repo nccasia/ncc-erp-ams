@@ -155,4 +155,61 @@ class SnipeModel extends Model
     {
         return $this->name;
     }
+
+    /**
+     * Query builder scope to filter assets by role
+     *
+     */
+    public function scopeFilterAssetByRole($query, $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+        if ($user->isBranchAdmin()) {
+            $manager_location = json_decode($user->manager_location, true);
+            return $query->whereIn('assets.rtd_location_id', $manager_location);
+        }
+        return $query->where('assets.user_id', '=', $user->id);
+    }
+
+    /**
+     * Query builder scope to filter accessories by role
+     *
+     */
+    public function scopeFilterAccessoriesByRole($query, $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+        $manager_location = json_decode($user->manager_location, true);
+        return $query->whereIn('accessories.location_id', $manager_location);
+    }
+
+    /**
+     * Query builder scope to filter consumables by role
+     *
+     */
+    public function scopeFilterConsumablesByRole($query, $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+        $manager_location = json_decode($user->manager_location, true);
+        return $query->whereIn('consumables.location_id', $manager_location);
+    }
+
+    /**
+     * Query builder scope to filter report by role
+     *
+     */
+    public function scopeFilterReportByRole($query, $user)
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+        $manager_location = json_decode($user->manager_location, true);
+        return $query->join('assets as assets_report', 'action_logs.item_id', '=', 'assets_report.id')
+            ->whereIn('assets_report.rtd_location_id', $manager_location);
+    }
+
 }

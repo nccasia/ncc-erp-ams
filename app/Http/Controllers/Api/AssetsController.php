@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\CheckoutableCheckedIn;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
@@ -130,6 +131,7 @@ class AssetsController extends Controller
         ->with('location', 'assetstatus', 'company', 'defaultLoc','assignedTo',
         'model.category', 'model.manufacturer', 'model.fieldset','supplier'); //it might be tempting to add 'assetlog' here, but don't. It blows up update-heavy users.
         
+         $assets->filterAssetByRole($request->user());
         // if ($request->filled('type')) {
         //     $type = $request->filled('type');
 
@@ -161,8 +163,10 @@ class AssetsController extends Controller
         }
         
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
-            $assets->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+            $assets->where(function ($query) use ($request){
+                $query->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
                    ->orWhere('assets.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
         }
  
         if ($request->filled('status_id')) {
@@ -248,7 +252,7 @@ class AssetsController extends Controller
         }
 
 
-
+        
         // This is used by the sidenav, mostly
 
         // We switched from using query scopes here because of a Laravel bug
@@ -464,7 +468,7 @@ class AssetsController extends Controller
         ->with('location', 'assetstatus', 'company', 'defaultLoc','assignedTo',
         'model.category', 'model.manufacturer', 'model.fieldset','supplier'); //it might be tempting to add 'assetlog' here, but don't. It blows up update-heavy users.
         
-
+        $assets->filterAssetByRole($request->user());
         if ($filter_non_deprecable_assets) {
             $non_deprecable_models = AssetModel::select('id')->whereNotNull('depreciation_id')->get();
 
@@ -483,8 +487,10 @@ class AssetsController extends Controller
         }
         
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
-            $assets->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+            $assets->where(function ($query) use ($request){
+                $query->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
                    ->orWhere('assets.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
         }
  
         if ($request->filled('status_id')) {
@@ -1345,7 +1351,7 @@ class AssetsController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $asset->getErrors()), 200);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $asset->getErrors()),  Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
 
@@ -1416,6 +1422,7 @@ class AssetsController extends Controller
                     // $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
+                        $asset->increment('checkin_counter', 1);
                         $data['is_confirm'] = 'đã xác nhận thu hồi';
                         if($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')){
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
@@ -1430,6 +1437,7 @@ class AssetsController extends Controller
                         SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
 
                     }else{
+                        $asset->increment('checkout_counter', 1);
                         $data['is_confirm'] = 'đã xác nhận cấp phát';
                         $asset->status_id = config('enum.status_id.ASSIGN');
                          SendConfirmMail::dispatch($data, $it_ncc_email);

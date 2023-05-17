@@ -13,7 +13,8 @@ return array(
 
     'create' => array(
         'error'   => 'Bản quyền chưa được tạo, xin vui lòng thử lại.',
-        'success' => 'Bản quyền đã được tạo thành công.'
+        'success' => 'Bản quyền đã được tạo thành công.',
+        'expiration_date' => "Ngày hết hạn không được nhỏ hơn ngày mua"
     ),
 
     'deletefile' => array(
@@ -41,7 +42,11 @@ return array(
 
     'checkout' => array(
         'error'   => 'Có vấn đề xảy ra khi checkout bản quyền. Xin vui lòng thử lại.',
-        'success' => 'Bản quyền đã được checkout thành công'
+        'success' => 'Bản quyền đã được checkout thành công',
+        'not_enough_quantity' => "Số lượng key không đủ để cấp phát",
+        'already_checkout' => 'Key đã cấp phát cho người dùng ',
+        'expired' => "Key đã hết hạn sử dụng",
+        'not_available' => "Key không sẵn sàng để cấp phát. Xin vui lòng kiểm tra lại"
     ),
 
     'checkin' => array(

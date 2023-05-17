@@ -29,7 +29,7 @@ class DashboardController extends Controller
     {
         // Show the page
 
-        if (Auth::user()->hasAccess('admin')) {
+        if (Auth::user()->hasAccess('admin') || Auth::user()->isBranchAdmin()) {
 
             // get all location
             $locations = $this->dashboardService->getAllLocaltions($request->purchase_date_from, $request->purchase_date_to);
@@ -55,8 +55,13 @@ class DashboardController extends Controller
         if ($from && $to) {
             $bind = ['from' => $from, 'to' => $to];
         }
-
-        $locations = Location::select('id', 'name')->get();
+        $user = Auth::user();
+        if($user->isAdmin()){
+            $locations = Location::select(['id', 'name'])->get();
+        }else{
+            $manager_location = json_decode($user->manager_location, true);
+            $locations = Location::select(['id', 'name'])->whereIn('id', $manager_location)->get();
+        }
         $categories = Category::select('id', 'name', 'category_type')->get();
 
         if (Auth::user()->hasAccess('admin')) {
