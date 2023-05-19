@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Events\CheckoutableCheckedOut;
+use App\Exceptions\CheckoutNotAllowed;
 use App\Models\Traits\Searchable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Watson\Validating\ValidatingTrait;
 
@@ -30,7 +33,7 @@ class DigitalSignatures extends Model
         'purchase_date' => 'required|date',
         'purchase_cost' => 'required|numeric',
         'expiration_date' => 'required|date',
-        'status' => 'nullable|numeric',
+        'status_id' => 'nullable|numeric',
         'note' => 'nullable|string',
     ];
 
@@ -59,7 +62,7 @@ class DigitalSignatures extends Model
      */
     public function scopeOrderUser($query, $order)
     {
-        return $query->join('users', 'users.id', '=', $this->table.'.user_id')
+        return $query->join('users', 'users.id', '=', $this->table . '.user_id')
             ->orderBy('users.username', $order);
     }
 
@@ -73,7 +76,7 @@ class DigitalSignatures extends Model
      */
     public function scopeOrderAssignToUser($query, $order)
     {
-        return $query->leftJoin('users', 'users.id', '=', $this->table.'.assigned_to')
+        return $query->leftJoin('users', 'users.id', '=', $this->table . '.assigned_to')
             ->orderBy('users.username', $order);
     }
 
@@ -87,7 +90,7 @@ class DigitalSignatures extends Model
      */
     public function scopeOrderSupplier($query, $order)
     {
-        return $query->join('suppliers', 'suppliers.id', '=', $this->table.'.supplier_id')->select($this->table.'.*')
+        return $query->join('suppliers', 'suppliers.id', '=', $this->table . '.supplier_id')->select($this->table . '.*')
             ->orderBy('suppliers.name', $order);
     }
 
@@ -110,12 +113,12 @@ class DigitalSignatures extends Model
                 ];
 
                 if (!in_array($fieldname, $customField)) {
-                    $query->where($this->table.'.'.$fieldname, 'LIKE', '%'.$search_val.'%');
+                    $query->where($this->table . '.' . $fieldname, 'LIKE', '%' . $search_val . '%');
                 }
 
                 if ($fieldname == 'supplier') {
                     $query->whereHas('supplier', function (Builder $query) use ($search_val) {
-                        $query->where('suppliers.name', 'LIKE', '%'.$search_val.'%');
+                        $query->where('suppliers.name', 'LIKE', '%' . $search_val . '%');
                     });
                 }
 
@@ -123,7 +126,7 @@ class DigitalSignatures extends Model
                     $query->whereHas('assignedUser', function (Builder $query) use ($search_val) {
                         $query->where(function ($query) use ($search_val) {
                             $query->orWhere('users.username', 'LIKE', ["%$search_val%"]);
-                            $query->orWhereRaw('CONCAT('.DB::getTablePrefix().'users.first_name," ",'.DB::getTablePrefix().'users.last_name) LIKE ?', ["%$search_val%"]);
+                            $query->orWhereRaw('CONCAT(' . DB::getTablePrefix() . 'users.first_name," ",' . DB::getTablePrefix() . 'users.last_name) LIKE ?', ["%$search_val%"]);
                         });
                     });
                 }
@@ -144,27 +147,102 @@ class DigitalSignatures extends Model
     public function advancedTextSearch(Builder $query, array $terms)
     {
         // assign user
-        $query = $query->leftJoin('users as asssigned_users', 'asssigned_users.id', '=', $this->table.'.assigned_to');
+        $query = $query->leftJoin('users as asssigned_users', 'asssigned_users.id', '=', $this->table . '.assigned_to');
         foreach ($terms as $term) {
             $query = $query
-                ->orWhere('asssigned_users.first_name', 'LIKE', '%'.$term.'%')
-                ->orWhere('asssigned_users.last_name', 'LIKE', '%'.$term.'%')
-                ->orWhere('asssigned_users.username', 'LIKE', '%'.$term.'%')
-                ->orWhereRaw('CONCAT('.DB::getTablePrefix().'asssigned_users.first_name," ",'.DB::getTablePrefix().'asssigned_users.last_name) LIKE ?', ["%$term%"]);
+                ->orWhere('asssigned_users.first_name', 'LIKE', '%' . $term . '%')
+                ->orWhere('asssigned_users.last_name', 'LIKE', '%' . $term . '%')
+                ->orWhere('asssigned_users.username', 'LIKE', '%' . $term . '%')
+                ->orWhereRaw('CONCAT(' . DB::getTablePrefix() . 'asssigned_users.first_name," ",' . DB::getTablePrefix() . 'asssigned_users.last_name) LIKE ?', ["%$term%"]);
         }
 
         // assigned suppliers
         $query = $query->leftJoin('suppliers as suppliers_signature', 'suppliers_signature.id', '=', 'digital_signatures.supplier_id');
         foreach ($terms as $term) {
-            $query = $query->orWhere('suppliers_signature.name', 'LIKE', '%'.$term.'%');
+            $query = $query->orWhere('suppliers_signature.name', 'LIKE', '%' . $term . '%');
         }
 
         // assigned digital signatures
         foreach ($terms as $term) {
-            $query = $query->orWhere($this->table.'.seri', 'LIKE', '%'.$term.'%');
-            $query = $query->orWhere($this->table.'.note', 'LIKE', '%'.$term.'%');
+            $query = $query->orWhere($this->table . '.seri', 'LIKE', '%' . $term . '%');
+            $query = $query->orWhere($this->table . '.note', 'LIKE', '%' . $term . '%');
         }
 
         return $query;
+    }
+
+    public function availableForCheckout()
+    {
+        return $this->checkIsAdmin() &&
+            !$this->deleted_at &&
+            !$this->assigned_to &&
+            !$this->withdraw_from &&
+            $this->assigned_status === config('enum.assigned_status.DEFAULT') &&
+            $this->status_id === config('enum.status_tax_token.NOT_ACTIVE');
+    }
+
+    public function availableForCheckin()
+    {
+        return $this->checkIsAdmin() &&
+            !$this->deleted_at &&
+            $this->assigned_to &&
+            in_array($this->assigned_status, [config('enum.assigned_status.ACCEPT'), config('enum.assigned_status.REJECT')]) &&
+            $this->status_id === config('enum.status_tax_token.ASSIGN');
+    }
+
+    /**
+     * Check current User is admin
+     *
+     * @return bool
+     */
+    public function checkIsAdmin() {
+        $user = Auth::user();
+        return $user->isAdmin();
+    }
+
+    public function checkOut($target, $checkout_date, $note, $signature_name, $status)
+    {
+        if (!$target) {
+            return false;
+        }
+        $this->assigned_to = $target;
+        $this->last_checkout = $checkout_date;
+
+        if ($signature_name != null) {
+            $this->name = $signature_name;
+        }
+
+        if ($status !== null) {
+            $this->assigned_status = $status;
+        }
+
+        if ($this->save()) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    public function checkIn($target, $checkout_date, $note, $signature_name, $status)
+    {
+        if (!$target) {
+            return false;
+        }
+        $this->withdraw_from = $this->assigned_to;
+
+        if ($signature_name != null) {
+            $this->name = $signature_name;
+        }
+
+        if ($status !== null) {
+            $this->assigned_status = $status;
+        }
+
+        if ($this->save()) {
+            return true;
+        }
+
+        return false;
     }
 }

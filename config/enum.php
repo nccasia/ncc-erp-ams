@@ -16,14 +16,10 @@ return [
     "WAITINGCHECKIN" => 5, 
   ],
   "status_id" => [
-    "READY_TO_DEPLOY" => 1,
-    "PENDING" => 2,
-    "ARCHIVED" => 3,
-    "OUT_FOR_DIAGNOSTICS" => 4,
-    "OUT_FOR_REPAIR" => 5,
-    "BROKEN_NOT_FIXABLE" => 6,
-    "LOST_STOLEN" => 7,
-    "ASSIGN" => 8,
+    "PENDING" => 1,
+    "BROKEN" => 3,
+    "ASSIGN" => 4,
+    "READY_TO_DEPLOY" => 5,
   ],
   "asset_history" => [
     "CHECK_IN_TYPE" => 1,
@@ -36,5 +32,9 @@ return [
   ],
   "seats" =>[
     "MIN" => 0,
+  ],
+  "status_tax_token" => [
+    "NOT_ACTIVE" => 0,
+    "ASSIGN" => 1
   ],
 ];

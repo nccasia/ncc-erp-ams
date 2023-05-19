@@ -6,7 +6,14 @@ use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Request as RequestsRequest;
 use App\Http\Transformers\DigitalSignaturesTransformer;
+use App\Jobs\SendConfirmCheckinMail;
+use App\Jobs\SendConfirmCheckoutMail;
+use App\Jobs\SendRejectCheckinMail;
+use App\Jobs\SendRejectCheckoutMail;
+use App\Models\AssetHistory;
 use App\Models\DigitalSignatures;
+use App\Models\Setting;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -74,6 +81,13 @@ class DigitalSignaturesController extends Controller
             $filter = json_decode($request->input('filter'), true);
         }
 
+        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+            $digital_signatures->where(function($query) use ($request){
+                $query->where('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+                ->orWhere('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
+        }
+
         if (!empty($filter)) {
             $digital_signatures->ByFilter($filter);
         } elseif ($request->filled('search')) {
@@ -104,13 +118,14 @@ class DigitalSignaturesController extends Controller
         $digitalSignatures->purchase_date = $request->get('purchase_date');
         $digitalSignatures->purchase_cost = $request->get('purchase_cost');
         $digitalSignatures->expiration_date = $request->get('expiration_date');
-        $digitalSignatures->status_id = $request->get('status_id', config('enum.status_id.READY_TO_DEPLOY'));
+        $digitalSignatures->assigned_status = config('enum.status_tax_token.NOT_ACTIVE');
+        $digitalSignatures->status_id = config('enum.assigned_status.DEFAULT');
 
         if (!$digitalSignatures->save()) {
             return response()->json(Helper::formatStandardApiResponse('error', null, $digitalSignatures->getErrors()));
         }
 
-        if($request->get('assigned_to')){
+        if ($request->get('assigned_to')) {
             $digitalSignatures->checkOut(
                 $assigned_to = $request->get('assigned_to'),
                 $assigned_status = config('enum.assigned_status.WAITINGCHECKOUT'),
@@ -147,18 +162,76 @@ class DigitalSignaturesController extends Controller
      * @param \Illuminate\Http\Request Request $request
      * @param int $id
      * 
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request, int $id)
     {
         $this->authorize('update', DigitalSignatures::class);
         $signature = DigitalSignatures::findOrFail($id);
+        $assigned_status = $signature->assigned_status;
         $signature->fill($request->all());
+        $user = null;
+        if($signature->assigned_to){
+            $user = User::find($signature->assigned_to);
+        }
+        if ($user && $assigned_status !== $request->get('assigned_status')) {
+            $signature->assigned_status = $request->get('assigned_status');
+            $it_ncc_email = Setting::first()->admin_cc_email;
+            $user_name = $user->first_name . ' ' . $user->last_name;
+            $current_time = Carbon::now();
+            $data = [
+                'user_name' => $user_name,
+                'is_confirm' => '',
+                'seri' => $signature->seri,
+                'time' => $current_time->format('d-m-Y'),
+                'reason' => '',
+            ];
+            if ($signature->assigned_status === config('enum.assigned_status.ACCEPT')) {
+                $data['signatures_count'] = 1;
+                if($signature->withdraw_from){
+                    $signature->increment('checkin_counter', 1);
+                    $data['is_confirm'] = 'đã xác nhận thu hồi';
+                    $signature->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                    $signature->assigned_status = config('enum.assigned_status.DEFAULT');
+                    $signature->withdraw_from = null;
+                    $signature->last_checkout = null;
+                    $signature->assigned_to = null;
+                    SendConfirmCheckinMail::dispatch($data, $it_ncc_email);
+
+                }else{
+                    $signature->increment('checkout_counter', 1);
+                    $data['is_confirm'] = 'đã xác nhận cấp phát';
+                    $signature->status_id = config('enum.status_id.ASSIGN');
+                    SendConfirmCheckoutMail::dispatch($data, $it_ncc_email);
+                }
+
+            } elseif ($signature->assigned_status === config('enum.assigned_status.REJECT')) {
+                $data['signatures_count'] = 1;
+                if($signature->withdraw_from){
+                    $data['is_confirm'] = 'đã từ chối thu hồi';
+                    $signature->status_id = config('enum.status_id.ASSIGN');
+                    $signature->assigned_status = config('enum.assigned_status.ACCEPT');
+                    $data['reason'] = 'Lý do: ' . $request->get('reason');
+                    SendRejectCheckinMail::dispatch($data, $it_ncc_email);
+                }
+                else{
+                    $data['is_confirm'] = 'đã từ chối nhận';
+                    $signature->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                    $signature->assigned_status = config('enum.assigned_status.DEFAULT');
+                    $data['reason'] = 'Lý do: ' . $request->get('reason');
+                    $signature->withdraw_from = null;
+                    $signature->last_checkout = null;
+                    $signature->assigned_to = null;;
+                    SendRejectCheckoutMail::dispatch($data, $it_ncc_email);
+                }
+            }
+
+        }
         if (!$signature->save()) {
             return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('success', $signature, trans('admin/digital_signatures/message.update.success', ['seri' => $signature->seri])));
+        return response()->json(Helper::formatStandardApiResponse('success', $signature, trans('admin/digital_signatures/message.update.success', ['signature' => $signature->seri])));
     }
 
     /**
@@ -166,7 +239,7 @@ class DigitalSignaturesController extends Controller
      * 
      * @param int $id
      * 
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(int $id)
     {
@@ -178,14 +251,14 @@ class DigitalSignaturesController extends Controller
 
         return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/digital_signatures/message.delete.success', ['seri' => $signature->seri])));
     }
-    
+
     /**
      * Remove the specified resource from storage.
      * 
      * @param int $digital_signature_id
      * @param \Illuminate\Http\Request $request
      * 
-     * @return \Illuminate\Http\Response
+     * @return \Illuminate\Http\JsonResponse
      */
     public function checkout(Request $request, int $digital_signature_id)
     {
@@ -194,20 +267,170 @@ class DigitalSignaturesController extends Controller
         if (!$signature->availableForCheckout()) {
             return response()->json(
                 Helper::formatStandardApiResponse(
-                    'error', 
-                    ['asset'=> e($signature->seri)], 
-                    trans('admin/digital_signatures/message.checkout.not_available'))
+                    'error',
+                    ['signature' => e($signature->seri)],
+                    trans('admin/digital_signatures/message.checkout.not_available')
+                )
             );
         }
-        $this->authorize('checkout', $signature);
+
         $assigned_to = $request->get('assigned_to');
-        $signature->assigned_to = $assigned_to;
-        $signature->status = config('enum.status_id.ASSIGN');
-        $signature->checkout_date = $request->get('checkout_date');
-        $request->get('note') ? $signature->note = $request->get('note') : null;
-        if(!$signature->save()){
-            return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()));
+        $checkout_date = $request->get('checkout_date');
+        $request->get('note') ? $note = $request->get('note') : $note = null;
+        $signature->status_id = config('enum.status_id.ASSIGN');
+        if ($signature->checkOut($assigned_to, $checkout_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKOUT'))){
+            $this->saveSignatureHistory($digital_signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
+            // $data = [
+            //     'user_name' => $user_name,
+            //     'signature_name' => $asset->name,
+            //     'count' => 1,
+            //     'location_address' => $location_address,
+            //     'time' => $current_time->format('d-m-Y'),
+            //     'link' => config('client.my_assets.link'),
+            // ];
+
+            // SendCheckoutMail::dispatch($data, $user_email);
+
+            return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkout.error')));
+    }
+
+    public function multiCheckout(Request $request)
+    {
+        $this->authorize('checkout', Asset::class);
+
+        $signatures = request('signatures');
+        $assigned_to = $request->get('assigned_to');
+        $checkout_date = $request->get('checkout_date');
+        $request->get('note') ? $note = $request->get('note') : $note = null;
+
+        foreach($signatures as $signature_id){
+            $signature = DigitalSignatures::findOrFail($signature_id);
+            if (!$signature->availableForCheckout()) {
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error',
+                        ['asset' => e($signature->seri)],
+                        trans('admin/digital_signatures/message.checkout.not_available')
+                    )
+                );
+            }
+            $signature->status_id = config('enum.status_id.ASSIGN');
+            if ($signature->checkOut($assigned_to, $checkout_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKOUT'))){
+                $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
+                // $data = [
+                //     'user_name' => $user_name,
+                //     'asset_name' => $asset->name,
+                //     'count' => 1,
+                //     'location_address' => $location_address,
+                //     'time' => $current_time->format('d-m-Y'),
+                //     'link' => config('client.my_assets.link'),
+                // ];
+    
+                // SendCheckoutMail::dispatch($data, $user_email);
+    
+            } else {
+                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkout.error')));
+            }
+        }
+        return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));    
+    }
+
+    public function checkIn(Request $request, $signature_id)
+    {
+        $this->authorize('checkin', DigitalSignatures::class);
+        $signature = DigitalSignatures::findOrFail($signature_id);
+        if (is_null($target = $signature->assigned_to)) {
+            return response()->json(Helper::formatStandardApiResponse('error', ['signature'=> e($signature->seri)], trans('admin/digital_signatures/message.checkin.already_checked_in')));
+        }
+        if (!$signature->availableForCheckin()) {
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'error',
+                    ['asset' => e($signature->seri)],
+                    trans('admin/digital_signatures/message.checkin.not_available')
+                )
+            );
+        }
+
+        $checkin_date = $request->get('checkin_at');
+        $request->get('note') ? $note = $request->get('note') : $note = null;
+
+        if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))){
+            $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
+            // $data = [
+            //     'user_name' => $user_name,
+            //     'asset_name' => $asset->name,
+            //     'count' => 1,
+            //     'location_address' => $location_address,
+            //     'time' => $current_time->format('d-m-Y'),
+            //     'link' => config('client.my_assets.link'),
+            // ];
+
+            // SendCheckoutMail::dispatch($data, $user_email);
+
+            return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.success')));
+        }
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkin.error')));
+    }
+
+    public function multiCheckin(Request $request)
+    {
+        $this->authorize('checkin', DigitalSignatures::class);
+
+        $signatures = request('signatures');
+        $checkin_date = $request->get('checkout_at');
+        $request->get('note') ? $note = $request->get('note') : $note = null;
+
+        foreach($signatures as $signature_id){
+            $signature = DigitalSignatures::findOrFail($signature_id);
+            if (is_null($target = $signature->assigned_to)) {
+                return response()->json(Helper::formatStandardApiResponse('error', ['signature'=> e($signature->seri)], trans('admin/digital_signatures/message.checkin.already_checked_in')));
+            }
+            if (!$signature->availableForCheckin()) {
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error',
+                        ['asset' => e($signature->seri)],
+                        trans('admin/digital_signatures/message.checkin.not_available')
+                    )
+                );
+            }
+    
+            $checkin_date = $request->get('checkin_at');
+            $request->get('note') ? $note = $request->get('note') : $note = null;
+    
+            if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))){
+                $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
+                // $data = [
+                //     'user_name' => $user_name,
+                //     'asset_name' => $asset->name,
+                //     'count' => 1,
+                //     'location_address' => $location_address,
+                //     'time' => $current_time->format('d-m-Y'),
+                //     'link' => config('client.my_assets.link'),
+                // ];
+    
+                // SendCheckoutMail::dispatch($data, $user_email);
+    
+            } else {
+                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkin.error')));
+            }
+        }
+        return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.success')));
+
+
+    }
+
+    public function saveSignatureHistory($signature_id, $type)
+    {
+        $signature = DigitalSignatures::find($signature_id);
+        AssetHistory::create([
+            'creator_id' => Auth::user()->id,
+            'type' => $type,
+            'assigned_to' => $signature->assigned_to,
+            'user_id' => $signature->user_id
+        ]);
     }
 }
