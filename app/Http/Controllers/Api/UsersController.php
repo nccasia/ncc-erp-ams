@@ -626,7 +626,7 @@ class UsersController extends Controller
         }
 
         $id = $userId;
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/users/message.user_not_found', compact('id'))));
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/users/message.user_not_found', compact('id'))), 200);
     }
 
     public function loginGoogle(){
