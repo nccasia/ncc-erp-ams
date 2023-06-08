@@ -55,8 +55,6 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Throwable $e)
     {
-
-
         // CSRF token mismatch error
         if ($e instanceof \Illuminate\Session\TokenMismatchException) {
             return redirect()->back()->with('error', trans('general.token_expired'));

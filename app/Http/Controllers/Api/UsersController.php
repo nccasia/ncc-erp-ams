@@ -18,6 +18,7 @@ use App\Models\User;
 use Auth;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 class UsersController extends Controller
@@ -317,7 +318,7 @@ class UsersController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', (new UsersTransformer)->transformUser($user), trans('admin/users/message.success.create')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $user->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $user->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -625,7 +626,7 @@ class UsersController extends Controller
         }
 
         $id = $userId;
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/users/message.user_not_found', compact('id'))), 200);
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/users/message.user_not_found', compact('id'))));
     }
 
     public function loginGoogle(){
