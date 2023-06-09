@@ -318,7 +318,7 @@ class UsersController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', (new UsersTransformer)->transformUser($user), trans('admin/users/message.success.create')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $user->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $user->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
