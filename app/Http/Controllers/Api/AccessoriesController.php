@@ -67,6 +67,10 @@ class AccessoriesController extends Controller
             $accessories->where('category_id', '=', $request->input('category_id'));
         }
 
+        if ($request->category) {
+            $accessories->InCategory($request->input('category'));
+        }
+
         if ($request->filled('manufacturer_id')) {
             $accessories->where('manufacturer_id', '=', $request->input('manufacturer_id'));
         }
