@@ -10,6 +10,7 @@ use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Location;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -112,7 +113,7 @@ class LocationsController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', (new LocationsTransformer)->transformLocation($location), trans('admin/locations/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $location->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $location->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -180,7 +181,7 @@ class LocationsController extends Controller
             );
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $location->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $location->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**
