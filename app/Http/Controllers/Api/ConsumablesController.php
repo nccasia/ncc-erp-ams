@@ -156,7 +156,7 @@ class ConsumablesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()), Response::HTTP_UNPROCESSABLE_ENTITY);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -194,7 +194,7 @@ class ConsumablesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**

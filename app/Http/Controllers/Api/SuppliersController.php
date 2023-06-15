@@ -9,6 +9,7 @@ use App\Http\Transformers\SuppliersTransformer;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 class SuppliersController extends Controller
@@ -70,7 +71,7 @@ class SuppliersController extends Controller
         if ($supplier->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $supplier, trans('admin/suppliers/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $supplier->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $supplier->getErrors()),Response::HTTP_BAD_REQUEST);
 
     }
 
@@ -111,7 +112,7 @@ class SuppliersController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $supplier, trans('admin/suppliers/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $supplier->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $supplier->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**

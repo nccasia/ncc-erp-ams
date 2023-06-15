@@ -9,6 +9,7 @@ use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Manufacturer;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 class ManufacturersController extends Controller
@@ -76,7 +77,7 @@ class ManufacturersController extends Controller
         if ($manufacturer->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $manufacturer, trans('admin/manufacturers/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $manufacturer->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $manufacturer->getErrors()),Response::HTTP_BAD_REQUEST);
 
     }
 
@@ -116,7 +117,7 @@ class ManufacturersController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $manufacturer, trans('admin/manufacturers/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $manufacturer->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $manufacturer->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**
