@@ -25,6 +25,8 @@ class ReportsController extends Controller
             ->leftJoin('accessories', 'action_logs.item_id', '=', 'accessories.id')
             ->leftJoin('assets', 'action_logs.item_id', '=', 'assets.id');
 
+        $actionlogs->FilterReportByRole($request->user());
+        
         if ($request->filled('search')) {
             $actionlogs = $actionlogs->TextSearch($request->input('search'));
         }

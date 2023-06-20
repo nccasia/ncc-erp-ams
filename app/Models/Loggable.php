@@ -102,12 +102,6 @@ trait Loggable
         } else {
             $log->item_type = static::class;
             $log->item_id = $this->id;
-
-            if (static::class == Asset::class) {
-                if ($asset = Asset::find($log->item_id)) {
-                    $asset->increment('checkin_counter', 1);
-                }
-            }
         }
 
 

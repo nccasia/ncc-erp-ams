@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use DB;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 
 class AccessoriesController extends Controller
 {
@@ -64,6 +65,10 @@ class AccessoriesController extends Controller
 
         if ($request->filled('category_id')) {
             $accessories->where('category_id', '=', $request->input('category_id'));
+        }
+
+        if ($request->category) {
+            $accessories->InCategory($request->input('category'));
         }
 
         if ($request->filled('manufacturer_id')) {
@@ -144,7 +149,7 @@ class AccessoriesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $accessory, trans('admin/accessories/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()), Response::HTTP_BAD_REQUEST);
 
     }
 
@@ -247,7 +252,7 @@ class AccessoriesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $accessory, trans('admin/accessories/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**

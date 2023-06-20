@@ -11,6 +11,7 @@ use App\Models\Asset;
 use App\Models\AssetModel;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -126,7 +127,7 @@ class AssetModelsController extends Controller
         if ($assetmodel->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $assetmodel, trans('admin/models/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()),Response::HTTP_BAD_REQUEST);
 
 
     }
@@ -198,7 +199,7 @@ class AssetModelsController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $assetmodel, trans('admin/models/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -250,7 +251,9 @@ class AssetModelsController extends Controller
             'models.model_number',
             'models.manufacturer_id',
             'models.category_id',
-        ])->with('manufacturer', 'category');
+        ])->join('categories as category', 'category.id', 'models.category_id')
+        ->where('category.category_type', 'asset')
+        ->with('manufacturer', 'category');
 
         $settings = \App\Models\Setting::getSettings();
 
