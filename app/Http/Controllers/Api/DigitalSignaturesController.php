@@ -16,6 +16,7 @@ use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 
 class DigitalSignaturesController extends Controller
@@ -32,7 +33,7 @@ class DigitalSignaturesController extends Controller
         $this->authorize('view', DigitalSignatures::class);
 
         $digital_signatures = DigitalSignatures::select('digital_signatures.*')
-            ->with('user', 'supplier', 'assignedUser');
+            ->with('user', 'supplier', 'assignedUser','location','category','tokenStatus');
 
         $offset = ($digital_signatures && ($request->get('offset') > $digital_signatures->count()))
             ? $digital_signatures->count()
@@ -53,6 +54,7 @@ class DigitalSignaturesController extends Controller
             'checkout_date',
             'checkin_date',
             'note',
+            'qty'
         ];
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
         $sort = $request->input('sort');
@@ -71,6 +73,12 @@ class DigitalSignaturesController extends Controller
             case 'supplier':
                 $digital_signatures->OrderSupplier($order);
                 break;
+            case 'location':
+                $digital_signatures->OrderLocation($order);
+                break; 
+            case 'category':
+                $digital_signatures->OrderCategory($order);
+                break;    
             default:
                 $digital_signatures->orderBy($default_sort, $order);
         }
@@ -79,6 +87,10 @@ class DigitalSignaturesController extends Controller
 
         if ($request->filled('filter')) {
             $filter = json_decode($request->input('filter'), true);
+        }
+
+        if ($request->supplier) {
+            $digital_signatures->InSupplier($request->input('supplier'));
         }
 
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
@@ -96,7 +108,7 @@ class DigitalSignaturesController extends Controller
 
         $total = $digital_signatures->count();
         $digital_signatures = $digital_signatures->skip($offset)->take($limit)->get();
-
+        
         return (new DigitalSignaturesTransformer())->transformSignatures($digital_signatures, $total);
     }
 
@@ -119,19 +131,23 @@ class DigitalSignaturesController extends Controller
         $digitalSignatures->purchase_cost = $request->get('purchase_cost');
         $digitalSignatures->expiration_date = $request->get('expiration_date');
         $digitalSignatures->assigned_status = config('enum.status_tax_token.NOT_ACTIVE');
-        $digitalSignatures->status_id = config('enum.assigned_status.DEFAULT');
+        $digitalSignatures->status_id = $request->get('status_id');
+        $digitalSignatures->location_id = $request->get('location_id');
+        $digitalSignatures->category_id = $request->get('category_id');
+        $digitalSignatures->warranty_months = $request->get('warranty_months');
+        $digitalSignatures->qty = $request->get('qty');
 
         if (!$digitalSignatures->save()) {
-            return response()->json(Helper::formatStandardApiResponse('error', null, $digitalSignatures->getErrors()));
+            return response()->json(Helper::formatStandardApiResponse('error', null, $digitalSignatures->getErrors()),Response::HTTP_BAD_REQUEST);
         }
 
         if ($request->get('assigned_to')) {
-            $digitalSignatures->checkOut(
-                $assigned_to = $request->get('assigned_to'),
-                $assigned_status = config('enum.assigned_status.WAITINGCHECKOUT'),
-                $checkout_date = Carbon::now()->format('d-m-Y H:i:s'),
-                $assigned_type = 'user'
-            );
+            // $digitalSignatures->checkOut(
+            //     $assigned_to = $request->get('assigned_to'),
+            //     $assigned_status = config('enum.assigned_status.WAITINGCHECKOUT'),
+            //     $checkout_date = Carbon::now()->format('d-m-Y H:i:s'),
+            //     $assigned_type = 'user'
+            // );
             if (!$digitalSignatures->save()) {
                 return response()->json(Helper::formatStandardApiResponse('error', null, $digitalSignatures->getErrors()));
             }
@@ -303,6 +319,7 @@ class DigitalSignaturesController extends Controller
         $signatures = request('signatures');
         $assigned_to = $request->get('assigned_to');
         $checkout_date = $request->get('checkout_date');
+        $location = $request->get('location');
         $request->get('note') ? $note = $request->get('note') : $note = null;
 
         foreach($signatures as $signature_id){
@@ -317,7 +334,7 @@ class DigitalSignaturesController extends Controller
                 );
             }
             $signature->status_id = config('enum.status_id.ASSIGN');
-            if ($signature->checkOut($assigned_to, $checkout_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKOUT'))){
+            if ($signature->checkOut($assigned_to, $checkout_date, $note, $signature->name, $location , config('enum.assigned_status.WAITINGCHECKOUT'))){
                 $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
                 // $data = [
                 //     'user_name' => $user_name,

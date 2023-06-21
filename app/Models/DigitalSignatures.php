@@ -12,9 +12,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Watson\Validating\ValidatingTrait;
+use App\Presenters\Presentable;
 
 class DigitalSignatures extends Model
 {
+    protected $presenter = \App\Presenters\AssetPresenter::class;
     use HasFactory;
     use SoftDeletes;
     use ValidatingTrait;
@@ -29,6 +31,10 @@ class DigitalSignatures extends Model
         'seri' => 'required|string|min:1|max:255|unique:digital_signatures,seri',
         'supplier_id' => 'required|exists:suppliers,id',
         'user_id' => 'nullable|exists:users,id',
+        'category_id' => 'required|integer|exists:categories,id',
+        'location_id'     => 'exists:locations,id|nullable',
+        'warranty_months' => 'numeric|nullable|digits_between:0,240',
+        'qty'               => 'required|integer|min:1',
         'assisgned_to' => 'nullable|exists:users,id',
         'purchase_date' => 'required|date',
         'purchase_cost' => 'required|numeric',
@@ -50,6 +56,21 @@ class DigitalSignatures extends Model
     public function assignedUser()
     {
         return $this->belongsTo(User::class, 'assigned_to');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(\App\Models\Category::class, 'category_id')->where('category_type', '=', 'taxtoken');
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(\App\Models\Location::class, 'location_id');
+    }
+
+    public function tokenStatus()
+    {
+        return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
     }
 
     /**
@@ -95,6 +116,34 @@ class DigitalSignatures extends Model
     }
 
     /**
+     * Sort signature by location.
+     *
+     * @param Builder $query
+     * @param string  $order
+     *
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public function scopeOrderLocation($query, $order)
+    {
+        return $query->join('locations', 'locations.id', '=', $this->table . '.location_id')->select($this->table . '.*')
+            ->orderBy('locations.name', $order);
+    }
+
+    /**
+     * Sort signature by category.
+     *
+     * @param Builder $query
+     * @param string  $order
+     *
+     * @return \Illuminate\Database\Query\Builder
+     */
+    public function scopeOrderCategory($query, $order)
+    {
+        return $query->join('locations', 'locations.id', '=', $this->table . '.location_id')->select($this->table . '.*')
+            ->orderBy('locations.name', $order);
+    }
+
+    /**
      * Filter signature by supplier, assigned user.
      *
      * @param Builder $query
@@ -134,6 +183,16 @@ class DigitalSignatures extends Model
         });
 
         return $query;
+    }
+
+    public function scopeInCategory($query, $category_id)
+    {
+        return $query->join('categories', $this->table . '.category_id', '=', 'categories.id')->where($this->table . '.category_id', '=', $category_id);
+    }
+
+    public function scopeInSupplier($query, $supplier_id)
+    {
+        return $query->join('suppliers', $this->table . '.supplier_id', '=', 'suppliers.id')->where($this->table . '.supplier_id', '=', $supplier_id);
     }
 
     /**
@@ -200,12 +259,36 @@ class DigitalSignatures extends Model
         return $user->isAdmin();
     }
 
-    public function checkOut($target, $checkout_date, $note, $signature_name, $status)
+    /**
+     * Get the target this asset is checked out to
+     *
+     * @author [A. Gianotto] [<snipe@snipe.net>]
+     * @since [v4.0]
+     * @return \Illuminate\Database\Eloquent\Relations\Relation
+     */
+    public function assignedTo()
+    {
+        return $this->morphTo('assigned', 'assigned_type', 'assigned_to')->withTrashed();
+    }
+
+    public function checkOut($target, $checkout_date, $note, $signature_name, $location, $status)
     {
         if (!$target) {
             return false;
         }
-        $this->assigned_to = $target;
+
+        if ($location != null) {
+            $this->location_id = $location;
+        } else {
+            if (isset($target->location)) {
+                $this->location_id = $target->location->id;
+            }
+            if ($target instanceof Location) {
+                $this->location_id = $target->id;
+            }
+        }
+        // $this->assigned_to = $target;
+        $this->assignedTo()->associate($target);
         $this->last_checkout = $checkout_date;
 
         if ($signature_name != null) {

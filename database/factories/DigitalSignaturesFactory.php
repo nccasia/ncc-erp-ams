@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Supplier;
+use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class DigitalSignaturesFactory extends Factory
@@ -25,7 +26,12 @@ class DigitalSignaturesFactory extends Factory
             'expiration_date' => $this->faker->dateTimeBetween('now', date_default_timezone_get()),
             'purchase_cost' => $this->faker->randomFloat(2, '299.99', '2999.99'),
             'note'   => 'Created by DB seeder',
-            'status_id' => 0,
+            'status_id' => 5,
+            'category_id' => 19,
+            'qty' => $this->faker->numberBetween(5, 10),
+            'location_id' => 1,
+            'warranty_months' => $this->faker->numberBetween(5, 10)
+
         ];
     }
 }

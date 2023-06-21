@@ -32,6 +32,10 @@ class CreateDigitalSignaturesTable extends Migration
             $table->integer('withdraw_from')->nullable();
             $table->integer('checkin_counter')->default(0);
             $table->integer('checkout_counter')->default(0);
+            $table->integer('category_id')->nullable();
+            $table->integer('qty')->default(1);
+            $table->integer('location_id')->nullable();
+            $table->integer('warranty_months')->nullable();
             $table->string('note')->nullable();
             $table->softDeletes();
             $table->timestamps();
