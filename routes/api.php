@@ -1354,6 +1354,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         Route::post('/checkout', [Api\DigitalSignaturesController::class, 'multiCheckout'])->name('api.digital_signatures.multiCheckout');
         Route::post('/{id}/checkin', [Api\DigitalSignaturesController::class, 'checkIn'])->name('api.digital_signatures.checkIn');
         Route::post('/checkin', [Api\DigitalSignaturesController::class, 'multiCheckin'])->name('api.digital_signatures.multiCheckin');
+        Route::put('',[Api\DigitalSignaturesController::class,'multiUpdate'])->name('api.digital_signatures.multiUpdate');
     });
     //end route digital signatures
 

@@ -10,6 +10,9 @@ use App\Jobs\SendConfirmCheckinMail;
 use App\Jobs\SendConfirmCheckoutMail;
 use App\Jobs\SendRejectCheckinMail;
 use App\Jobs\SendRejectCheckoutMail;
+use App\Jobs\SendCheckoutMail;
+use App\Models\Location;
+use App\Jobs\SendCheckinMail;
 use App\Models\AssetHistory;
 use App\Models\DigitalSignatures;
 use App\Models\Setting;
@@ -33,7 +36,7 @@ class DigitalSignaturesController extends Controller
         $this->authorize('view', DigitalSignatures::class);
 
         $digital_signatures = DigitalSignatures::select('digital_signatures.*')
-            ->with('user', 'supplier', 'assignedUser','location','category','tokenStatus');
+            ->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
 
         $offset = ($digital_signatures && ($request->get('offset') > $digital_signatures->count()))
             ? $digital_signatures->count()
@@ -75,10 +78,10 @@ class DigitalSignaturesController extends Controller
                 break;
             case 'location':
                 $digital_signatures->OrderLocation($order);
-                break; 
+                break;
             case 'category':
                 $digital_signatures->OrderCategory($order);
-                break;    
+                break;
             default:
                 $digital_signatures->orderBy($default_sort, $order);
         }
@@ -94,9 +97,9 @@ class DigitalSignaturesController extends Controller
         }
 
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
-            $digital_signatures->where(function($query) use ($request){
+            $digital_signatures->where(function ($query) use ($request) {
                 $query->where('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
-                ->orWhere('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+                    ->orWhere('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKIN'));
             });
         }
 
@@ -108,7 +111,7 @@ class DigitalSignaturesController extends Controller
 
         $total = $digital_signatures->count();
         $digital_signatures = $digital_signatures->skip($offset)->take($limit)->get();
-        
+
         return (new DigitalSignaturesTransformer())->transformSignatures($digital_signatures, $total);
     }
 
@@ -138,7 +141,7 @@ class DigitalSignaturesController extends Controller
         $digitalSignatures->qty = $request->get('qty');
 
         if (!$digitalSignatures->save()) {
-            return response()->json(Helper::formatStandardApiResponse('error', null, $digitalSignatures->getErrors()),Response::HTTP_BAD_REQUEST);
+            return response()->json(Helper::formatStandardApiResponse('error', null, $digitalSignatures->getErrors()), Response::HTTP_BAD_REQUEST);
         }
 
         if ($request->get('assigned_to')) {
@@ -187,7 +190,7 @@ class DigitalSignaturesController extends Controller
         $assigned_status = $signature->assigned_status;
         $signature->fill($request->all());
         $user = null;
-        if($signature->assigned_to){
+        if ($signature->assigned_to) {
             $user = User::find($signature->assigned_to);
         }
         if ($user && $assigned_status !== $request->get('assigned_status')) {
@@ -202,9 +205,9 @@ class DigitalSignaturesController extends Controller
                 'time' => $current_time->format('d-m-Y'),
                 'reason' => '',
             ];
-            if ($signature->assigned_status === config('enum.assigned_status.ACCEPT')) {
+            if ($signature->assigned_status == config('enum.assigned_status.ACCEPT')) {
                 $data['signatures_count'] = 1;
-                if($signature->withdraw_from){
+                if ($signature->withdraw_from) {
                     $signature->increment('checkin_counter', 1);
                     $data['is_confirm'] = 'đã xác nhận thu hồi';
                     $signature->status_id = config('enum.status_id.READY_TO_DEPLOY');
@@ -214,23 +217,21 @@ class DigitalSignaturesController extends Controller
                     $signature->assigned_to = null;
                     SendConfirmCheckinMail::dispatch($data, $it_ncc_email);
 
-                }else{
+                } else {
                     $signature->increment('checkout_counter', 1);
                     $data['is_confirm'] = 'đã xác nhận cấp phát';
                     $signature->status_id = config('enum.status_id.ASSIGN');
                     SendConfirmCheckoutMail::dispatch($data, $it_ncc_email);
                 }
-
-            } elseif ($signature->assigned_status === config('enum.assigned_status.REJECT')) {
+            } elseif ($signature->assigned_status == config('enum.assigned_status.REJECT')) {
                 $data['signatures_count'] = 1;
-                if($signature->withdraw_from){
+                if ($signature->withdraw_from) {
                     $data['is_confirm'] = 'đã từ chối thu hồi';
                     $signature->status_id = config('enum.status_id.ASSIGN');
                     $signature->assigned_status = config('enum.assigned_status.ACCEPT');
                     $data['reason'] = 'Lý do: ' . $request->get('reason');
                     SendRejectCheckinMail::dispatch($data, $it_ncc_email);
-                }
-                else{
+                } else {
                     $data['is_confirm'] = 'đã từ chối nhận';
                     $signature->status_id = config('enum.status_id.READY_TO_DEPLOY');
                     $signature->assigned_status = config('enum.assigned_status.DEFAULT');
@@ -241,7 +242,6 @@ class DigitalSignaturesController extends Controller
                     SendRejectCheckoutMail::dispatch($data, $it_ncc_email);
                 }
             }
-
         }
         if (!$signature->save()) {
             return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()));
@@ -289,23 +289,29 @@ class DigitalSignaturesController extends Controller
                 )
             );
         }
+        $target = User::find($request->get('assigned_to'));
 
-        $assigned_to = $request->get('assigned_to');
+        $user_email = $target->email;
+        $user_name = $target->first_name . ' ' . $target->last_name;
+        $current_time = Carbon::now();
+        $location = Location::find($signature->location_id);
+        $location_address = null;
+
         $checkout_date = $request->get('checkout_date');
         $request->get('note') ? $note = $request->get('note') : $note = null;
         $signature->status_id = config('enum.status_id.ASSIGN');
-        if ($signature->checkOut($assigned_to, $checkout_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKOUT'))){
+        if ($signature->checkOut($target, $checkout_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
             $this->saveSignatureHistory($digital_signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            // $data = [
-            //     'user_name' => $user_name,
-            //     'signature_name' => $asset->name,
-            //     'count' => 1,
-            //     'location_address' => $location_address,
-            //     'time' => $current_time->format('d-m-Y'),
-            //     'link' => config('client.my_assets.link'),
-            // ];
+            $data = [
+                'user_name' => $user_name,
+                'signature_name' => $signature->name,
+                'count' => 1,
+                'location_address' => $location_address,
+                'time' => $current_time->format('d-m-Y'),
+                'link' => config('client.my_assets.link'),
+            ];
 
-            // SendCheckoutMail::dispatch($data, $user_email);
+            SendCheckoutMail::dispatch($data, $user_email);
 
             return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
         }
@@ -319,10 +325,9 @@ class DigitalSignaturesController extends Controller
         $signatures = request('signatures');
         $assigned_to = $request->get('assigned_to');
         $checkout_date = $request->get('checkout_date');
-        $location = $request->get('location');
         $request->get('note') ? $note = $request->get('note') : $note = null;
-
-        foreach($signatures as $signature_id){
+        $target = User::find($request->get('assigned_to'));
+        foreach ($signatures as $signature_id) {
             $signature = DigitalSignatures::findOrFail($signature_id);
             if (!$signature->availableForCheckout()) {
                 return response()->json(
@@ -333,25 +338,32 @@ class DigitalSignaturesController extends Controller
                     )
                 );
             }
+
             $signature->status_id = config('enum.status_id.ASSIGN');
-            if ($signature->checkOut($assigned_to, $checkout_date, $note, $signature->name, $location , config('enum.assigned_status.WAITINGCHECKOUT'))){
+            if ($signature->checkOut($target, $checkout_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
                 $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
-                // $data = [
-                //     'user_name' => $user_name,
-                //     'asset_name' => $asset->name,
-                //     'count' => 1,
-                //     'location_address' => $location_address,
-                //     'time' => $current_time->format('d-m-Y'),
-                //     'link' => config('client.my_assets.link'),
-                // ];
-    
-                // SendCheckoutMail::dispatch($data, $user_email);
-    
+                $signature_name = $signature->name;
             } else {
                 return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkout.error')));
             }
         }
-        return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));    
+
+        $user_email = $target->email;
+        $user_name = $target->first_name . ' ' . $target->last_name;
+        $current_time = Carbon::now();
+        $location = Location::find($signature->location_id);
+        $location_address = null;
+
+        $data = [
+            'user_name' => $user_name,
+            'asset_name' => $signature_name,
+            'count' => count($signatures),
+            'location_address' => $location_address,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+        SendCheckoutMail::dispatch($data, $user_email);
+        return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
     }
 
     public function checkIn(Request $request, $signature_id)
@@ -359,7 +371,7 @@ class DigitalSignaturesController extends Controller
         $this->authorize('checkin', DigitalSignatures::class);
         $signature = DigitalSignatures::findOrFail($signature_id);
         if (is_null($target = $signature->assigned_to)) {
-            return response()->json(Helper::formatStandardApiResponse('error', ['signature'=> e($signature->seri)], trans('admin/digital_signatures/message.checkin.already_checked_in')));
+            return response()->json(Helper::formatStandardApiResponse('error', ['signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.already_checked_in')));
         }
         if (!$signature->availableForCheckin()) {
             return response()->json(
@@ -374,19 +386,14 @@ class DigitalSignaturesController extends Controller
         $checkin_date = $request->get('checkin_at');
         $request->get('note') ? $note = $request->get('note') : $note = null;
 
-        if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))){
+        if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
             $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            // $data = [
-            //     'user_name' => $user_name,
-            //     'asset_name' => $asset->name,
-            //     'count' => 1,
-            //     'location_address' => $location_address,
-            //     'time' => $current_time->format('d-m-Y'),
-            //     'link' => config('client.my_assets.link'),
-            // ];
-
-            // SendCheckoutMail::dispatch($data, $user_email);
-
+            
+            $user = $signature->assignedTo;
+            $countAssets = 1;
+            $data = $this->setDataUser($user->id, $signature->name, $countAssets);
+     
+            SendCheckinMail::dispatch($data, $data['user_email']);
             return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkin.error')));
@@ -400,10 +407,10 @@ class DigitalSignaturesController extends Controller
         $checkin_date = $request->get('checkout_at');
         $request->get('note') ? $note = $request->get('note') : $note = null;
 
-        foreach($signatures as $signature_id){
+        foreach ($signatures as $signature_id) {
             $signature = DigitalSignatures::findOrFail($signature_id);
             if (is_null($target = $signature->assigned_to)) {
-                return response()->json(Helper::formatStandardApiResponse('error', ['signature'=> e($signature->seri)], trans('admin/digital_signatures/message.checkin.already_checked_in')));
+                return response()->json(Helper::formatStandardApiResponse('error', ['signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.already_checked_in')));
             }
             if (!$signature->availableForCheckin()) {
                 return response()->json(
@@ -414,11 +421,11 @@ class DigitalSignaturesController extends Controller
                     )
                 );
             }
-    
+
             $checkin_date = $request->get('checkin_at');
             $request->get('note') ? $note = $request->get('note') : $note = null;
-    
-            if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))){
+
+            if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
                 $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
                 // $data = [
                 //     'user_name' => $user_name,
@@ -428,16 +435,14 @@ class DigitalSignaturesController extends Controller
                 //     'time' => $current_time->format('d-m-Y'),
                 //     'link' => config('client.my_assets.link'),
                 // ];
-    
+
                 // SendCheckoutMail::dispatch($data, $user_email);
-    
+
             } else {
                 return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkin.error')));
             }
         }
         return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.success')));
-
-
     }
 
     public function saveSignatureHistory($signature_id, $type)
@@ -449,5 +454,75 @@ class DigitalSignaturesController extends Controller
             'assigned_to' => $signature->assigned_to,
             'user_id' => $signature->user_id
         ]);
+    }
+
+    public function multiUpdate(Request $request)
+    {
+        $this->authorize('update', DigitalSignatures::class);
+        $signatures_id = $request->tax_tokens;
+        foreach ($signatures_id as $id) {
+            $signature = DigitalSignatures::findOrFail($id);
+            $assigned_status = $signature->assigned_status;
+            $signature->fill($request->all());
+            $user = null;
+            if ($signature->assigned_to) {
+                $user = User::find($signature->assigned_to);
+            }
+            if ($user && $assigned_status !== $request->get('assigned_status')) {
+                $signature->assigned_status = $request->get('assigned_status');
+                $it_ncc_email = Setting::first()->admin_cc_email;
+                $user_name = $user->first_name . ' ' . $user->last_name;
+                $current_time = Carbon::now();
+                $data = [
+                    'user_name' => $user_name,
+                    'is_confirm' => '',
+                    'seri' => $signature->seri,
+                    'time' => $current_time->format('d-m-Y'),
+                    'reason' => '',
+                ];
+                if ($signature->assigned_status == config('enum.assigned_status.ACCEPT')) {
+                    $data['signatures_count'] = 1;
+                    if ($signature->withdraw_from) {
+                        $signature->increment('checkin_counter', 1);
+                        $data['is_confirm'] = 'đã xác nhận thu hồi';
+                        $signature->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                        $signature->assigned_status = config('enum.assigned_status.DEFAULT');
+                        $signature->withdraw_from = null;
+                        $signature->last_checkout = null;
+                        $signature->assigned_to = null;
+                        SendConfirmCheckinMail::dispatch($data, $it_ncc_email);
+
+                    } else {
+                        $signature->increment('checkout_counter', 1);
+                        $data['is_confirm'] = 'đã xác nhận cấp phát';
+                        $signature->status_id = config('enum.status_id.ASSIGN');
+                        SendConfirmCheckoutMail::dispatch($data, $it_ncc_email);
+                    }
+                } elseif ($signature->assigned_status == config('enum.assigned_status.REJECT')) {
+                    $data['signatures_count'] = 1;
+                    if ($signature->withdraw_from) {
+                        $data['is_confirm'] = 'đã từ chối thu hồi';
+                        $signature->status_id = config('enum.status_id.ASSIGN');
+                        $signature->assigned_status = config('enum.assigned_status.ACCEPT');
+                        $data['reason'] = 'Lý do: ' . $request->get('reason');
+                        SendRejectCheckinMail::dispatch($data, $it_ncc_email);
+                    } else {
+                        $data['is_confirm'] = 'đã từ chối nhận';
+                        $signature->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                        $signature->assigned_status = config('enum.assigned_status.DEFAULT');
+                        $data['reason'] = 'Lý do: ' . $request->get('reason');
+                        $signature->withdraw_from = null;
+                        $signature->last_checkout = null;
+                        $signature->assigned_to = null;;
+                        SendRejectCheckoutMail::dispatch($data, $it_ncc_email);
+                    }
+                }
+            }
+            if (!$signature->save()) {
+                return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()));
+            }
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('success', $signature, trans('admin/digital_signatures/message.update.success', ['signature' => "lol"])));
     }
 }

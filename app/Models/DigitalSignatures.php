@@ -2,8 +2,6 @@
 
 namespace App\Models;
 
-use App\Events\CheckoutableCheckedOut;
-use App\Exceptions\CheckoutNotAllowed;
 use App\Models\Traits\Searchable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +10,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Watson\Validating\ValidatingTrait;
-use App\Presenters\Presentable;
 
 class DigitalSignatures extends Model
 {
@@ -41,6 +38,27 @@ class DigitalSignatures extends Model
         'expiration_date' => 'required|date',
         'status_id' => 'nullable|numeric',
         'note' => 'nullable|string',
+    ];
+
+    protected $fillable = [
+        'name',
+        'seri',
+        'supplier_id',
+        'purchase_date',
+        'purchase_cost',
+        'expiration_date',
+        'user_id',
+        'status_id',
+        'assisgned_to',
+        'category_id',
+        'location_id',
+        'warranty_months',
+        'qty',
+        'checkout_date',
+        'last_checkout',
+        'note',
+        'checkin_date',
+        'assigned_type',
     ];
 
     public function supplier()
@@ -237,7 +255,7 @@ class DigitalSignatures extends Model
             !$this->assigned_to &&
             !$this->withdraw_from &&
             $this->assigned_status === config('enum.assigned_status.DEFAULT') &&
-            $this->status_id === config('enum.status_tax_token.NOT_ACTIVE');
+            $this->status_id === config('enum.status_id.READY_TO_DEPLOY');
     }
 
     public function availableForCheckin()
@@ -246,7 +264,7 @@ class DigitalSignatures extends Model
             !$this->deleted_at &&
             $this->assigned_to &&
             in_array($this->assigned_status, [config('enum.assigned_status.ACCEPT'), config('enum.assigned_status.REJECT')]) &&
-            $this->status_id === config('enum.status_tax_token.ASSIGN');
+            $this->status_id === config('enum.status_id.ASSIGN');
     }
 
     /**
@@ -271,23 +289,12 @@ class DigitalSignatures extends Model
         return $this->morphTo('assigned', 'assigned_type', 'assigned_to')->withTrashed();
     }
 
-    public function checkOut($target, $checkout_date, $note, $signature_name, $location, $status)
+    public function checkOut($target, $checkout_date, $note, $signature_name, $status)
     {
         if (!$target) {
             return false;
         }
 
-        if ($location != null) {
-            $this->location_id = $location;
-        } else {
-            if (isset($target->location)) {
-                $this->location_id = $target->location->id;
-            }
-            if ($target instanceof Location) {
-                $this->location_id = $target->id;
-            }
-        }
-        // $this->assigned_to = $target;
         $this->assignedTo()->associate($target);
         $this->last_checkout = $checkout_date;
 
