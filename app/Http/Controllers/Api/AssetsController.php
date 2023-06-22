@@ -159,7 +159,7 @@ class AssetsController extends Controller
         }
 
         if ($request->filled('assigned_status')) {
-            $assets->where('assets.assigned_status', '=', $request->input('assigned_status'));
+            $assets->InAssignedStatus($request->input('assigned_status'));
         }
         
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
@@ -215,8 +215,12 @@ class AssetsController extends Controller
             $assets->InCategory($request->input('category'));
         }
 
+        // if ($request->status_label) {
+        //     $assets->where('assets.status_id', '=', $request->input('status_label'));
+        // }
+
         if ($request->status_label) {
-            $assets->where('assets.status_id', '=', $request->input('status_label'));
+            $assets->InStatus($request->input('status_label'));
         }
         
         if ($request->filled('manufacturer_id')) {
@@ -914,6 +918,10 @@ class AssetsController extends Controller
             $assets->where('assets.status_id', '=', $request->input('status_id'));
         }
 
+        if ($request->filled('assigned_status')) {
+            $assets->InAssignedStatus($request->input('assigned_status'));
+        }
+
         if ($request->input('requestable') == 'true') {
             $assets->where('assets.requestable', '=', '1');
         }
@@ -1433,13 +1441,13 @@ class AssetsController extends Controller
                         $asset->assigned_to = null;
                         $asset->assignedTo()->disassociate($this);
                         $asset->accepted = null;
-                        SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
+                        // SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
 
                     }else{
                         $asset->increment('checkout_counter', 1);
                         $data['is_confirm'] = 'đã xác nhận cấp phát';
                         $asset->status_id = config('enum.status_id.ASSIGN');
-                         SendConfirmMail::dispatch($data, $it_ncc_email);
+                        //  SendConfirmMail::dispatch($data, $it_ncc_email);
 
                     }
 
@@ -1450,7 +1458,7 @@ class AssetsController extends Controller
                         $asset->status_id = config('enum.status_id.ASSIGN');
                         $asset->assigned_status = config('enum.assigned_status.ACCEPT');
                         $data['reason'] = 'Lý do: ' . $request->get('reason');
-                        SendRejectRevokeMail::dispatch($data, $it_ncc_email);
+                        // SendRejectRevokeMail::dispatch($data, $it_ncc_email);
                     }
                     else{
                         $data['is_confirm'] = 'đã từ chối nhận';
@@ -1463,7 +1471,7 @@ class AssetsController extends Controller
                         $asset->assigned_to = null;
                         $asset->assignedTo()->disassociate($this);
                         $asset->accepted = null;
-                        SendRejectAllocateMail::dispatch($data, $it_ncc_email);
+                        // SendRejectAllocateMail::dispatch($data, $it_ncc_email);
                     }
                 }
 
@@ -1521,7 +1529,7 @@ class AssetsController extends Controller
                             'location_address' => $location_address,
                             'count' => 1,
                     ];
-                    SendCheckoutMail::dispatch($data, $target->email);
+                    // SendCheckoutMail::dispatch($data, $target->email);
                 }
 
                 if ($asset->image) {
