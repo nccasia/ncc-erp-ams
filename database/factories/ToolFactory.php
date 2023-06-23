@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Category;
+use App\Models\Supplier;
 use App\Models\Tool;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,15 +21,19 @@ class ToolFactory extends Factory
     public function definition()
     {
         return [
+            'name' => $this->faker->name(),
+            'supplier_id' => Supplier::all()->random()->id,
             'user_id' => 1,
-            'name' => $this->faker->name,
-            'purchase_cost' => $this->faker->randomFloat(2, 100, 500),
+            'assigned_status' => 0,
+            'assigned_to' => null,
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get()),
-            'version' => $this->faker->unixTime('now').'',
+            'expiration_date' => $this->faker->dateTimeBetween('now', date_default_timezone_get()),
+            'purchase_cost' => $this->faker->randomFloat(2, '299.99', '2999.99'),
             'notes'   => 'Created by DB seeder',
+            'status_id' => 5,
             'category_id' => Category::where('category_type', '=', 'tool')->inRandomOrder()->first()->id,
-            'manufacturer_id' => $this->faker->numberBetween(1, 11),
-            'deleted_at' => null,
+            'qty' => $this->faker->numberBetween(5, 10),
+            'location_id' => 1,
         ];
     }
 

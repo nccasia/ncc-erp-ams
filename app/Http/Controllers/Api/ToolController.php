@@ -29,28 +29,31 @@ class ToolController extends Controller
     {
         $this->authorize('view', Software::class);
 
-        $tools = Company::scopeCompanyables(
-            Tool::select('tools.*', 'users.username')
-                ->join('users', 'users.id', 'tools.user_id')
-                ->with('category', 'manufacturer')
-                ->withCount([
-                    'toolsUsers' => function ($query) {
-                        $query->whereNotNull('checkout_at')->whereNull('checkin_at');
-                    }
-                ])
-        );
+        // $tools = Company::scopeCompanyables(
+        //     Tool::select('tools.*', 'users.username')
+        //         ->join('users', 'users.id', 'tools.user_id')
+        //         ->with('category', 'supplier', 'location')
+        //         ->withCount([
+        //             'toolsUsers' => function ($query) {
+        //                 $query->whereNotNull('checkout_at')->whereNull('checkin_at');
+        //             }
+        //         ])
+        // );
+
+        $tools = Tool::select('tools.*')->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
 
         $allowed_columns = [
-            'id',
             'name',
-            'purchase_cost',
             'category_id',
-            'manufacturer_id',
-            'created_at',
-            'notes',
-            'checkout_count',
+            'supplier_id',
+            'user_id',
+            'purchase_cost',
             'purchase_date',
-            'version'
+            'notes',
+            'assisgned_to',
+            'qty',
+            'location_id',
+            'status_id',
         ];
 
         return $this->getDataTools($request, $tools, $allowed_columns);
@@ -207,7 +210,6 @@ class ToolController extends Controller
                         )
                     );
                 }
-
             }
         }
 
@@ -513,8 +515,8 @@ class ToolController extends Controller
             $tools->TextSearch($request->input('search'));
         }
 
-        if ($request->filled('manufacturer_id')) {
-            $tools->ByManufacturer($request->input('manufacturer_id'));
+        if ($request->filled('supplier_id')) {
+            $tools->BySupplier($request->input('supplier_id'));
         }
 
         $offset = (($tools) && ($request->get('offset') > $tools->count()))
@@ -537,18 +539,35 @@ class ToolController extends Controller
         $default_sort = in_array($sort, $allowed_columns) ? $sort : 'tools.created_at';
 
         switch ($sort) {
+            case 'user':
+                $tools->orderUser($order);
+                break;
+            case 'assigned_to':
+                $tools->orderAssignToUser($order);
+                break;
+            case 'supplier':
+                $tools->OrderSupplier($order);
+                break;
+            case 'location':
+                $tools->OrderLocation($order);
+                break;
             case 'category':
                 $tools->OrderCategory($order);
                 break;
-            case 'manufacturer':
-                $tools->OrderManufacturer($order);
-                break;
-            case 'checkout_count':
-                $tools->OrderBy('tools_users_count', $order);
-                break;
+            // case 'checkout_count':
+            //     $tools->OrderBy('tools_users_count', $order);
+            //     break;
             default:
                 $tools->OrderBy($default_sort, $order);
         }
+
+        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+            $tools->where(function ($query) use ($request) {
+                $query->where('tools.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+                    ->orWhere('tools.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
+        }
+
         $total = $tools->count();
         $tools = $tools->skip($offset)->take($limit)->get();
         return (new ToolsTransformer)->transformTools($tools, $total);
