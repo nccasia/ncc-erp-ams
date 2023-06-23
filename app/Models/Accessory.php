@@ -56,7 +56,7 @@ class Accessory extends SnipeModel
     * Accessory validation rules
     */
     public $rules = [
-        'name'              => 'required|min:3|max:255',
+        'name'              => 'required|max:255',
         'qty'               => 'required|integer|min:1',
         'category_id'       => 'required|integer|exists:categories,id',
         'company_id'        => 'integer|nullable',

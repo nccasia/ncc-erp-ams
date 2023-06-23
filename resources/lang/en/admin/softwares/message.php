@@ -38,7 +38,11 @@ return array(
     'checkout' => [
         'error'   => 'There was an issue checking out the software. Please try again.',
         'success' => 'The software was checked out successfully',
-        'not_enough_quantity' => 'The software not enough license quantity'
+        'not_enough_quantity' => "not enough keys to checkout",
+        'already_checkout' => ' already checkout to ',
+        'key_of' => "Key of ",
+        'expired' => " has expire",
+        'not_available' => " not ready for checkout. Please check again"
     ],
 
     'checkin' => [

@@ -91,6 +91,7 @@ return [
     'url'                  => 'The :attribute format is invalid.',
     'unique_undeleted'     => 'The :attribute must be unique.',
     'non_circular'         => 'The :attribute must not create a circular reference.',
+    'two_column_unique_undeleted' => 'The :attribute has already been taken.',
 
     /*
     |--------------------------------------------------------------------------

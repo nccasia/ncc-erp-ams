@@ -156,13 +156,9 @@ class SoftwareLicenses extends Model
      */
     public function availableForCheckout()
     {
-        $now = Carbon::now();
-        $expirationDate = Carbon::parse($this->expiration_date);
-
         return $this->checkout_count < $this->seats && 
             $this->seats != 0 && 
-            !$this->deleted_at && 
-            !($now->diffInDays($expirationDate, false) < 0);
+            !$this->deleted_at;
     }
 
     /**
@@ -181,6 +177,7 @@ class SoftwareLicenses extends Model
                 'software_licenses.checkout_count',
                 'software_licenses.seats',
                 'software_licenses.licenses',
+                'software_licenses.expiration_date',
                 DB::raw('count(software_licenses_users.id) as allocatedSeat')
             )
             ->whereNull('software_licenses.deleted_at')
@@ -196,6 +193,30 @@ class SoftwareLicenses extends Model
                     ->whereRaw('license_checkout.assigned_to = ?', [$assigned_user]);
             })
             ->orderBy('id')
+            ->first();
+    }
+
+    /**
+     * Get last license of software to check type error
+     *
+     * @param  int $softwareId
+     * @param  int $assigned_user
+     * 
+     * @return SoftwareLicenses 
+     */
+    public function getLastLicenseOfSoftware($softwareId)
+    {
+        return $this->leftJoin('software_licenses_users', 'software_licenses.id', '=', 'software_licenses_users.software_licenses_id')
+            ->select(
+                'software_licenses.id',
+                'software_licenses.checkout_count',
+                'software_licenses.seats',
+                'software_licenses.licenses',
+                'software_licenses.expiration_date'
+            )
+            ->whereNull('software_licenses.deleted_at')
+            ->where('software_id', '=', $softwareId)
+            ->orderBy('software_licenses.created_at', 'desc')
             ->first();
     }
 }

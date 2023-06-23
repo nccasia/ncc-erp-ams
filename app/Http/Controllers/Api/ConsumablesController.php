@@ -11,6 +11,7 @@ use App\Models\Consumable;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 
 class ConsumablesController extends Controller
 {
@@ -68,6 +69,10 @@ class ConsumablesController extends Controller
 
         if ($request->filled('category_id')) {
             $consumables->where('category_id', '=', $request->input('category_id'));
+        }
+
+        if ($request->category) {
+            $consumables->InCategory($request->input('category'));
         }
 
         if ($request->filled('model_number')) {
@@ -151,7 +156,7 @@ class ConsumablesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -189,7 +194,7 @@ class ConsumablesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**
