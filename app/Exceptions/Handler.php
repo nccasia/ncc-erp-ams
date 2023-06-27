@@ -66,7 +66,7 @@ class Handler extends ExceptionHandler
             return response()->json(Helper::formatStandardApiResponse('error', null, 'invalid JSON'), 422);
         }
 
-        dd($e);
+
         // Handle Ajax requests that fail because the model doesn't exist
         if ($request->ajax() || $request->wantsJson()) {
 

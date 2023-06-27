@@ -9,12 +9,16 @@ use App\Http\Transformers\ToolCheckoutTransformer;
 use App\Http\Transformers\ToolsTransformer;
 use App\Jobs\SendCheckinMailTool;
 use App\Jobs\SendCheckoutMailTool;
+use App\Jobs\SendConfirmMailTool;
 use App\Models\Company;
+use App\Models\Location;
+use App\Models\Setting;
 use App\Models\Tool;
 use App\Models\ToolUser;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 
 class ToolController extends Controller
@@ -28,17 +32,6 @@ class ToolController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view', Software::class);
-
-        // $tools = Company::scopeCompanyables(
-        //     Tool::select('tools.*', 'users.username')
-        //         ->join('users', 'users.id', 'tools.user_id')
-        //         ->with('category', 'supplier', 'location')
-        //         ->withCount([
-        //             'toolsUsers' => function ($query) {
-        //                 $query->whereNotNull('checkout_at')->whereNull('checkin_at');
-        //             }
-        //         ])
-        // );
 
         $tools = Tool::select('tools.*')->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
 
@@ -74,16 +67,20 @@ class ToolController extends Controller
         $tool->name = $request->get('name');
         $tool->purchase_cost = $request->get('purchase_cost');
         $tool->purchase_date = $request->get('purchase_date');
-        $tool->version = $request->get('version');
         $tool->category_id = $request->get('category_id');
-        $tool->manufacturer_id = $request->get('manufacturer_id');
+        $tool->location_id = $request->get('location_id');
+        $tool->expiration_date = $request->get('expiration_date');
+        $tool->supplier_id = $request->get('supplier_id');
+        $tool->assigned_status = config('enum.assigned_status.DEFAULT');
+        $tool->status_id = $request->get('status_id');
+        $tool->qty = $request->get('qty');
         $tool->notes = $request->get('notes');
         $tool->user_id = Auth::id();
 
         if ($tool->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $tool, trans('admin/tools/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -98,14 +95,126 @@ class ToolController extends Controller
         $this->authorize('update', Tool::class);
 
         $tool = Tool::find($id);
-        if ($tool) {
-            $tool->fill($request->all());
-            if ($tool->save()) {
-                return response()->json(Helper::formatStandardApiResponse('success', $tool, trans('admin/tools/message.update.success')));
-            }
-            return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()));
+        $assigned_status = $tool->assigned_status;
+        $tool->fill($request->all());
+        $user = null;
+        if ($tool->assigned_to) {
+            $user = User::find($tool->assigned_to);
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.does_not_exist')));
+
+        if ($user && $request->has('assigned_status') && $assigned_status !== $request->get('assigned_status')) {
+            $tool->assigned_status = $request->get('assigned_status');
+            if ($tool->assigned_status == config('enum.assigned_status.ACCEPT')) {
+                if ($tool->withdraw_from) {
+                    $tool->increment('checkin_counter', 1);
+                    $is_confirm = 'đã xác nhận thu hồi';
+                    $subject = 'Mail xác nhận thu hồi tool';
+                    $tool->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                    $tool->assigned_status = config('enum.assigned_status.DEFAULT');
+                    $tool->withdraw_from = null;
+                    $tool->last_checkout = null;
+                    $tool->assigned_to = null;
+                    $this->sendMailConfirm($user,$tool,$is_confirm,$subject);
+                } else {
+                    $tool->increment('checkout_counter', 1);
+                    $is_confirm = 'đã xác nhận cấp phát';
+                    $subject = 'Mail xác nhận cấp phát tool';
+                    $tool->status_id = config('enum.status_id.ASSIGN');
+                    $this->sendMailConfirm($user,$tool,$is_confirm,$subject);
+                }
+            } elseif ($tool->assigned_status == config('enum.assigned_status.REJECT')) {
+                if ($tool->withdraw_from) {
+                    $is_confirm = 'đã từ chối thu hồi';
+                    $subject = 'Mail từ chối thu hồi tool';
+                    $reason = 'Lý do: ' . $request->get('reason');
+                    $tool->status_id = config('enum.status_id.ASSIGN');
+                    $tool->assigned_status = config('enum.assigned_status.ACCEPT');
+                    $this->sendMailConfirm($user,$tool,$is_confirm,$subject,$reason);
+                } else {
+                    $is_confirm = 'đã từ chối nhận';
+                    $subject = 'Mail từ chối nhận tool';
+                    $reason = 'Lý do: ' . $request->get('reason');
+                    $tool->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                    $tool->assigned_status = config('enum.assigned_status.DEFAULT');
+                    $tool->withdraw_from = null;
+                    $tool->last_checkout = null;
+                    $tool->assigned_to = null;;
+                    $this->sendMailConfirm($user,$tool,$is_confirm,$subject,$reason);
+                }
+            }
+        }
+
+        if (!$tool->save()) {
+            return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()),Response::HTTP_BAD_REQUEST);
+        }
+        return response()->json(Helper::formatStandardApiResponse('success', $tool, trans('admin/tools/message.update.success')));
+    }
+
+    /**
+     * update multiple tools
+     *
+     * @param  Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function multiUpdate(Request $request)
+    {
+        $this->authorize('update', Tool::class);
+        $tools = $request->get('tools');
+        foreach ($tools as $id) {
+            $tool = Tool::findOrFail($id);
+            $assigned_status = $tool->assigned_status;
+            $tool->fill($request->all());
+            $user = null;
+            if ($tool->assigned_to) {
+                $user = User::find($tool->assigned_to);
+            }
+            if ($user && $request->has('assigned_status') && $assigned_status !== $request->get('assigned_status')) {
+                $tool->assigned_status = $request->get('assigned_status');
+                if ($tool->assigned_status == config('enum.assigned_status.ACCEPT')) {
+                    if ($tool->withdraw_from) {
+                        $tool->increment('checkin_counter', 1);
+                        $is_confirm = 'đã xác nhận thu hồi';
+                        $subject = 'Mail xác nhận thu hồi tool';
+                        $tool->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                        $tool->assigned_status = config('enum.assigned_status.DEFAULT');
+                        $tool->withdraw_from = null;
+                        $tool->last_checkout = null;
+                        $tool->assigned_to = null;
+                        $this->sendMailConfirm($user,$tool,$is_confirm,$subject);
+                    } else {
+                        $tool->increment('checkout_counter', 1);
+                        $is_confirm = 'đã xác nhận cấp phát';
+                        $subject = 'Mail xác nhận cấp phát tool';
+                        $tool->status_id = config('enum.status_id.ASSIGN');
+                        $this->sendMailConfirm($user,$tool,$is_confirm,$subject);
+                    }
+                } elseif ($tool->assigned_status == config('enum.assigned_status.REJECT')) {
+                    if ($tool->withdraw_from) {
+                        $is_confirm = 'đã từ chối thu hồi';
+                        $subject = 'Mail từ chối thu hồi tool';
+                        $reason = 'Lý do: ' . $request->get('reason');
+                        $tool->status_id = config('enum.status_id.ASSIGN');
+                        $tool->assigned_status = config('enum.assigned_status.ACCEPT');
+                        $this->sendMailConfirm($user,$tool,$is_confirm,$subject,$reason);
+                    } else {
+                        $is_confirm = 'đã từ chối nhận';
+                        $subject = 'Mail từ chối nhận tool';
+                        $reason = 'Lý do: ' . $request->get('reason');
+                        $tool->status_id = config('enum.status_id.READY_TO_DEPLOY');
+                        $tool->assigned_status = config('enum.assigned_status.DEFAULT');
+                        $tool->withdraw_from = null;
+                        $tool->last_checkout = null;
+                        $tool->assigned_to = null;;
+                        $this->sendMailConfirm($user,$tool,$is_confirm,$subject,$reason);
+                    }
+                }
+            }
+            if (!$tool->save()) {
+                return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()));
+            }
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('success', $tool, trans('admin/tools/message.update.success', ['signature' => "lol"])));
     }
 
     /**
@@ -123,7 +232,7 @@ class ToolController extends Controller
         if ($tool->delete()) {
             return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/tools/message.delete.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.does_not_exist')));
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.does_not_exist')),Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -136,46 +245,29 @@ class ToolController extends Controller
     public function checkout(Request $request, $tool_id)
     {
         $this->authorize('checkout', Tool::class);
-
         $tool = Tool::findOrFail($tool_id);
-        $assigned_users = $request->get('assigned_users');
-
-        //Check tool already checkout to user or not
-        foreach ($assigned_users as $assigned_user) {
-            $tool_user = $tool->toolsUsers()
-                ->where('tool_id', $tool_id)
-                ->where('assigned_to', $assigned_user)
-                ->whereNull('checkin_at')->first();
-            if ($tool_user) {
-                $user = User::find($tool_user->assigned_to);
-                return response()->json(
-                    Helper::formatStandardApiResponse(
-                        'error',
-                        null,
-                        ['assigned_users' => $tool->name . trans('admin/tools/message.checkout.already_user') . $user->username]
-                    )
-                );
-            }
+        if (!$tool->availableForCheckout()) {
+            return response()->json(
+                Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.checkout.not_available')),
+                Response::HTTP_BAD_REQUEST
+            );
         }
+        $target = User::find($request->get('assigned_to'));
 
-        foreach ($assigned_users as $assigned_user) {
-            if (User::find($assigned_user)) {
-                $tool_user = $this->setDataCheckout($tool, $assigned_user, $request);
-                if ($tool_user->save()) {
-                    $this->sendMailCheckOut($assigned_user, $tool);
-                } else {
-                    return response()->json(Helper::formatStandardApiResponse('error', null, $tool_user->getErrors()));
-                }
-            }
+        $checkout_date = $request->get('checkout_date');
+        // $request->get('notes') ? $notes = $request->get('notes') : $notes = null;
+        $tool->status_id = config('enum.status_id.ASSIGN');
+        if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
+            $this->sendMailCheckout($target, $tool);
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    ['tool' => e($tool->name)],
+                    trans('admin/tools/message.checkout.success')
+                )
+            );
         }
-
-        return response()->json(
-            Helper::formatStandardApiResponse(
-                'success',
-                ['tool' => e($tool_user->tool->name)],
-                trans('admin/licenses/message.checkout.success')
-            )
-        );
+        return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -188,44 +280,35 @@ class ToolController extends Controller
     {
         $this->authorize('checkout', Tool::class);
 
-        $tools_id = $request->get('tools');
-        $assigned_users = $request->get('assigned_users');
+        $tools = request('tools');
+        $assigned_to = $request->get('assigned_to');
+        $checkout_date = $request->get('checkout_date');
+        $request->get('notes') ? $note = $request->get('notes') : $note = null;
+        $target = User::find($request->get('assigned_to'));
+        foreach ($tools as $tool_id) {
+            $tool = Tool::findOrFail($tool_id);
+            if (!$tool->availableForCheckout()) {
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error',
+                        ['tool' => e($tool->name)],
+                        trans('admin/tools/message.checkout.not_available')
+                    ),
+                    Response::HTTP_BAD_REQUEST
+                );
+            }
 
-        foreach ($tools_id as $tool_id) {
-
-            //Check tool already checkout to user or not
-            $tool = Tool::find($tool_id);
-            foreach ($assigned_users as $assigned_user) {
-                $tool_user = $tool->toolsUsers()
-                    ->where('tool_id', $tool_id)
-                    ->where('assigned_to', $assigned_user)
-                    ->whereNull('checkin_at')->first();
-                if ($tool_user) {
-                    $user = User::find($tool_user->assigned_to);
-                    return response()->json(
-                        Helper::formatStandardApiResponse(
-                            'error',
-                            null,
-                            ['assigned_users' => $tool->name . trans('admin/tools/message.checkout.already_user') . $user->username]
-                        )
-                    );
-                }
+            $tool->status_id = config('enum.status_id.ASSIGN');
+            if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
+                $this->sendMailCheckout($target,$tool);
+            } else {
+                return response()->json(
+                    Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.checkout.error')),
+                    Response::HTTP_BAD_REQUEST
+                );
             }
         }
 
-        foreach ($tools_id as $tool_id) {
-            $tool = Tool::find($tool_id);
-            foreach ($assigned_users as $assigned_user) {
-                if (User::find($assigned_user)) {
-                    $tool_user = $this->setDataCheckout($tool, $assigned_user, $request);
-                    if ($tool_user->save()) {
-                        $this->sendMailCheckOut($assigned_user, $tool);
-                    } else {
-                        return response()->json(Helper::formatStandardApiResponse('error', null, $tool_user->getErrors()));
-                    }
-                }
-            }
-        }
         return response()->json(
             Helper::formatStandardApiResponse(
                 'success',
@@ -242,39 +325,37 @@ class ToolController extends Controller
      * @param  Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function checkin(Request $request, $tool_id)
+    public function checkIn(Request $request, $tool_id)
     {
         $this->authorize('checkin', Tool::class);
-
         $tool = Tool::findOrFail($tool_id);
-        $assigned_user = $request->get('assigned_user');
-
-        //Check tool available for checkin
-        if (!$tool->availableForCheckin($assigned_user)) {
+        if (is_null($target = $tool->assigned_to)) {
+            return response()->json(Helper::formatStandardApiResponse('error', ['name' => e($tool->name)], trans('admin/tools/message.checkin.already_checked_in')));
+        }
+        if (!$tool->availableForCheckin()) {
             return response()->json(
                 Helper::formatStandardApiResponse(
                     'error',
-                    null,
-                    ['assigned_users' => trans('admin/tools/message.checkout.error')]
+                    ['tool' => e($tool->name)],
+                    trans('admin/tools/message.checkin.not_available')
                 )
             );
         }
 
-        if (User::find($assigned_user)) {
-            $tool_user = $this->setDataCheckin($tool, $assigned_user, $request);
-            if ($tool_user->save()) {
-                $this->sendMailCheckin($assigned_user, $tool);
-            } else {
-                return response()->json(Helper::formatStandardApiResponse('error', null, $tool_user->getErrors()));
-            }
+        $checkin_date = $request->get('checkin_at');
+        $request->get('notes') ? $note = $request->get('notes') : $note = null;
+
+        if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+            $this->sendMailCheckin($tool->assignedTo, $tool);
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    ['tool' => e($tool->name)],
+                    trans('admin/tools/message.checkin.success')
+                )
+            );
         }
-        return response()->json(
-            Helper::formatStandardApiResponse(
-                'success',
-                ['tool' => e($tool_user->tool->name)],
-                trans('admin/tools/message.checkin.success')
-            )
-        );
+        return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -287,32 +368,45 @@ class ToolController extends Controller
     {
         $this->authorize('checkin', Tool::class);
 
-        $tools_id = $request->get('tools');
-        $assigned_users = $request->get('assigned_users');
+        $tools = request('tools');
+        $checkin_date = $request->get('checkout_at');
+        $request->get('notes') ? $note = $request->get('notes') : $note = null;
 
-        // Check tools are available for checkin
-        for ($i = 0; $i < count($tools_id); $i++) {
-            $tool = Tool::find($tools_id[$i]);
-            if (!$tool->availableForCheckin($assigned_users[$i])) {
+        foreach ($tools as $tool_id) {
+            $tool = Tool::findOrFail($tool_id);
+            if (is_null($target = $tool->assigned_to)) {
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error', 
+                        ['tool' => e($tool->name)], 
+                        trans('admin/tool/message.checkin.already_checked_in')),
+                        Response::HTTP_BAD_REQUEST
+                    );
+            }
+            if (!$tool->availableForCheckin()) {
                 return response()->json(
                     Helper::formatStandardApiResponse(
                         'error',
                         null,
                         ['assigned_users' => trans('admin/tools/message.checkout.error')]
-                    )
+                    ),
+                    Response::HTTP_BAD_REQUEST
                 );
             }
-        }
 
-        for ($i = 0; $i < count($tools_id); $i++) {
-            $tool = Tool::find($tools_id[$i]);
-            if (User::find($assigned_users[$i])) {
-                $tool_user = $this->setDataCheckin($tool, $assigned_users[$i], $request);
-                if ($tool_user->save()) {
-                    $this->sendMailCheckin($assigned_users[$i], $tool);
-                } else {
-                    return response()->json(Helper::formatStandardApiResponse('error', null, $tool_user->getErrors()));
-                }
+            $checkin_date = $request->get('checkin_at');
+            $request->get('notes') ? $note = $request->get('notes') : $note = null;
+
+            if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+                $this->sendMailCheckin($target,$tool);
+            } else {
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error', 
+                        null, 
+                        trans('admin/tools/message.checkin.error')),
+                        Response::HTTP_BAD_REQUEST
+                    );
             }
         }
         return response()->json(
@@ -426,18 +520,9 @@ class ToolController extends Controller
 
         $user_id = Auth::id();
 
-        $tools = Company::scopeCompanyables(
-            Tool::select('tools.*', 'tools_users.*')
-                ->join('tools_users', 'tools.id', 'tools_users.tool_id')
-                ->whereNotNull('tools_users.checkout_at')
-                ->whereNull('tools_users.checkin_at')
-                ->where('tools_users.assigned_to', $user_id)
-                ->withCount([
-                    'toolsUsers' => function ($query) {
-                        $query->whereNotNull('checkout_at')->whereNull('checkin_at');
-                    }
-                ])
-        );
+        $tools = Tool::select('tools.*')->join('users','tools.assigned_to','users.id')
+        ->where('users.id',$user_id)
+        ->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
 
         $allowed_columns = [
             'id',
@@ -554,9 +639,6 @@ class ToolController extends Controller
             case 'category':
                 $tools->OrderCategory($order);
                 break;
-            // case 'checkout_count':
-            //     $tools->OrderBy('tools_users_count', $order);
-            //     break;
             default:
                 $tools->OrderBy($default_sort, $order);
         }
@@ -576,15 +658,14 @@ class ToolController extends Controller
     /**
      * Send mail to user when checkout
      *
-     * @param  int $assigned_user
+     * @param  User $assigned_user
      * @param  Tool $tool
      * @return void
      */
     public function sendMailCheckout($assigned_user, $tool)
     {
-        $user = User::find($assigned_user);
-        $user_email = $user->email;
-        $user_name = $user->first_name . ' ' . $user->last_name;
+        $user_email = $assigned_user->email;
+        $user_name = $assigned_user->first_name . ' ' . $assigned_user->last_name;
         $current_time = Carbon::now();
         $data = [
             'user_name' => $user_name,
@@ -599,15 +680,14 @@ class ToolController extends Controller
     /**
      * Send mail to user when checkout
      *
-     * @param  int $assigned_user
+     * @param  User $assigned_user
      * @param  Tool $tool
      * @return void
      */
     public function sendMailCheckin($assigned_user, $tool)
     {
-        $user = User::find($assigned_user);
-        $user_email = $user->email;
-        $user_name = $user->first_name . ' ' . $user->last_name;
+        $user_email = $assigned_user->email;
+        $user_name = $assigned_user->first_name . ' ' . $assigned_user->last_name;
         $current_time = Carbon::now();
         $data = [
             'user_name' => $user_name,
@@ -617,5 +697,30 @@ class ToolController extends Controller
             'link' => config('client.my_assets.link'),
         ];
         SendCheckinMailTool::dispatch($data, $user_email);
+    }
+
+    /**
+     * Send mail to user when checkout
+     *
+     * @param  User $assigned_user
+     * @param  Tool $tool
+     * @return void
+     */
+    public function sendMailConfirm($assigned_user, $tool, $is_confirm, $subject, $reason = "")
+    {
+        $it_ncc_email = Setting::first()->admin_cc_email;
+        $user_name = $assigned_user->first_name . ' ' . $assigned_user->last_name;
+        $current_time = Carbon::now();
+        $data = [
+            'user_name' => $user_name,
+            'tool_name' => $tool->name,
+            'tools_count' => 1,
+            'is_confirm' => $is_confirm,
+            'subject' => $subject,
+            'reason' => $reason,
+            'time' => $current_time->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+        SendConfirmMailTool::dispatch($data, $it_ncc_email);
     }
 }

@@ -596,6 +596,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             Route::post('/multicheckout', [Api\ToolController::class, 'multiCheckout'])->name('api.tools.multiCheckout');
             Route::post('/{id}/checkin', [Api\ToolController::class, 'checkin'])->name('api.tools.checkin');
             Route::post('/multicheckin', [Api\ToolController::class, 'multiCheckin'])->name('api.tools.multiCheckin');
+            Route::put('',[Api\ToolController::class,'multiUpdate'])->name('api.tools.multiUpdate');
         });
 
         //end tools routes

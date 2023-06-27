@@ -88,6 +88,11 @@ class Tool extends Model
         return $this->hasMany(ToolUser::class);
     }
 
+    public function assignedTo()
+    {
+        return $this->morphTo('assigned', 'assigned_type', 'assigned_to')->withTrashed();
+    }
+
     public function scopeOrderUser($query, $order)
     {
         return $query->join('users', 'users.id', '=', $this->table . '.user_id')
@@ -205,6 +210,52 @@ class Tool extends Model
     public function checkIsAdmin() {
         $user = Auth::user();
         return $user->isAdmin();
+    }
+
+    public function checkOut($target, $checkout_date, $tool_name, $status)
+    {
+        if (!$target) {
+            return false;
+        }
+
+        $this->assignedTo()->associate($target);
+        $this->last_checkout = $checkout_date;
+
+        if ($tool_name != null) {
+            $this->name = $tool_name;
+        }
+
+        if ($status !== null) {
+            $this->assigned_status = $status;
+        }
+
+        if ($this->save()) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    public function checkIn($target, $checkout_date, $tool_name, $status)
+    {
+        if (!$target) {
+            return false;
+        }
+        $this->withdraw_from = $this->assigned_to;
+
+        if ($tool_name != null) {
+            $this->name = $tool_name;
+        }
+
+        if ($status !== null) {
+            $this->assigned_status = $status;
+        }
+
+        if ($this->save()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

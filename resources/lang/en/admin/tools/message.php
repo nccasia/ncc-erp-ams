@@ -37,12 +37,15 @@ return array(
     'checkout' => [
         'error'   => 'There was an issue checking out the tool. Please try again.',
         'success' => 'The tool was checkout successfully',
-        'already_user' => " is already checkout to "
+        'already_user' => " is already checkout to ",
+        'not_available' => 'The tool is not available for checkout'
     ],
 
     'checkin' => [
         'error'   => 'There was an issue checking in the tool. Please try again.',
         'success' => 'The tool was checked in successfully',
+        'not_available' => 'The tool is not available for checkin',
+        'already_checked_in' => 'The tool is already checkin'
     ],
 
 );

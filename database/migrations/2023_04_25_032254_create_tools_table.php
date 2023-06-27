@@ -25,6 +25,7 @@ class CreateToolsTable extends Migration
             $table->integer('qty')->default(1);
             $table->integer('assigned_to')->nullable();
             $table->integer('assigned_status')->nullable();
+            $table->string('assigned_type')->nullable();
             $table->string('notes')->nullable();
             $table->integer('category_id')->nullable();
             $table->integer('location_id')->nullable();

@@ -1418,7 +1418,7 @@ class AssetsController extends Controller
                     'reason' => '',
                 ];
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                    // $data['is_confirm'] = 'đã xác nhận';
+                    $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
                         $asset->increment('checkin_counter', 1);
