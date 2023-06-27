@@ -193,7 +193,7 @@ class DigitalSignaturesController extends Controller
         if ($signature->assigned_to) {
             $user = User::find($signature->assigned_to);
         }
-        if ($user && $assigned_status !== $request->get('assigned_status')) {
+        if ($user && $request->has('assigned_status') && $assigned_status !== $request->get('assigned_status')) {
             $signature->assigned_status = $request->get('assigned_status');
             $it_ncc_email = Setting::first()->admin_cc_email;
             $user_name = $user->first_name . ' ' . $user->last_name;
@@ -244,7 +244,7 @@ class DigitalSignaturesController extends Controller
             }
         }
         if (!$signature->save()) {
-            return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()));
+            return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()),Response::HTTP_BAD_REQUEST);
         }
 
         return response()->json(Helper::formatStandardApiResponse('success', $signature, trans('admin/digital_signatures/message.update.success', ['signature' => $signature->seri])));
@@ -286,7 +286,8 @@ class DigitalSignaturesController extends Controller
                     'error',
                     ['signature' => e($signature->seri)],
                     trans('admin/digital_signatures/message.checkout.not_available')
-                )
+                ),
+                Response::HTTP_BAD_REQUEST
             );
         }
         $target = User::find($request->get('assigned_to'));
@@ -315,7 +316,7 @@ class DigitalSignaturesController extends Controller
 
             return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkout.error')));
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkout.error')), Response::HTTP_BAD_REQUEST);
     }
 
     public function multiCheckout(Request $request)
@@ -333,9 +334,10 @@ class DigitalSignaturesController extends Controller
                 return response()->json(
                     Helper::formatStandardApiResponse(
                         'error',
-                        ['asset' => e($signature->seri)],
+                        ['digital_signature' => e($signature->seri)],
                         trans('admin/digital_signatures/message.checkout.not_available')
-                    )
+                    ),
+                    Response::HTTP_BAD_REQUEST
                 );
             }
 
@@ -344,7 +346,14 @@ class DigitalSignaturesController extends Controller
                 $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
                 $signature_name = $signature->name;
             } else {
-                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkout.error')));
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error',
+                        null,
+                        trans('admin/digital_signatures/message.checkout.error')
+                    ),
+                    Response::HTTP_BAD_REQUEST
+                );
             }
         }
 
@@ -371,7 +380,14 @@ class DigitalSignaturesController extends Controller
         $this->authorize('checkin', DigitalSignatures::class);
         $signature = DigitalSignatures::findOrFail($signature_id);
         if (is_null($target = $signature->assigned_to)) {
-            return response()->json(Helper::formatStandardApiResponse('error', ['signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.already_checked_in')));
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'error', 
+                    ['signature' => e($signature->seri)], 
+                    trans('admin/digital_signatures/message.checkin.already_checked_in')
+                ),
+                Response::HTTP_BAD_REQUEST
+            );
         }
         if (!$signature->availableForCheckin()) {
             return response()->json(
@@ -379,7 +395,8 @@ class DigitalSignaturesController extends Controller
                     'error',
                     ['asset' => e($signature->seri)],
                     trans('admin/digital_signatures/message.checkin.not_available')
-                )
+                ),
+                Response::HTTP_BAD_REQUEST
             );
         }
 
@@ -388,15 +405,22 @@ class DigitalSignaturesController extends Controller
 
         if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
             $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            
+
             $user = $signature->assignedTo;
             $countAssets = 1;
             $data = $this->setDataUser($user->id, $signature->name, $countAssets);
-     
+
             SendCheckinMail::dispatch($data, $data['user_email']);
             return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkin.error')));
+        return response()->json(
+            Helper::formatStandardApiResponse(
+                'error', 
+                null, 
+                trans('admin/digital_signatures/message.checkin.error')
+            ),
+            Response::HTTP_BAD_REQUEST
+        );
     }
 
     public function multiCheckin(Request $request)
@@ -418,7 +442,8 @@ class DigitalSignaturesController extends Controller
                         'error',
                         ['asset' => e($signature->seri)],
                         trans('admin/digital_signatures/message.checkin.not_available')
-                    )
+                    ),
+                    Response::HTTP_BAD_REQUEST
                 );
             }
 
@@ -439,7 +464,14 @@ class DigitalSignaturesController extends Controller
                 // SendCheckoutMail::dispatch($data, $user_email);
 
             } else {
-                return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkin.error')));
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error', 
+                        null, 
+                        trans('admin/digital_signatures/message.checkin.error')
+                    ),
+                    Response::HTTP_BAD_REQUEST
+                );
             }
         }
         return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.success')));
@@ -468,7 +500,7 @@ class DigitalSignaturesController extends Controller
             if ($signature->assigned_to) {
                 $user = User::find($signature->assigned_to);
             }
-            if ($user && $assigned_status !== $request->get('assigned_status')) {
+            if ($user && $request->has('assigned_status') && $assigned_status !== $request->get('assigned_status')) {
                 $signature->assigned_status = $request->get('assigned_status');
                 $it_ncc_email = Setting::first()->admin_cc_email;
                 $user_name = $user->first_name . ' ' . $user->last_name;
@@ -519,7 +551,14 @@ class DigitalSignaturesController extends Controller
                 }
             }
             if (!$signature->save()) {
-                return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()));
+                return response()->json(
+                    Helper::formatStandardApiResponse(
+                        'error', 
+                        null, 
+                        $signature->getErrors()
+                    ),
+                    Response::HTTP_BAD_REQUEST
+                );
             }
         }
 

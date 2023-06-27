@@ -8,11 +8,11 @@ return [
     ],
 
     'update' => [
-        'success' => 'Digital Signature [:seri] update successfully.',
+        'success' => 'Digital Signature update successfully.',
     ],
 
     'delete' => [
-        'success' => 'Digital Signature [:seri] delete successfully.',
+        'success' => 'Digital Signature delete successfully.',
     ],
 
     'checkout'=>[
