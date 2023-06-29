@@ -1405,7 +1405,7 @@ class AssetsController extends Controller
             if($asset->assigned_to){
                 $user = User::find($asset->assigned_to);
             }
-            if ($user && $assigned_status !== $request->get('assigned_status')) {
+            if ($user && $request->has('assigned_status') && $assigned_status !== $request->get('assigned_status')) {
                 $asset->assigned_status = $request->get('assigned_status');
                 $it_ncc_email = Setting::first()->admin_cc_email;
                 $user_name = $user->first_name . ' ' . $user->last_name;
@@ -1593,7 +1593,7 @@ class AssetsController extends Controller
                     $asset_names .= $asset->name . ", ";
                 }
 
-                if ($user && $assigned_status !== $request->get('assigned_status')) {
+                if ($user && $request->has('assigned_status') && $assigned_status !== $request->get('assigned_status')) {
                     $it_ncc_email = Setting::first()->admin_cc_email;
                     $user_name = $user->first_name . ' ' . $user->last_name;
                     $current_time = Carbon::now();
