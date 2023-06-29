@@ -159,7 +159,7 @@ class AssetsController extends Controller
         }
 
         if ($request->filled('assigned_status')) {
-            $assets->where('assets.assigned_status', '=', $request->input('assigned_status'));
+            $assets->InAssignedStatus($request->input('assigned_status'));
         }
         
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
@@ -215,8 +215,12 @@ class AssetsController extends Controller
             $assets->InCategory($request->input('category'));
         }
 
+        // if ($request->status_label) {
+        //     $assets->where('assets.status_id', '=', $request->input('status_label'));
+        // }
+
         if ($request->status_label) {
-            $assets->where('assets.status_id', '=', $request->input('status_label'));
+            $assets->InStatus($request->input('status_label'));
         }
         
         if ($request->filled('manufacturer_id')) {
@@ -912,6 +916,10 @@ class AssetsController extends Controller
 
         if ($request->filled('status_id')) {
             $assets->where('assets.status_id', '=', $request->input('status_id'));
+        }
+
+        if ($request->filled('assigned_status')) {
+            $assets->InAssignedStatus($request->input('assigned_status'));
         }
 
         if ($request->input('requestable') == 'true') {
