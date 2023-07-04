@@ -330,7 +330,13 @@ class Accessory extends SnipeModel
 
     public function scopeInCategory($query, $category_id)
     {
-        return $query->join('categories', 'accessories.category_id', '=', 'categories.id')->where('accessories.category_id', '=', $category_id);
+        $data = $query->join('categories', 'accessories.category_id', '=', 'categories.id');
+        if(is_array($category_id)) {
+            $data = $data->whereIn('accessories.category_id',$category_id);
+        } else {
+            $data = $data->where('accessories.category_id', '=', $category_id);
+        }
+        return $data;
     }
 
     /**

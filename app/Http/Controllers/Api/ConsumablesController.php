@@ -71,6 +71,10 @@ class ConsumablesController extends Controller
             $consumables->where('category_id', '=', $request->input('category_id'));
         }
 
+        if ($request->category) {
+            $consumables->InCategory($request->input('category'));
+        }
+
         if ($request->filled('model_number')) {
             $consumables->where('model_number','=',$request->input('model_number'));
         }
@@ -152,7 +156,7 @@ class ConsumablesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()), Response::HTTP_UNPROCESSABLE_ENTITY);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -190,7 +194,7 @@ class ConsumablesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**

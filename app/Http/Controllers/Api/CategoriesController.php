@@ -9,6 +9,7 @@ use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 class CategoriesController extends Controller
@@ -74,7 +75,7 @@ class CategoriesController extends Controller
         if ($category->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $category, trans('admin/categories/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $category->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $category->getErrors()),Response::HTTP_BAD_REQUEST);
 
     }
 
@@ -116,7 +117,7 @@ class CategoriesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $category, trans('admin/categories/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $category->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $category->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**

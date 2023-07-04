@@ -11,6 +11,7 @@ use App\Models\Asset;
 use App\Models\AssetModel;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -126,7 +127,7 @@ class AssetModelsController extends Controller
         if ($assetmodel->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $assetmodel, trans('admin/models/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()),Response::HTTP_BAD_REQUEST);
 
 
     }
@@ -198,7 +199,7 @@ class AssetModelsController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $assetmodel, trans('admin/models/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $assetmodel->getErrors()),Response::HTTP_BAD_REQUEST);
     }
 
     /**

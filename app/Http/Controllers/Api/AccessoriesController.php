@@ -67,6 +67,10 @@ class AccessoriesController extends Controller
             $accessories->where('category_id', '=', $request->input('category_id'));
         }
 
+        if ($request->category) {
+            $accessories->InCategory($request->input('category'));
+        }
+
         if ($request->filled('manufacturer_id')) {
             $accessories->where('manufacturer_id', '=', $request->input('manufacturer_id'));
         }
@@ -145,7 +149,7 @@ class AccessoriesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $accessory, trans('admin/accessories/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()), Response::HTTP_UNPROCESSABLE_ENTITY);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()), Response::HTTP_BAD_REQUEST);
 
     }
 
@@ -248,7 +252,7 @@ class AccessoriesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $accessory, trans('admin/accessories/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()));
+        return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**

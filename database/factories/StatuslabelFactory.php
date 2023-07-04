@@ -34,55 +34,15 @@ class StatuslabelFactory extends Factory
         ];
     }
 
-    public function rtd()
-    {
-        return $this->state(function () {
-            return [
-                'notes' => $this->faker->sentence,
-                'deployable' => 1,
-                'default_label' => 1,
-            ];
-        });
-    }
-
     public function pending()
     {
         return $this->state(function () {
             return [
+                'id' => 1,
+                'name' => "Pending",
                 'notes' => $this->faker->sentence,
                 'pending' => 1,
                 'default_label' => 1,
-            ];
-        });
-    }
-
-    public function archived()
-    {
-        return $this->state(function () {
-            return [
-                'notes' => 'These assets are permanently undeployable',
-                'archived' => 1,
-                'default_label' => 0,
-            ];
-        });
-    }
-
-    public function outForDiagnostics()
-    {
-        return $this->state(function () {
-            return [
-                'name' => 'Out for Diagnostics',
-                'default_label' => 0,
-            ];
-        });
-    }
-
-    public function outForRepair()
-    {
-        return $this->state(function () {
-            return [
-                'name'      => 'Out for Repair',
-                'default_label' => 0,
             ];
         });
     }
@@ -91,18 +51,36 @@ class StatuslabelFactory extends Factory
     {
         return $this->state(function () {
             return [
-                'name'      => 'Broken - Not Fixable',
+                'id' => 3,
+                'name' => "Broken",
+                'notes' => $this->faker->sentence,
                 'default_label' => 0,
             ];
         });
     }
 
-    public function lost()
+    public function assign()
     {
         return $this->state(function () {
             return [
-                'name'      => 'Lost/Stolen',
+                'id' => 4,
+                'name' => "Assign",
+                'notes' => $this->faker->sentence,
+                'deployable' => 1,
                 'default_label' => 0,
+            ];
+        });
+    }
+
+    public function readyToDeploy()
+    {
+        return $this->state(function () {
+            return [
+                'id' => 5,
+                'name' => "Ready to Deploy",
+                'notes' => $this->faker->sentence,
+                'deployable' => 1,
+                'default_label' => 1,
             ];
         });
     }

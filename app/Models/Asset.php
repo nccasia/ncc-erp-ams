@@ -1646,8 +1646,52 @@ class Asset extends Depreciable
      */
     public function scopeInCategory($query, $category_id)
     {
-        return $query->join('models as category_models', 'assets.model_id', '=', 'category_models.id')
-            ->join('categories', 'category_models.category_id', '=', 'categories.id')->where('category_models.category_id', '=', $category_id);
+        $data = $query->join('models as category_models', 'assets.model_id', '=', 'category_models.id')
+            ->join('categories', 'category_models.category_id', '=', 'categories.id');
+        if(is_array($category_id)) {
+            $data = $data->whereIn('category_models.category_id',$category_id);
+        } else {
+            $data = $data->where('category_models.category_id', '=', $category_id);
+        }
+        return $data;
+    }
+
+    /**
+     * Query builder scope to return results of a assigned status
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query  Query builder instance
+     * @param  text $order Order
+     *
+     * @return \Illuminate\Database\Query\Builder          Modified query builder
+     */
+    public function scopeInAssignedStatus($query, $assigned_status)
+    {
+        $data = $query;
+        if(is_array($assigned_status)) {
+            $data = $data->whereIn('assigned_status',$assigned_status);
+        } else {
+            $data = $data->where('assigned_status', '=', $assigned_status);
+        }
+        return $data;
+    }
+
+    /**
+     * Query builder scope to return results of a status
+     *
+     * @param  \Illuminate\Database\Query\Builder  $query  Query builder instance
+     * @param  text $order Order
+     *
+     * @return \Illuminate\Database\Query\Builder          Modified query builder
+     */
+    public function scopeInStatus($query, $status)
+    {
+        $data = $query;
+        if(is_array($status)) {
+            $data = $data->whereIn('status_id',$status);
+        } else {
+            $data = $data->where('status_id', '=', $status);
+        }
+        return $data;
     }
 
     /**

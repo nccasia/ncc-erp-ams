@@ -323,7 +323,13 @@ class Consumable extends SnipeModel
      */
     public function scopeInCategory($query, $category_id)
     {
-        return $query->join('categories', 'consumables.category_id', '=', 'categories.id')->where('consumables.category_id', '=', $category_id);
+        $data = $query->join('categories', 'consumables.category_id', '=', 'categories.id');
+        if(is_array($category_id)) {
+            $data = $data->whereIn('consumables.category_id',$category_id);
+        } else {
+            $data = $data->where('consumables.category_id', '=', $category_id);
+        }
+        return $data;
     }
 
 
