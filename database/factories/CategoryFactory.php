@@ -214,4 +214,13 @@ class CategoryFactory extends Factory
             'category_type' => 'taxtoken',
         ]);
     }
+    
+      // usage: Category::factory()->applicationsSoftwareCategory();
+    public function toolsCategory()
+    {
+        return Category::factory()->create([
+            'name' => 'Tool',
+            'category_type' => 'tool',
+        ]);
+    }
 }

@@ -466,6 +466,11 @@ class User extends SnipeModel implements AuthenticatableContract, AuthorizableCo
         return $this->hasMany(LicensesUsers::class, 'assigned_to');
     }
 
+    public function tools() 
+    {
+        return $this->belongsToMany(Tools::class, 'tools_users', 'assigned_to', 'tool_id')->whereNull('deleted_at');
+    }
+
     /**
      * Query builder scope to return NOT-deleted users
      * @author A. Gianotto <snipe@snipe.net>

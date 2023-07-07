@@ -159,7 +159,7 @@ class AssetsController extends Controller
         }
 
         if ($request->filled('assigned_status')) {
-            $assets->where('assets.assigned_status', '=', $request->input('assigned_status'));
+            $assets->InAssignedStatus($request->input('assigned_status'));
         }
         
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
@@ -215,8 +215,12 @@ class AssetsController extends Controller
             $assets->InCategory($request->input('category'));
         }
 
+        // if ($request->status_label) {
+        //     $assets->where('assets.status_id', '=', $request->input('status_label'));
+        // }
+
         if ($request->status_label) {
-            $assets->where('assets.status_id', '=', $request->input('status_label'));
+            $assets->InStatus($request->input('status_label'));
         }
         
         if ($request->filled('manufacturer_id')) {
@@ -914,6 +918,10 @@ class AssetsController extends Controller
             $assets->where('assets.status_id', '=', $request->input('status_id'));
         }
 
+        if ($request->filled('assigned_status')) {
+            $assets->InAssignedStatus($request->input('assigned_status'));
+        }
+
         if ($request->input('requestable') == 'true') {
             $assets->where('assets.requestable', '=', '1');
         }
@@ -1405,7 +1413,7 @@ class AssetsController extends Controller
             if($asset->assigned_to){
                 $user = User::find($asset->assigned_to);
             }
-            if ($user && $assigned_status !== $request->get('assigned_status')) {
+            if ($user && $request->has('assigned_status') && $assigned_status !== $request->get('assigned_status')) {
                 $asset->assigned_status = $request->get('assigned_status');
                 $it_ncc_email = Setting::first()->admin_cc_email;
                 $user_name = $user->first_name . ' ' . $user->last_name;
@@ -1418,7 +1426,7 @@ class AssetsController extends Controller
                     'reason' => '',
                 ];
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                    // $data['is_confirm'] = 'đã xác nhận';
+                    $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     if($asset->withdraw_from){
                         $asset->increment('checkin_counter', 1);
@@ -1593,7 +1601,7 @@ class AssetsController extends Controller
                     $asset_names .= $asset->name . ", ";
                 }
 
-                if ($user && $assigned_status !== $request->get('assigned_status')) {
+                if ($user && $request->has('assigned_status') && $assigned_status !== $request->get('assigned_status')) {
                     $it_ncc_email = Setting::first()->admin_cc_email;
                     $user_name = $user->first_name . ' ' . $user->last_name;
                     $current_time = Carbon::now();

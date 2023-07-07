@@ -56,6 +56,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CustomFieldSeeder::class);
         $this->call(SoftwareLicensesSeeder::class);
         $this->call(DigitalSignaturesSeeder::class);
+        $this->call(ToolSeeder::class);
         
         Artisan::call('snipeit:sync-asset-locations', ['--output' => 'all']);
         $output = Artisan::output();
