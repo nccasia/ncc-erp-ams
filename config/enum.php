@@ -11,7 +11,6 @@ return [
     "WAITING" => 1, 
     "ACCEPT"  => 2,  
     "REJECT"  => 3,
-    "REJECTREVOKE"  => 6,
     "WAITINGCHECKOUT" => 4, 
     "WAITINGCHECKIN" => 5, 
   ],
