@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Helpers\DateFormatter;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\DateComparisonRequest;
 use App\Http\Transformers\ToolCheckoutTransformer;
 use App\Http\Transformers\ToolsTransformer;
 use App\Jobs\SendCheckinMailTool;
@@ -59,10 +58,10 @@ class ToolController extends Controller
      * @param  \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(DateComparisonRequest $request)
+    public function store(Request $request)
     {
         $this->authorize('create', Tool::class);
-        dd("lol");
+
         $tool = new Tool();
 
         $tool->name = $request->get('name');
