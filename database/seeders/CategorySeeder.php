@@ -29,6 +29,7 @@ class CategorySeeder extends Seeder
         Category::factory()->count(1)->applicationsSoftwareCategory()->create(); // 16
         Category::factory()->count(1)->programmingSoftwareCategory()->create(); // 17
         Category::factory()->count(1)->operatingSoftwareCategory()->create(); // 18
+        Category::factory()->count(1)->taxTokenCategory()->create();// 19
         Category::factory()->count(1)->toolsCategory()->create(); // 19
     }
 }

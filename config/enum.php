@@ -32,4 +32,8 @@ return [
   "seats" =>[
     "MIN" => 0,
   ],
+  "status_tax_token" => [
+    "NOT_ACTIVE" => 0,
+    "ASSIGN" => 1
+  ],
 ];

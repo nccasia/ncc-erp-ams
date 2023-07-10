@@ -41,7 +41,7 @@ class Category extends SnipeModel
         'name'   => 'required|min:1|max:255|two_column_unique_undeleted:category_type',
         'require_acceptance'   => 'boolean',
         'use_default_eula'   => 'boolean',
-        'category_type'   => 'required|in:asset,accessory,consumable,component,license,software,tool',
+        'category_type'   => 'required|in:asset,accessory,consumable,component,license,software,taxtoken,tool',
     ];
 
     /**

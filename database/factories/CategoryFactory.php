@@ -206,6 +206,15 @@ class CategoryFactory extends Factory
         ]);
     }
 
+    // usage: Category::factory()->taxTokenCategory();
+    public function taxTokenCategory()
+    {
+        return Category::factory()->create([
+            'name' => 'Tax Token',
+            'category_type' => 'taxtoken',
+        ]);
+    }
+    
       // usage: Category::factory()->applicationsSoftwareCategory();
     public function toolsCategory()
     {
