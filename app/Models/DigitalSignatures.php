@@ -34,8 +34,8 @@ class DigitalSignatures extends Model
         'qty'               => 'required|integer|min:1',
         'assisgned_to' => 'nullable|exists:users,id',
         'purchase_date' => 'required|date',
-        'purchase_cost' => 'required|numeric',
-        'expiration_date' => 'required|date',
+        'purchase_cost' => 'required|numeric|min:1',
+        'expiration_date' => 'required|date|after:purchase_date',
         'status_id' => 'nullable|numeric',
         'note' => 'nullable|string',
     ];
