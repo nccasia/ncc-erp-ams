@@ -61,6 +61,31 @@ class DigitalSignatures extends Model
         'assigned_type',
     ];
 
+    protected $searchableAttributes = [
+        'name',
+        'seri',
+        'purchase_date',
+        'purchase_cost',
+        'expiration_date',
+        'warranty_months',
+        'qty',
+        'checkout_date',
+        'last_checkout',
+        'note',
+        'checkin_date',
+    ];
+
+    protected $searchableRelations = [
+        'assetstatus'        => ['name'],
+        'supplier'           => ['name'],
+        'location'           => ['name'],
+    ];
+
+    public function assetstatus()
+    {
+        return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
+    }
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);

@@ -48,6 +48,25 @@ class Tool extends Model
         'status_id',
     ];
 
+    protected $searchableAttributes = [
+        'name',
+        'purchase_cost',
+        'purchase_date',
+        'notes',
+        'qty',
+    ];
+
+    protected $searchableRelations = [
+        'assetstatus'        => ['name'],
+        'supplier'           => ['name'],
+        'location'           => ['name'],
+    ];
+
+    public function assetstatus()
+    {
+        return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
+    }
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
