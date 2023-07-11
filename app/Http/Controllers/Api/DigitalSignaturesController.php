@@ -96,6 +96,14 @@ class DigitalSignaturesController extends Controller
             $digital_signatures->InSupplier($request->input('supplier'));
         }
 
+        if ($request->status_label) {
+            $digital_signatures->InStatus($request->input('status_label'));
+        }
+
+        if ($request->filled('assigned_status')) {
+            $digital_signatures->InAssignedStatus($request->input('assigned_status'));
+        }
+
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
             $digital_signatures->where(function ($query) use ($request) {
                 $query->where('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKOUT'))

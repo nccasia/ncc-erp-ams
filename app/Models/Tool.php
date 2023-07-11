@@ -144,6 +144,28 @@ class Tool extends Model
         return $query->join('suppliers', $this->table . '.supplier_id', '=', 'suppliers.id')->where($this->table . '.supplier_id', '=', $supplier_id);
     }
 
+    public function scopeInAssignedStatus($query, $assigned_status)
+    {
+        $data = $query;
+        if(is_array($assigned_status)) {
+            $data = $data->whereIn('assigned_status',$assigned_status);
+        } else {
+            $data = $data->where('assigned_status', '=', $assigned_status);
+        }
+        return $data;
+    }
+
+    public function scopeInStatus($query, $status)
+    {
+        $data = $query;
+        if(is_array($status)) {
+            $data = $data->whereIn('status_id',$status);
+        } else {
+            $data = $data->where('status_id', '=', $status);
+        }
+        return $data;
+    }
+
     /**
      * Filter tools by supplier, category
      * 
