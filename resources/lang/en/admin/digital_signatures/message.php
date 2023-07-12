@@ -17,13 +17,13 @@ return [
 
     'checkout'=>[
         'not_available' => 'The digital signature is not available for checkout!',
-        'success' => 'Digital Signature checkout successfully.',
+        'success' => 'The Digital Signature was checkout successfully.',
         'error' => 'Digital Signature checkout failed! Please try again'
     ],
 
     'checkin'=>[
         'not_available' => 'The digital signature is not available for checkin',
-        'success' => 'Digital Signature checkin successfully.',
+        'success' => 'The digital signature was checked in successfully.',
         'error' => 'Digital Signature checkin failed! Please try again',
         'already_checked_in' => 'The digital signature is already checked in'
     ]
