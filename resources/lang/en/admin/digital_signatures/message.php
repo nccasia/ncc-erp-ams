@@ -8,7 +8,7 @@ return [
     ],
 
     'update' => [
-        'success' => 'Digital Signature update successfully.',
+        'success' => 'Digital Signature updated successfully.',
     ],
 
     'delete' => [

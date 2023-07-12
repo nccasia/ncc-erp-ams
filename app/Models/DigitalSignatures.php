@@ -34,8 +34,8 @@ class DigitalSignatures extends Model
         'qty'               => 'required|integer|min:1',
         'assisgned_to' => 'nullable|exists:users,id',
         'purchase_date' => 'required|date',
-        'purchase_cost' => 'required|numeric',
-        'expiration_date' => 'required|date',
+        'purchase_cost' => 'required|numeric|min:1',
+        'expiration_date' => 'required|date|after:purchase_date',
         'status_id' => 'nullable|numeric',
         'note' => 'nullable|string',
     ];
@@ -60,6 +60,31 @@ class DigitalSignatures extends Model
         'checkin_date',
         'assigned_type',
     ];
+
+    protected $searchableAttributes = [
+        'name',
+        'seri',
+        'purchase_date',
+        'purchase_cost',
+        'expiration_date',
+        'warranty_months',
+        'qty',
+        'checkout_date',
+        'last_checkout',
+        'note',
+        'checkin_date',
+    ];
+
+    protected $searchableRelations = [
+        'assetstatus'        => ['name'],
+        'supplier'           => ['name'],
+        'location'           => ['name'],
+    ];
+
+    public function assetstatus()
+    {
+        return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
+    }
 
     public function supplier()
     {
@@ -210,7 +235,35 @@ class DigitalSignatures extends Model
 
     public function scopeInSupplier($query, $supplier_id)
     {
-        return $query->join('suppliers', $this->table . '.supplier_id', '=', 'suppliers.id')->where($this->table . '.supplier_id', '=', $supplier_id);
+        $data = $query;
+        if(is_array($supplier_id)) {
+            $data = $data->whereIn($this->table . '.supplier_id',$supplier_id);
+        } else {
+            $data = $data->where($this->table . '.supplier_id', '=', $supplier_id);
+        }
+        return $data;
+    }
+
+    public function scopeInAssignedStatus($query, $assigned_status)
+    {
+        $data = $query;
+        if(is_array($assigned_status)) {
+            $data = $data->whereIn('assigned_status',$assigned_status);
+        } else {
+            $data = $data->where('assigned_status', '=', $assigned_status);
+        }
+        return $data;
+    }
+
+    public function scopeInStatus($query, $status)
+    {
+        $data = $query;
+        if(is_array($status)) {
+            $data = $data->whereIn('status_id',$status);
+        } else {
+            $data = $data->where('status_id', '=', $status);
+        }
+        return $data;
     }
 
     /**

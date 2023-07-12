@@ -604,6 +604,14 @@ class ToolController extends Controller
             $tools->BySupplier($request->input('supplier_id'));
         }
 
+        if ($request->status_label) {
+            $tools->InStatus($request->input('status_label'));
+        }
+
+        if ($request->filled('assigned_status')) {
+            $tools->InAssignedStatus($request->input('assigned_status'));
+        }
+
         $offset = (($tools) && ($request->get('offset') > $tools->count()))
             ? $tools->count()
             : $request->get('offset', 0);

@@ -48,6 +48,25 @@ class Tool extends Model
         'status_id',
     ];
 
+    protected $searchableAttributes = [
+        'name',
+        'purchase_cost',
+        'purchase_date',
+        'notes',
+        'qty',
+    ];
+
+    protected $searchableRelations = [
+        'assetstatus'        => ['name'],
+        'supplier'           => ['name'],
+        'location'           => ['name'],
+    ];
+
+    public function assetstatus()
+    {
+        return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
+    }
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
@@ -142,6 +161,28 @@ class Tool extends Model
     public function scopeInSupplier($query, $supplier_id)
     {
         return $query->join('suppliers', $this->table . '.supplier_id', '=', 'suppliers.id')->where($this->table . '.supplier_id', '=', $supplier_id);
+    }
+
+    public function scopeInAssignedStatus($query, $assigned_status)
+    {
+        $data = $query;
+        if(is_array($assigned_status)) {
+            $data = $data->whereIn('assigned_status',$assigned_status);
+        } else {
+            $data = $data->where('assigned_status', '=', $assigned_status);
+        }
+        return $data;
+    }
+
+    public function scopeInStatus($query, $status)
+    {
+        $data = $query;
+        if(is_array($status)) {
+            $data = $data->whereIn('status_id',$status);
+        } else {
+            $data = $data->where('status_id', '=', $status);
+        }
+        return $data;
     }
 
     /**
