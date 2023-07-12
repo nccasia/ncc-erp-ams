@@ -235,7 +235,13 @@ class DigitalSignatures extends Model
 
     public function scopeInSupplier($query, $supplier_id)
     {
-        return $query->join('suppliers', $this->table . '.supplier_id', '=', 'suppliers.id')->where($this->table . '.supplier_id', '=', $supplier_id);
+        $data = $query;
+        if(is_array($supplier_id)) {
+            $data = $data->whereIn($this->table . '.supplier_id',$supplier_id);
+        } else {
+            $data = $data->where($this->table . '.supplier_id', '=', $supplier_id);
+        }
+        return $data;
     }
 
     public function scopeInAssignedStatus($query, $assigned_status)

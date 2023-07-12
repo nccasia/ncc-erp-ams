@@ -10,9 +10,9 @@ use App\Jobs\SendConfirmCheckinMail;
 use App\Jobs\SendConfirmCheckoutMail;
 use App\Jobs\SendRejectCheckinMail;
 use App\Jobs\SendRejectCheckoutMail;
-use App\Jobs\SendCheckoutMail;
+use App\Jobs\SendCheckoutMailDigitalSignature;
 use App\Models\Location;
-use App\Jobs\SendCheckinMail;
+use App\Jobs\SendCheckinMailDigitalSignature;
 use App\Models\AssetHistory;
 use App\Models\DigitalSignatures;
 use App\Models\Setting;
@@ -300,28 +300,12 @@ class DigitalSignaturesController extends Controller
         }
         $target = User::find($request->get('assigned_to'));
 
-        $user_email = $target->email;
-        $user_name = $target->first_name . ' ' . $target->last_name;
-        $current_time = Carbon::now();
-        $location = Location::find($signature->location_id);
-        $location_address = null;
-
         $checkout_date = $request->get('checkout_date');
         $request->get('note') ? $note = $request->get('note') : $note = null;
         $signature->status_id = config('enum.status_id.ASSIGN');
         if ($signature->checkOut($target, $checkout_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
             $this->saveSignatureHistory($digital_signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            $data = [
-                'user_name' => $user_name,
-                'signature_name' => $signature->name,
-                'count' => 1,
-                'location_address' => $location_address,
-                'time' => $current_time->format('d-m-Y'),
-                'link' => config('client.my_assets.link'),
-            ];
-
-            SendCheckoutMail::dispatch($data, $user_email);
-
+            $this->sendCheckoutMail($target,$signature);
             return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkout.error')), Response::HTTP_BAD_REQUEST);
@@ -365,21 +349,7 @@ class DigitalSignaturesController extends Controller
             }
         }
 
-        $user_email = $target->email;
-        $user_name = $target->first_name . ' ' . $target->last_name;
-        $current_time = Carbon::now();
-        $location = Location::find($signature->location_id);
-        $location_address = null;
-
-        $data = [
-            'user_name' => $user_name,
-            'asset_name' => $signature_name,
-            'count' => count($signatures),
-            'location_address' => $location_address,
-            'time' => $current_time->format('d-m-Y'),
-            'link' => config('client.my_assets.link'),
-        ];
-        SendCheckoutMail::dispatch($data, $user_email);
+        $this->sendCheckoutMail($target,$signature);
         return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
     }
 
@@ -415,10 +385,7 @@ class DigitalSignaturesController extends Controller
             $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
 
             $user = $signature->assignedTo;
-            $countAssets = 1;
-            $data = $this->setDataUser($user->id, $signature->name, $countAssets);
-
-            SendCheckinMail::dispatch($data, $data['user_email']);
+            $this->sendCheckinMail($user,$signature);
             return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.success')));
         }
         return response()->json(
@@ -571,5 +538,33 @@ class DigitalSignaturesController extends Controller
         }
 
         return response()->json(Helper::formatStandardApiResponse('success', $signature, trans('admin/digital_signatures/message.update.success', ['signature' => "lol"])));
+    }
+
+    public function sendCheckoutMail($user, $signature)
+    {
+        $data = [
+            'user_name' => $user->first_name . ' ' . $user->last_name,
+            'signature_name' => $signature->name,
+            'count' => 1,
+            'location_address' => null,
+            'time' => Carbon::now()->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+
+        SendCheckoutMailDigitalSignature::dispatch($data, $user->email);
+    }
+
+    public function sendCheckinMail($user, $signature)
+    {
+        $data = [
+            'user_name' => $user->first_name . ' ' . $user->last_name,
+            'signature_name' => $signature->name,
+            'count' => 1,
+            'location_address' => null,
+            'time' => Carbon::now()->format('d-m-Y'),
+            'link' => config('client.my_assets.link'),
+        ];
+
+        SendCheckinMailDigitalSignature::dispatch($data, $user->email);
     }
 }
