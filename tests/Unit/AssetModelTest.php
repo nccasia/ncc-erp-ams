@@ -33,7 +33,6 @@ class AssetModelTest extends BaseTest
         $model = AssetModel::factory()->create([
             'category_id' => $category->id,
         ]);
-    
         $asset = Asset::factory()
             ->create(
                 [
