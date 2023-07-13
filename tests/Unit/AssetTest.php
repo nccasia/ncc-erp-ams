@@ -58,7 +58,8 @@ class AssetTest extends BaseTest
                     'purchase_date' =>   Carbon::createFromDate(2017, 1, 1)->hour(0)->minute(0)->second(0),
                     'status_id' => $status_label->id,
                     'supplier_id' => $supplier->id,
-                    'rtd_location_id' => $location->id
+                    'rtd_location_id' => $location->id,
+                    'assigned_status' => 1
                 ]
             );
 

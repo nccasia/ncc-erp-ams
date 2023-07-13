@@ -42,7 +42,8 @@ class AssetModelTest extends BaseTest
                     'model_id' => $model->id,
                     'status_id' => $status_label->id,
                     'supplier_id' => $supplier->id,
-                    'rtd_location_id' => $location->id
+                    'rtd_location_id' => $location->id,
+                    'assigned_status' => 1
                 ]
             );
         $this->assertEquals(1, $model->assets()->count());

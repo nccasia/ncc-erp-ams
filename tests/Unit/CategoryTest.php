@@ -61,7 +61,8 @@ class CategoryTest extends BaseTest
                         'model_id' => $model->id,
                         'status_id' => $status_label->id,
                         'supplier_id' => $supplier->id,
-                        'rtd_location_id' => $location->id
+                        'rtd_location_id' => $location->id,
+                        'assigned_status' => 1
                     ]
                 );
             //dd($asset);
