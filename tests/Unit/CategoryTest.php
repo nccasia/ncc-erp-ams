@@ -1,14 +1,14 @@
 <?php
+
 namespace Tests\Unit;
 
 use App\Models\Category;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
+use App\Models\Location;
+use App\Models\Supplier;
 use Tests\Unit\BaseTest;
 use App\Models\AssetModel;
 use App\Models\Asset;
-use App\Models\Accessory;
+use App\Models\Statuslabel;
 
 class CategoryTest extends BaseTest
 {
@@ -24,9 +24,9 @@ class CategoryTest extends BaseTest
         $this->assertFalse($a->isValid());
 
         $fields = [
-             'name' => 'name',
-             'category_type' => 'category type',
-         ];
+            'name' => 'name',
+            'category_type' => 'category type',
+        ];
         $errors = $a->getErrors();
         foreach ($fields as $field => $fieldTitle) {
             $this->assertEquals($errors->get($field)[0], "The ${fieldTitle} field is required.");
@@ -35,30 +35,35 @@ class CategoryTest extends BaseTest
 
     public function testACategoryCanHaveAssets()
     {
-       $category = Category::factory()->assetDesktopCategory();
-
-       // Generate 5 models via factory
-       $models =  AssetModel::factory()
+        $category = Category::factory()->assetDesktopCategory();
+        $status_label = Statuslabel::factory()->pending()->create();
+        $supplier = Supplier::factory()->create();
+        $location = Location::factory()->create();
+        // Generate 5 models via factory
+        $models =  AssetModel::factory()
             ->mbp13Model()
             ->count(5)
             ->create(
                 [
                     'category_id' => $category->id
                 ]
-        );
+            );
 
-        
+
 
         // Loop through the models and create 2 assets in each model
-       $models->each(function ($model) {
+        $models->each(function ($model) use ($status_label,$supplier,$location) {
             //dd($model);
             $asset = Asset::factory()
-            ->count(2)
-            ->create(
-                [
-                    'model_id' => $model->id,
-                ]
-            );
+                ->count(2)
+                ->create(
+                    [
+                        'model_id' => $model->id,
+                        'status_id' => $status_label->id,
+                        'supplier_id' => $supplier->id,
+                        'rtd_location_id' => $location->id
+                    ]
+                );
             //dd($asset);
         });
 

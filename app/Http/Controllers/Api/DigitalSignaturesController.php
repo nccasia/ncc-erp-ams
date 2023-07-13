@@ -36,7 +36,7 @@ class DigitalSignaturesController extends Controller
         $this->authorize('view', DigitalSignatures::class);
 
         $digital_signatures = DigitalSignatures::select('digital_signatures.*')
-            ->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
+            ->with('user', 'supplier', 'assignedUser', 'location', 'category', 'assetstatus');
 
         $offset = ($digital_signatures && ($request->get('offset') > $digital_signatures->count()))
             ? $digital_signatures->count()

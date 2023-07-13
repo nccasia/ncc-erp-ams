@@ -23,7 +23,7 @@ class DigitalSignaturesFactory extends Factory
             'assigned_status' => 0,
             'assigned_to' => null,
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get()),
-            'expiration_date' => $this->faker->dateTimeBetween('now', date_default_timezone_get()),
+            'expiration_date' => $this->faker->dateTimeBetween('now','now', date_default_timezone_get()),
             'purchase_cost' => $this->faker->randomFloat(2, '299.99', '2999.99'),
             'note'   => 'Created by DB seeder',
             'status_id' => 5,

@@ -111,11 +111,6 @@ class DigitalSignatures extends Model
         return $this->belongsTo(\App\Models\Location::class, 'location_id');
     }
 
-    public function tokenStatus()
-    {
-        return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
-    }
-
     /**
      * Sort signature by user.
      *
