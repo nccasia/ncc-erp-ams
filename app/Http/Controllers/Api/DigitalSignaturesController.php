@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\Helper;
+use App\Helpers\DateFormatter;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Request as RequestsRequest;
 use App\Http\Transformers\DigitalSignaturesTransformer;
@@ -111,7 +112,16 @@ class DigitalSignaturesController extends Controller
             });
         }
 
-        if (!empty($filter)) {
+        if ($request->filled('purchaseDateFrom', 'purchaseDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('purchaseDateFrom'), $request->input('purchaseDateTo'));
+            $digital_signatures->whereBetween('digital_signatures.purchase_date', [$filterByDate]);
+        }
+        if ($request->filled('expirationDateFrom', 'expirationDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('expirationDateFrom'), $request->input('expirationDateTo'));
+            $digital_signatures->whereBetween('digital_signatures.expiration_date', [$filterByDate]);
+        }
+
+        if ((! is_null($filter)) && (count($filter)) > 0) {
             $digital_signatures->ByFilter($filter);
         } elseif ($request->filled('search')) {
             $digital_signatures->TextSearch($request->input('search'));
