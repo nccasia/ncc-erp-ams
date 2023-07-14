@@ -14,9 +14,11 @@ class BlankOutLdapActiveFlag extends Migration
      */
     public function up()
     {
-        if ($s = Setting::getSettings()) {
-            $s->ldap_active_flag = '';
-            $s->save();
+        if(env('DB_CONNECTION') !== 'sqlite' && env('DB_CONNECTION') !== 'sqlite_testing') {
+            if ($s = Setting::getSettings()) {
+                $s->ldap_active_flag = '';
+                $s->save();
+            }
         }
     }
     

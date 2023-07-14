@@ -16,7 +16,7 @@ class UpdateAssetsAssignedStatus extends Migration
     {
         $accept_status = config('enum.assigned_status.ACCEPT');
         $sql = "
-            UPDATE assets a
+            UPDATE assets as a
             SET assigned_status = $accept_status
             WHERE EXISTS
                 (SELECT 1

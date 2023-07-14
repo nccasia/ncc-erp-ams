@@ -18,6 +18,7 @@ class CustomFieldTest extends BaseTest
     public function testConstructor()
     {
         $customfield = new CustomField();
+        $this->assertInstanceOf(CustomField::class,$customfield);
     }
 
     public function testFormat()
