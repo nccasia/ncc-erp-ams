@@ -254,7 +254,7 @@ class ToolController extends Controller
         }
         $target = User::find($request->get('assigned_to'));
 
-        $checkout_date = $request->get('checkout_date');
+        $checkout_date = $request->get('checkout_at');
         // $request->get('notes') ? $notes = $request->get('notes') : $notes = null;
         $tool->status_id = config('enum.status_id.ASSIGN');
         if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
@@ -622,9 +622,14 @@ class ToolController extends Controller
 
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
 
-        if ($request->filled('dateFrom', 'dateTo')) {
-            $filterByDate = DateFormatter::formatDate($request->input('dateFrom'), $request->input('dateTo'));
-            $tools->whereBetween('tools.created_at', [$filterByDate]);
+        if ($request->filled('purchaseDateFrom', 'purchaseDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('purchaseDateFrom'), $request->input('purchaseDateTo'));
+            $tools->whereBetween('tools.purchase_date', [$filterByDate]);
+        }
+
+        if ($request->filled('expirationDateFrom', 'expirationDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('expirationDateFrom'), $request->input('expirationDateTo'));
+            $tools->whereBetween('tools.expiration_date', [$filterByDate]);
         }
 
         $sort = $request->input('sort');

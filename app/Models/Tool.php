@@ -46,12 +46,14 @@ class Tool extends Model
         'qty',
         'location_id',
         'status_id',
+        'expiration_date'
     ];
 
     protected $searchableAttributes = [
         'name',
         'purchase_cost',
         'purchase_date',
+        'expiration_date',
         'notes',
         'qty',
     ];
@@ -60,6 +62,8 @@ class Tool extends Model
         'assetstatus'        => ['name'],
         'supplier'           => ['name'],
         'location'           => ['name'],
+        'category'           => ['name'],
+        'assignedUser'       => ['username']
     ];
 
     public function assetstatus()
@@ -237,12 +241,16 @@ class Tool extends Model
             $leftJoin->on('suppliers.id', '=', 'tools.supplier_id');
         });
 
+        $query = $query->leftJoin('users', function ($leftJoin) {
+            $leftJoin->on('users.id', '=', 'tools.assigned_to');
+        });
+
         foreach ($terms as $term) {
             $query = $query
                 ->where('tools_category.name', 'LIKE', '%' . $term . '%')
                 ->orwhere('suppliers.name', 'LIKE', '%' . $term . '%')
+                ->orwhere('users.username', 'LIKE', '%' . $term . '%')
                 ->orwhere('tools.name', 'LIKE', '%' . $term . '%')
-                ->orwhere('tools.version', 'LIKE', '%' . $term . '%')
                 ->orwhere('tools.id', '=', $term);
         }
         return $query;
