@@ -24,7 +24,9 @@ class NotificationTest extends BaseTest
     public function testAUserIsEmailedIfTheyCheckoutAnAssetWithEULA()
     {
 
-        $user = User::factory()->create();
+        $user = User::factory()->create([
+            'location_id' => Location::factory()->create()->id,
+        ]);
         $status_label = Statuslabel::factory()->readyToDeploy()->create();
         $supplier = Supplier::factory()->create();
         $location = Location::factory()->create();
