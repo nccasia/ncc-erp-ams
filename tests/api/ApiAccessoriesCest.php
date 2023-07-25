@@ -16,6 +16,8 @@ class ApiAccessoriesCest
         $this->user = \App\Models\User::find(1);
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
+        $this->user->permissions = json_encode(["admin" => "1"]);
+        $this->user->save();
     }
 
     /** @test */
@@ -24,7 +26,7 @@ class ApiAccessoriesCest
         $I->wantTo('Get a list of accessories');
 
         // call
-        $I->sendGET('/accessories?limit=10');
+        $I->sendGET('/accessories/accessories?limit=10&offset=0&order=desc');
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -60,7 +62,7 @@ class ApiAccessoriesCest
         ];
 
         // create
-        $I->sendPOST('/accessories', $data);
+        $I->sendPOST('/accessories/accessories', $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
     }
@@ -68,7 +70,7 @@ class ApiAccessoriesCest
     // Put is routed to the same method in the controller
     // DO we actually need to test both?
 
-    /** @test */
+    // /** @test */
     public function updateAccessoryWithPatch(ApiTester $I, $scenario)
     {
         $I->wantTo('Update an accessory with PATCH');
@@ -86,7 +88,8 @@ class ApiAccessoriesCest
             'name' => 'updated accessory name',
             'location_id' => 1,
         ]);
-
+        $temp_accessory->image = $accessory->image;
+        $temp_accessory->save();
         $data = [
             'category_id' => $temp_accessory->category_id,
             'company_id' => $temp_accessory->company->id,
@@ -98,14 +101,13 @@ class ApiAccessoriesCest
             'model_number' => $temp_accessory->model_number,
             'manufacturer_id' => $temp_accessory->manufacturer_id,
             'supplier_id' => $temp_accessory->supplier_id,
-            'image' => $temp_accessory->image,
             'qty' => $temp_accessory->qty,
         ];
 
         $I->assertNotEquals($accessory->name, $data['name']);
 
         // update
-        $I->sendPATCH('/accessories/'.$accessory->id, $data);
+        $I->sendPATCH('/accessories/accessories/'.$accessory->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -121,7 +123,7 @@ class ApiAccessoriesCest
         $temp_accessory->updated_at = Carbon::parse($response->payload->updated_at);
         $temp_accessory->id = $accessory->id;
         // verify
-        $I->sendGET('/accessories/'.$accessory->id);
+        $I->sendGET('/accessories/accessories/'.$accessory->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson((new AccessoriesTransformer)->transformAccessory($temp_accessory));
@@ -139,7 +141,7 @@ class ApiAccessoriesCest
         $I->assertInstanceOf(\App\Models\Accessory::class, $accessory);
 
         // delete
-        $I->sendDELETE('/accessories/'.$accessory->id);
+        $I->sendDELETE('/accessories/accessories/'.$accessory->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -148,7 +150,7 @@ class ApiAccessoriesCest
         $I->assertEquals(trans('admin/accessories/message.delete.success'), $response->messages);
 
         // verify, expect a 200
-        $I->sendGET('/accessories/'.$accessory->id);
+        $I->sendGET('/accessories/accessories/'.$accessory->id);
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
     }

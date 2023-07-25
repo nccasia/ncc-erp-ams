@@ -16,6 +16,8 @@ class ApiCategoriesCest
         $this->user = \App\Models\User::find(1);
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
+        $this->user->permissions = json_encode(["admin" => "1"]);
+        $this->user->save();
     }
 
     /** @test */
@@ -40,10 +42,14 @@ class ApiCategoriesCest
     {
         $I->wantTo('Create a new category');
 
-        $temp_category = \App\Models\Category::factory()->assetLaptopCategory()->make([
+        $temp_category = \App\Models\Category::factory()->make([
             'name' => 'Test Category Tag',
+            'category_type' => 'asset',
+            'require_acceptance' => true,
+            'checkin_email' => 1,
+            'use_default_eula' => true,
         ]);
-
+        // dd($temp_category);
         // setup
         $data = [
             'category_type' => $temp_category->category_type,
@@ -53,7 +59,6 @@ class ApiCategoriesCest
             'require_acceptance' => $temp_category->require_acceptance,
             'use_default_eula' => $temp_category->use_default_eula,
         ];
-
         // create
         $I->sendPOST('/categories', $data);
         $I->seeResponseIsJson();
@@ -69,14 +74,22 @@ class ApiCategoriesCest
         $I->wantTo('Update an category with PATCH');
 
         // create
-        $category = \App\Models\Category::factory()->assetLaptopCategory()
+        $category = \App\Models\Category::factory()
             ->create([
                 'name' => 'Original Category Name',
+                'category_type' => 'accessory',
+                'require_acceptance' => true,
+                'checkin_email' => 1,
+                'use_default_eula' => false,
         ]);
         $I->assertInstanceOf(\App\Models\Category::class, $category);
 
-        $temp_category = \App\Models\Category::factory()->accessoryMouseCategory()->make([
-            'name' => 'updated category name',
+        $temp_category = \App\Models\Category::factory()->make([
+            'name' => 'Updated Category name',
+            'category_type' => 'asset',
+            'require_acceptance' => true,
+            'checkin_email' => 1,
+            'use_default_eula' => true,
         ]);
 
         $data = [
@@ -119,8 +132,12 @@ class ApiCategoriesCest
         $I->wantTo('Delete an category');
 
         // create
-        $category = \App\Models\Category::factory()->assetLaptopCategory()->create([
+        $category = \App\Models\Category::factory()->create([
             'name' => 'Soon to be deleted',
+            'category_type' => 'asset',
+            'require_acceptance' => true,
+            'checkin_email' => 1,
+            'use_default_eula' => true,
         ]);
         $I->assertInstanceOf(\App\Models\Category::class, $category);
 

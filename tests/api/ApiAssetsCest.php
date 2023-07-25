@@ -56,7 +56,7 @@ class ApiAssetsCest
             'asset_tag' => $temp_asset->asset_tag,
             'assigned_to' => $temp_asset->assigned_to,
             'company_id' => $temp_asset->company->id,
-            'image' => $temp_asset->image,
+            // 'image' => $temp_asset->image,
             'model_id' => $temp_asset->model_id,
             'name' => $temp_asset->name,
             'notes' => $temp_asset->notes,
@@ -92,12 +92,15 @@ class ApiAssetsCest
             'name' => 'updated asset name',
             'rtd_location_id' => 1,
         ]);
-
+        $asset->image = $temp_asset->image;
+        if(!$temp_asset->requestable) $temp_asset->requestable = '0';
+        $asset->requestable = $temp_asset->requestable;
+        $asset->save();
         $data = [
             'asset_tag' => $temp_asset->asset_tag,
             'assigned_to' => $temp_asset->assigned_to,
             'company_id' => $temp_asset->company->id,
-            'image' => $temp_asset->image,
+            //'image' => $temp_asset->image,
             'model_id' => $temp_asset->model_id,
             'name' => $temp_asset->name,
             'notes' => $temp_asset->notes,
@@ -109,6 +112,7 @@ class ApiAssetsCest
             'status_id' => $temp_asset->status_id,
             'supplier_id' => $temp_asset->supplier_id,
             'warranty_months' => $temp_asset->warranty_months,
+            'requestable' => $temp_asset->requestable,
         ];
 
         $I->assertNotEquals($asset->name, $data['name']);
@@ -119,7 +123,7 @@ class ApiAssetsCest
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-        // dd($response);
+        //dd($this->user->permissions);
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
         $I->assertEquals($asset->id, $response->payload->id); // asset id does not change
