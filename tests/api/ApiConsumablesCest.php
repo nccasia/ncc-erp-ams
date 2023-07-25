@@ -29,6 +29,7 @@ class ApiConsumablesCest
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse(), true);
+
         // sample verify
         $consumable = App\Models\Consumable::orderByDesc('created_at')->take(10)->get()->shuffle()->first();
 

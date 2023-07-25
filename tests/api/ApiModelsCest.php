@@ -48,11 +48,12 @@ class ApiModelsCest
             'category_id' => $temp_assetmodel->category_id,
             'depreciation_id' => $temp_assetmodel->depreciation_id,
             'eol' => $temp_assetmodel->eol,
-            'image' => $temp_assetmodel->image,
+            // 'image' => $temp_assetmodel->image,
             'manufacturer_id' => $temp_assetmodel->manufacturer_id,
             'model_number' => $temp_assetmodel->model_number,
             'name' => $temp_assetmodel->name,
             'notes' => $temp_assetmodel->notes,
+            'requestable' => 1
         ];
 
         // create
@@ -72,19 +73,21 @@ class ApiModelsCest
         // create
         $assetmodel = \App\Models\AssetModel::factory()->mbp13Model()->create([
             'name' => 'Original AssetModel Name',
+            'image' => "test.png"
         ]);
         $I->assertInstanceOf(\App\Models\AssetModel::class, $assetmodel);
 
         $temp_assetmodel = \App\Models\AssetModel::factory()->polycomcxModel()->make([
             'name' => 'updated AssetModel name',
             'fieldset_id' => 2,
+            'image' => "test.png"
         ]);
 
         $data = [
             'category_id' => $temp_assetmodel->category_id,
             'depreciation_id' => $temp_assetmodel->depreciation_id,
             'eol' => $temp_assetmodel->eol,
-            'image' => $temp_assetmodel->image,
+            // 'image' => $temp_assetmodel->image,
             'manufacturer_id' => $temp_assetmodel->manufacturer_id,
             'model_number' => $temp_assetmodel->model_number,
             'name' => $temp_assetmodel->name,

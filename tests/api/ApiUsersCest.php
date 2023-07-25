@@ -46,7 +46,7 @@ class ApiUsersCest
             'name' => 'Test User Name',
         ]);
         Group::factory()->count(2)->create();
-        $groups = Group::pluck('id');
+        $groups = Group::pluck('id')->toArray();
         // setup
         $data = [
             'activated' => $temp_user->activated,
@@ -77,7 +77,7 @@ class ApiUsersCest
         $I->sendPOST('/users', $data);
         $I->seeResponseIsJson();
         $user = User::where('username', $temp_user->username)->first();
-        $I->assertEquals($groups, $user->groups()->pluck('id'));
+        $I->assertEquals($groups, $user->groups()->pluck('id')->toArray());
         $I->seeResponseCodeIs(200);
     }
 
@@ -104,7 +104,7 @@ class ApiUsersCest
         ]);
 
         Group::factory()->count(2)->create();
-        $groups = Group::pluck('id');
+        $groups = Group::pluck('id')->toArray();
 
         $data = [
             'activated' => $temp_user->activated,
@@ -146,7 +146,7 @@ class ApiUsersCest
         $I->assertEquals($temp_user->first_name, $response->payload->first_name); // user name updated
         $I->assertEquals($temp_user->location_id, $response->payload->location->id); // user location_id updated
         $newUser = User::where('username', $temp_user->username)->first();
-        $I->assertEquals($groups, $newUser->groups()->pluck('id'));
+        $I->assertEquals($groups, $newUser->groups()->pluck('id')->toArray());
         $temp_user->created_at = Carbon::parse($response->payload->created_at->datetime);
         $temp_user->updated_at = Carbon::parse($response->payload->updated_at->datetime);
         $temp_user->id = $user->id;

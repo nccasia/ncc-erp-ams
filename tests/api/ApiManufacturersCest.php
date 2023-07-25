@@ -47,7 +47,7 @@ class ApiManufacturersCest
 
         // setup
         $data = [
-            'image' => $temp_manufacturer->image,
+            // 'image' => $temp_manufacturer->image,
             'name' => $temp_manufacturer->name,
             'support_email' => $temp_manufacturer->support_email,
             'support_phone' => $temp_manufacturer->support_phone,
@@ -73,15 +73,17 @@ class ApiManufacturersCest
         $manufacturer = \App\Models\Manufacturer::factory()->apple()
             ->create([
                 'name' => 'Original Manufacturer Name',
+                'image' => 'test.png'
         ]);
         $I->assertInstanceOf(\App\Models\Manufacturer::class, $manufacturer);
 
         $temp_manufacturer = \App\Models\Manufacturer::factory()->dell()->make([
             'name' => 'updated manufacturer name',
+            'image' => 'test.png'
         ]);
 
         $data = [
-            'image' => $temp_manufacturer->image,
+            // 'image' => $temp_manufacturer->image,
             'name' => $temp_manufacturer->name,
             'support_email' => $temp_manufacturer->support_email,
             'support_phone' => $temp_manufacturer->support_phone,

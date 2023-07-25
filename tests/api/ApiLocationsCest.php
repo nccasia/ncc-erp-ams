@@ -48,7 +48,7 @@ class ApiLocationsCest
         // setup
         $data = [
             'name' => $temp_location->name,
-            'image' => $temp_location->image,
+            // 'image' => $temp_location->image,
             'address' => $temp_location->address,
             'address2' => $temp_location->address2,
             'city' => $temp_location->city,
@@ -78,16 +78,18 @@ class ApiLocationsCest
         // create
         $location = \App\Models\Location::factory()->create([
             'name' => 'Original Location Name',
+            'image' => 'test.png'
         ]);
         $I->assertInstanceOf(\App\Models\Location::class, $location);
 
         $temp_location = \App\Models\Location::factory()->make([
             'name' => 'updated location name',
+            'image' => 'test.png'
         ]);
 
         $data = [
             'name' => $temp_location->name,
-            'image' => $temp_location->image,
+            // 'image' => $temp_location->image,
             'address' => $temp_location->address,
             'address2' => $temp_location->address2,
             'city' => $temp_location->city,

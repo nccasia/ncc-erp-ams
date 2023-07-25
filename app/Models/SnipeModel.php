@@ -195,7 +195,9 @@ class SnipeModel extends Model
             return $query;
         }
         $manager_location = json_decode($user->manager_location, true);
-        return $query->whereIn('consumables.location_id', $manager_location);
+        return $query->when($manager_location, function ($query) use ($manager_location) {
+            return $query->whereIn('consumables.location_id', $manager_location);
+        });
     }
 
     /**
@@ -209,7 +211,9 @@ class SnipeModel extends Model
         }
         $manager_location = json_decode($user->manager_location, true);
         return $query->join('assets as assets_report', 'action_logs.item_id', '=', 'assets_report.id')
-            ->whereIn('assets_report.rtd_location_id', $manager_location);
+            ->when($manager_location, function ($query) use ($manager_location) {
+                return $query->whereIn('assets_report.rtd_location_id', $manager_location);
+            });
     }
 
 }

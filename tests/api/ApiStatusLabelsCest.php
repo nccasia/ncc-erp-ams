@@ -70,14 +70,15 @@ class ApiStatusLabelsCest
         $I->wantTo('Update an statuslabel with PATCH');
 
         // create
-        $statuslabel = \App\Models\Statuslabel::factory()->rtd()->create([
+        $statuslabel = \App\Models\Statuslabel::factory()->readyToDeploy()->create([
             'name' => 'Original Statuslabel Name',
+            'id' => 98
         ]);
         $I->assertInstanceOf(\App\Models\Statuslabel::class, $statuslabel);
-
         $temp_statuslabel = \App\Models\Statuslabel::factory()->pending()->make([
             'name' => 'updated statuslabel name',
             'type' => 'pending',
+            'id' => 99
         ]);
 
         $data = [
@@ -87,11 +88,13 @@ class ApiStatusLabelsCest
             'notes' => $temp_statuslabel->notes,
             'pending' => $temp_statuslabel->pending,
             'type' => $temp_statuslabel->type,
+            'default_label' => $temp_statuslabel->default_label
         ];
 
         $I->assertNotEquals($statuslabel->name, $data['name']);
 
         // update
+
         $I->sendPATCH('/statuslabels/'.$statuslabel->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
