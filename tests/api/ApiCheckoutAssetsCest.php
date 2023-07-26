@@ -31,7 +31,6 @@ class ApiCheckoutAssetsCest
     {
         $I->wantTo('Check out an asset to a user');
         //Grab an asset from the database that isn't checked out.
-        // $asset = Asset::whereNull('assigned_to')->first();
         $asset = Asset::factory()->laptopAir()->create([
             'rtd_location_id' => Location::factory()->create()->id,
             'supplier_id' => Supplier::factory()->create()->id,

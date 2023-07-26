@@ -60,7 +60,6 @@ class ApiAssetsCest
             'asset_tag' => $temp_asset->asset_tag,
             'assigned_to' => $temp_asset->assigned_to,
             'company_id' => $temp_asset->company->id,
-            // 'image' => $temp_asset->image,
             'model_id' => $temp_asset->model_id,
             'name' => $temp_asset->name,
             'notes' => $temp_asset->notes,
@@ -104,7 +103,6 @@ class ApiAssetsCest
             'asset_tag' => $temp_asset->asset_tag,
             'assigned_to' => $temp_asset->assigned_to,
             'company_id' => $temp_asset->company->id,
-            //'image' => $temp_asset->image,
             'model_id' => $temp_asset->model_id,
             'name' => $temp_asset->name,
             'notes' => $temp_asset->notes,
@@ -127,7 +125,6 @@ class ApiAssetsCest
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-        //dd($this->user->permissions);
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
         $I->assertEquals($asset->id, $response->payload->id); // asset id does not change
