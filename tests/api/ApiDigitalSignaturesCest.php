@@ -97,13 +97,12 @@ class ApiDigitalSignaturesCest
         $I->assertNotEquals($digital_signature->name, $data['name']);
 
         // update
-        // dd($digital_signature);
         $I->sendPut('/digital_signatures/'.$digital_signature->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-        // dd($temp->name,$digital_signature->name);
+
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/digital_signatures/message.update.success'), $response->messages);
         $I->assertEquals($digital_signature->id, $response->payload->id);
