@@ -38,7 +38,7 @@ class ApiAccessoriesCest
 
         $response = json_decode($I->grabResponse(), true);
         // sample verify
-        $accessory = App\Models\Accessory::orderByDesc('created_at')->take(10)->get()->shuffle()->first();
+        $accessory = Accessory::orderByDesc('created_at')->take(10)->get()->shuffle()->first();
         $I->seeResponseContainsJson($I->removeTimestamps((new AccessoriesTransformer)->transformAccessory($accessory)));
     }
 
