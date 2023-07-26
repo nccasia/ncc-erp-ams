@@ -3,8 +3,12 @@
 use App\Exceptions\CheckoutNotAllowed;
 use App\Helpers\Helper;
 use App\Models\Asset;
+use App\Models\Location;
 use App\Models\Setting;
 use App\Models\Statuslabel;
+use App\Models\Supplier;
+use App\Models\User;
+use Faker\Factory;
 use Illuminate\Support\Facades\Auth;
 
 class ApiCheckoutAssetsCest
@@ -15,7 +19,8 @@ class ApiCheckoutAssetsCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->faker = Factory::create();
+        $this->user = User::factory()->create();
         $I->amBearerAuthenticated($I->getToken($this->user));
         $this->user->permissions = json_encode(["admin" => "1"]);
         $this->user->save();
@@ -26,16 +31,21 @@ class ApiCheckoutAssetsCest
     {
         $I->wantTo('Check out an asset to a user');
         //Grab an asset from the database that isn't checked out.
-        $asset = Asset::whereNull('assigned_to')->first();
-        $asset->assigned_status = 0;
-        $asset->status_id = 0;
+        // $asset = Asset::whereNull('assigned_to')->first();
+        $asset = Asset::factory()->laptopAir()->create([
+            'rtd_location_id' => Location::factory()->create()->id,
+            'supplier_id' => Supplier::factory()->create()->id,
+            'user_id' => $this->user->id,
+            'assigned_status' => 0,
+            'status_id' => 5,
+        ]);
         $asset->save();
-        $targetUser = \App\Models\User::factory()->create();
+        $targetUser = User::factory()->create();
         $data = [
             'assigned_user' => $targetUser->id,
-            'note' => 'This is a test checkout note',
+            'note' => $this->faker->paragraph(),
             'expected_checkin' => '2018-05-24',
-            'name' => 'Updated Asset Name',
+            'name' => $this->faker->name(),
             'checkout_to_type' => 'user',
         ];
         $response = $I->sendPOST("/hardware/{$asset->id}/checkout", $data);
@@ -131,8 +141,14 @@ class ApiCheckoutAssetsCest
     public function checkinAsset(ApiTester $I)
     {
         $I->wantTo('Checkin an asset that is currently checked out');
-
-        $asset = Asset::whereNotNull('assigned_to')->first();
+        $userTarget = User::factory()->create();
+        $asset = Asset::factory()->laptopAir()->create([
+            'rtd_location_id' => Location::factory()->create()->id,
+            'supplier_id' => Supplier::factory()->create()->id,
+            'user_id' => $this->user->id,
+            'assigned_to' => $userTarget->id,
+            'assigned_type'=> 'App\Models\User',
+        ]);
 
         $I->sendPOST("/hardware/{$asset->id}/checkin", [
             'note' => 'Checkin Note',

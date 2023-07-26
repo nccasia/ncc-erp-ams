@@ -3,17 +3,23 @@
 use App\Helpers\Helper;
 use App\Http\Transformers\AccessoriesTransformer;
 use App\Models\Accessory;
+use App\Models\Company;
+use App\Models\Location;
 use App\Models\Setting;
+use App\Models\User;
+use Faker\Factory;
 use Illuminate\Support\Facades\Auth;
 
 class ApiAccessoriesCest
 {
+    protected $faker;
     protected $user;
     protected $timeFormat;
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->faker = Factory::create();
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
         $this->user->permissions = json_encode(["admin" => "1"]);
@@ -41,9 +47,9 @@ class ApiAccessoriesCest
     {
         $I->wantTo('Create a new accessory');
 
-        $temp_accessory = \App\Models\Accessory::factory()->appleBtKeyboard()->make([
-            'name' => 'Test Accessory Name',
-            'company_id' => 2,
+        $temp_accessory = Accessory::factory()->appleBtKeyboard()->make([
+            'name' => $this->faker->name(),
+            'company_id' => Company::factory()->create()->id,
         ]);
 
         // setup
@@ -76,20 +82,19 @@ class ApiAccessoriesCest
         $I->wantTo('Update an accessory with PATCH');
 
         // create
-        $accessory = \App\Models\Accessory::factory()->appleBtKeyboard()->create([
-            'name' => 'Original Accessory Name',
-            'company_id' => 2,
-            'location_id' => 3,
+        $accessory = Accessory::factory()->appleBtKeyboard()->create([
+            'name' => $this->faker->name(),
+            'company_id' => Company::factory()->create()->id,
+            'location_id' => Location::factory()->create()->id,
         ]);
-        $I->assertInstanceOf(\App\Models\Accessory::class, $accessory);
+        $I->assertInstanceOf(Accessory::class, $accessory);
 
-        $temp_accessory = \App\Models\Accessory::factory()->microsoftMouse()->make([
-            'company_id' => 3,
-            'name' => 'updated accessory name',
-            'location_id' => 1,
+        $temp_accessory = Accessory::factory()->microsoftMouse()->make([
+            'company_id' => Company::factory()->create()->id,
+            'name' => $this->faker->name(),
+            'location_id' => Location::factory()->create()->id,
+            'image' => $accessory->image,
         ]);
-        $temp_accessory->image = $accessory->image;
-        $temp_accessory->save();
         $data = [
             'category_id' => $temp_accessory->category_id,
             'company_id' => $temp_accessory->company->id,
@@ -135,10 +140,10 @@ class ApiAccessoriesCest
         $I->wantTo('Delete an accessory');
 
         // create
-        $accessory = \App\Models\Accessory::factory()->appleBtKeyboard()->create([
+        $accessory = Accessory::factory()->appleBtKeyboard()->create([
             'name' => 'Soon to be deleted',
         ]);
-        $I->assertInstanceOf(\App\Models\Accessory::class, $accessory);
+        $I->assertInstanceOf(Accessory::class, $accessory);
 
         // delete
         $I->sendDELETE('/accessories/accessories/'.$accessory->id);
