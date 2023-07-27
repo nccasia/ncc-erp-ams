@@ -58,9 +58,6 @@ class ApiManufacturersCest
         $I->seeResponseCodeIs(200);
     }
 
-    // Put is routed to the same method in the controller
-    // DO we actually need to test both?
-
     /** @test */
     public function updateManufacturerWithPatch(ApiTester $I, $scenario)
     {

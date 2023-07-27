@@ -91,9 +91,6 @@ class ApiUsersCest
         $I->seeResponseCodeIs(200);
     }
 
-    // Put is routed to the same method in the controller
-    // DO we actually need to test both?
-
     /** @test */
     public function updateUserWithPatch(ApiTester $I, $scenario)
     {
@@ -188,7 +185,7 @@ class ApiUsersCest
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-        // dd($response);
+
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/users/message.success.delete'), $response->messages);
 

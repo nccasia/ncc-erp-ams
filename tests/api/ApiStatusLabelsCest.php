@@ -58,9 +58,6 @@ class ApiStatusLabelsCest
         $I->seeResponseCodeIs(200);
     }
 
-    // Put is routed to the same method in the controller
-    // DO we actually need to test both?
-
     /** @test */
     public function updateStatuslabelWithPatch(ApiTester $I, $scenario)
     {
@@ -97,7 +94,7 @@ class ApiStatusLabelsCest
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-        // dd($response);
+
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/statuslabels/message.update.success'), $response->messages);
         $I->assertEquals($statuslabel->id, $response->payload->id); // statuslabel id does not change

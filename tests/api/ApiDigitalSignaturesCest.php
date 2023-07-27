@@ -8,7 +8,6 @@ use App\Models\Setting;
 use App\Models\Supplier;
 use App\Models\User;
 use Faker\Factory;
-use Illuminate\Support\Facades\DB;
 
 class ApiDigitalSignaturesCest
 {
@@ -141,7 +140,7 @@ class ApiDigitalSignaturesCest
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/digital_signatures/message.delete.success'), $response->messages);
 
-        // verify, expect a 200
+        // verify, expect a 404
         $I->sendGET('/digital_signatures/' . $digital_signature->id);
         $I->seeResponseCodeIs(404);
     }

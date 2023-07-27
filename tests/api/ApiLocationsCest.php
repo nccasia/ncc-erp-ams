@@ -63,9 +63,6 @@ class ApiLocationsCest
         $I->seeResponseCodeIs(200);
     }
 
-    // Put is routed to the same method in the controller
-    // DO we actually need to test both?
-
     /** @test */
     public function updateLocationWithPatch(ApiTester $I, $scenario)
     {
