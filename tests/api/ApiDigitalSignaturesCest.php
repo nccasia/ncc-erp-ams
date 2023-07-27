@@ -1,9 +1,14 @@
 <?php
 
 use App\Http\Transformers\DigitalSignaturesTransformer;
+use App\Models\Category;
 use App\Models\DigitalSignatures;
+use App\Models\Location;
 use App\Models\Setting;
 use App\Models\Supplier;
+use App\Models\User;
+use Faker\Factory;
+use Illuminate\Support\Facades\DB;
 
 class ApiDigitalSignaturesCest
 {
@@ -14,8 +19,8 @@ class ApiDigitalSignaturesCest
 
     public function _before(ApiTester $I)
     {
-        $this->faker = \Faker\Factory::create();
-        $this->user = \App\Models\User::find(1);
+        $this->faker = Factory::create();
+        $this->user = User::factory()->create();
         Setting::getSettings()->time_display_format = 'H:i';
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -34,7 +39,8 @@ class ApiDigitalSignaturesCest
     public function createDigitalSignature(ApiTester $I, $scenario)
     {
         $I->wantTo('Create a new digital signature');
-
+        $category = Category::factory()->create(['category_type' => 'accessory']);
+        $location = Location::factory()->create();
         // setup
         $data = [
             'name' => $this->faker->name(),
@@ -44,13 +50,13 @@ class ApiDigitalSignaturesCest
             'assigned_status' => 0,
             'assigned_to' => null,
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
-            'expiration_date' => $this->faker->dateTimeBetween('now','now', date_default_timezone_get())->format('Y-m-d H:i:s'),
+            'expiration_date' => $this->faker->dateTimeBetween('now', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
             'purchase_cost' => $this->faker->randomFloat(2, '299.99', '2999.99'),
             'note'   => 'Created by DB seeder',
             'status_id' => 5,
-            'category_id' => 19,
+            'category_id' => $category->id,
             'qty' => $this->faker->numberBetween(5, 10),
-            'location_id' => 1,
+            'location_id' => $location->id,
             'warranty_months' => $this->faker->numberBetween(5, 10)
         ];
 
@@ -69,12 +75,13 @@ class ApiDigitalSignaturesCest
             'qty' => 2
         ]);
         $I->assertInstanceOf(DigitalSignatures::class, $digital_signature);
-
+        $category = Category::factory()->create(['category_type' => 'accessory']);
+        $location = Location::factory()->create();
         $temp = DigitalSignatures::factory()->create([
             'name' => 'Test update',
-            'location_id' => 2,
-            'category_id' => 2,
-            'qty' => 2
+            'qty' => $this->faker->numberBetween(5, 10),
+            'location_id' => $location->id,
+            'category_id' => $category->id
         ]);
 
         $data = [
@@ -89,7 +96,7 @@ class ApiDigitalSignaturesCest
             'note'   => $temp->note,
             'status_id' => $temp->status_id,
             'category_id' => $temp->category_id,
-            'qty' => $temp->category_id,
+            'qty' => $temp->qty,
             'location_id' => $temp->location_id,
             'warranty_months' => $temp->warranty_months
         ];
@@ -97,22 +104,21 @@ class ApiDigitalSignaturesCest
         $I->assertNotEquals($digital_signature->name, $data['name']);
 
         // update
-        // dd($digital_signature);
-        $I->sendPut('/digital_signatures/'.$digital_signature->id, $data);
+        $I->sendPut('/digital_signatures/' . $digital_signature->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-        // dd($temp->name,$digital_signature->name);
+
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/digital_signatures/message.update.success'), $response->messages);
         $I->assertEquals($digital_signature->id, $response->payload->id);
-        $I->assertEquals($temp->name, $response->payload->name); 
+        $I->assertEquals($temp->name, $response->payload->name);
         $temp->id = $digital_signature->id;
         $temp->seri = $digital_signature->seri;
 
         // verify
-        $I->sendGET('/digital_signatures/'.$digital_signature->id);
+        $I->sendGET('/digital_signatures/' . $digital_signature->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson((new DigitalSignaturesTransformer)->transformSignature($temp));
@@ -127,7 +133,7 @@ class ApiDigitalSignaturesCest
         $I->assertInstanceOf(DigitalSignatures::class, $digital_signature);
 
         // delete
-        $I->sendDELETE('/digital_signatures/'.$digital_signature->id);
+        $I->sendDELETE('/digital_signatures/' . $digital_signature->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -136,7 +142,7 @@ class ApiDigitalSignaturesCest
         $I->assertEquals(trans('admin/digital_signatures/message.delete.success'), $response->messages);
 
         // verify, expect a 200
-        $I->sendGET('/digital_signatures/'.$digital_signature->id);
+        $I->sendGET('/digital_signatures/' . $digital_signature->id);
         $I->seeResponseCodeIs(404);
     }
 }

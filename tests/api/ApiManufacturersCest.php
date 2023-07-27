@@ -1,10 +1,8 @@
 <?php
 
-use App\Helpers\Helper;
 use App\Http\Transformers\ManufacturersTransformer;
 use App\Models\Manufacturer;
-use App\Models\Setting;
-use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class ApiManufacturersCest
 {
@@ -13,7 +11,7 @@ class ApiManufacturersCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -30,7 +28,7 @@ class ApiManufacturersCest
 
         $response = json_decode($I->grabResponse(), true);
         // sample verify
-        $manufacturer = App\Models\Manufacturer::withCount('assets as assets_count', 'accessories as accessories_count', 'consumables as consumables_count', 'licenses as licenses_count')
+        $manufacturer = Manufacturer::withCount('assets as assets_count', 'accessories as accessories_count', 'consumables as consumables_count', 'licenses as licenses_count')
             ->orderByDesc('created_at')->take(10)->get()->shuffle()->first();
 
         $I->seeResponseContainsJson($I->removeTimestamps((new ManufacturersTransformer)->transformManufacturer($manufacturer)));
@@ -41,13 +39,12 @@ class ApiManufacturersCest
     {
         $I->wantTo('Create a new manufacturer');
 
-        $temp_manufacturer = \App\Models\Manufacturer::factory()->apple()->make([
+        $temp_manufacturer = Manufacturer::factory()->apple()->make([
             'name' => 'Test Manufacturer Tag',
         ]);
 
         // setup
         $data = [
-            // 'image' => $temp_manufacturer->image,
             'name' => $temp_manufacturer->name,
             'support_email' => $temp_manufacturer->support_email,
             'support_phone' => $temp_manufacturer->support_phone,
@@ -70,20 +67,17 @@ class ApiManufacturersCest
         $I->wantTo('Update an manufacturer with PATCH');
 
         // create
-        $manufacturer = \App\Models\Manufacturer::factory()->apple()
+        $manufacturer = Manufacturer::factory()->apple()
             ->create([
                 'name' => 'Original Manufacturer Name',
-                'image' => 'test.png'
         ]);
-        $I->assertInstanceOf(\App\Models\Manufacturer::class, $manufacturer);
+        $I->assertInstanceOf(Manufacturer::class, $manufacturer);
 
-        $temp_manufacturer = \App\Models\Manufacturer::factory()->dell()->make([
+        $temp_manufacturer = Manufacturer::factory()->apple()->make([
             'name' => 'updated manufacturer name',
-            'image' => 'test.png'
         ]);
 
         $data = [
-            // 'image' => $temp_manufacturer->image,
             'name' => $temp_manufacturer->name,
             'support_email' => $temp_manufacturer->support_email,
             'support_phone' => $temp_manufacturer->support_phone,
@@ -122,10 +116,10 @@ class ApiManufacturersCest
         $I->wantTo('Delete an manufacturer');
 
         // create
-        $manufacturer = \App\Models\Manufacturer::factory()->apple()->create([
+        $manufacturer = Manufacturer::factory()->apple()->create([
             'name' => 'Soon to be deleted',
         ]);
-        $I->assertInstanceOf(\App\Models\Manufacturer::class, $manufacturer);
+        $I->assertInstanceOf(Manufacturer::class, $manufacturer);
 
         // delete
         $I->sendDELETE('/manufacturers/'.$manufacturer->id);

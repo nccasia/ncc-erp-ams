@@ -1,11 +1,13 @@
 <?php
 
-use App\Helpers\Helper;
 use App\Http\Transformers\UsersTransformer;
+use App\Models\Asset;
+use App\Models\AssetModel;
+use App\Models\Company;
+use App\Models\Department;
 use App\Models\Group;
-use App\Models\Setting;
+use App\Models\Location;
 use App\Models\User;
-use Illuminate\Support\Facades\Auth;
 
 class ApiUsersCest
 {
@@ -14,7 +16,7 @@ class ApiUsersCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -31,7 +33,7 @@ class ApiUsersCest
 
         $response = json_decode($I->grabResponse(), true);
         // sample verify
-        $user = App\Models\User::orderByDesc('created_at')
+        $user = User::orderByDesc('created_at')
             ->withCount('assets as assets_count', 'licenses as licenses_count', 'accessories as accessories_count', 'consumables as consumables_count')
             ->take(10)->get()->shuffle()->first();
         $I->seeResponseContainsJson($I->removeTimestamps((new UsersTransformer)->transformUser($user)));
@@ -42,8 +44,16 @@ class ApiUsersCest
     {
         $I->wantTo('Create a new user');
 
-        $temp_user = \App\Models\User::factory()->make([
+        $company = Company::factory()->create();
+        $department = Department::factory()->create();
+        $location = Location::factory()->create();
+        $manager = User::factory()->create();
+        $temp_user = User::factory()->make([
             'name' => 'Test User Name',
+            'company_id' => $company->id,
+            'department_id' => $department->id,
+            'location_id' => $location->id,
+            'manager_id' => $manager->id
         ]);
         Group::factory()->count(2)->create();
         $groups = Group::pluck('id')->toArray();
@@ -90,17 +100,21 @@ class ApiUsersCest
         $I->wantTo('Update an user with PATCH');
 
         // create
-        $user = \App\Models\User::factory()->create([
+        $user = User::factory()->create([
             'first_name' => 'Original User Name',
-            'company_id' => 2,
-            'location_id' => 3,
         ]);
-        $I->assertInstanceOf(\App\Models\User::class, $user);
+        $I->assertInstanceOf(User::class, $user);
 
-        $temp_user = \App\Models\User::factory()->make([
-            'company_id' => 3,
-            'first_name' => 'updated user name',
-            'location_id' => 1,
+        $company = Company::factory()->create();
+        $department = Department::factory()->create();
+        $location = Location::factory()->create();
+        $manager = User::factory()->create();
+        $temp_user = User::factory()->make([
+            'name' => 'Test User Name',
+            'company_id' => $company->id,
+            'department_id' => $department->id,
+            'location_id' => $location->id,
+            'manager_id' => $manager->id
         ]);
 
         Group::factory()->count(2)->create();
@@ -163,10 +177,10 @@ class ApiUsersCest
         $I->wantTo('Delete an user');
 
         // create
-        $user = \App\Models\User::factory()->create([
+        $user = User::factory()->create([
             'first_name' => 'Soon to be deleted',
         ]);
-        $I->assertInstanceOf(\App\Models\User::class, $user);
+        $I->assertInstanceOf(User::class, $user);
 
         // delete
         $I->sendDELETE('/users/'.$user->id);
@@ -190,10 +204,15 @@ class ApiUsersCest
     {
         $I->wantTo('Fetch assets for a user');
 
-        $user = User::has('assets')->first();
-        $asset = $user->assets->shuffle()->first();
+        $user = User::factory()->create();
+        $model = AssetModel::factory()->mbp13Model()->create();
+        $asset = Asset::factory()->create([
+            'assigned_to' => $user->id,
+            'assigned_type' => User::class,
+            'model_id' => $model->id
+        ]);
+
         $I->sendGET("/users/{$user->id}/assets");
-        $response = json_decode($I->grabResponse());
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
 

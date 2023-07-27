@@ -1,10 +1,12 @@
 <?php
 
-use App\Helpers\Helper;
 use App\Http\Transformers\LicensesTransformer;
+use App\Models\Category;
+use App\Models\Company;
+use App\Models\Depreciation;
 use App\Models\License;
-use App\Models\Setting;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Location;
+use App\Models\User;
 
 class ApiLicensesCest
 {
@@ -13,7 +15,7 @@ class ApiLicensesCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -30,7 +32,7 @@ class ApiLicensesCest
 
         $response = json_decode($I->grabResponse(), true);
         // sample verify
-        $license = App\Models\License::orderByDesc('created_at')
+        $license = License::orderByDesc('created_at')
             ->withCount('freeSeats as free_seats_count')
             ->take(10)->get()->shuffle()->first();
         $I->seeResponseContainsJson($I->removeTimestamps((new LicensesTransformer)->transformLicense($license)));
@@ -40,11 +42,16 @@ class ApiLicensesCest
     public function createLicense(ApiTester $I, $scenario)
     {
         $I->wantTo('Create a new license');
-
-        $temp_license = \App\Models\License::factory()->acrobat()->make([
+        $category = Category::factory()->create(['category_type' => 'accessory']);
+        $location = Location::factory()->create();
+        $depreciation = Depreciation::factory()->create();
+        $company = Company::factory()->create();
+        $temp_license = License::factory()->acrobat()->make([
             'name' => 'Test License Name',
-            'depreciation_id' => 3,
-            'company_id' => 2,
+            'depreciation_id' => $depreciation->id,
+            'company_id' => $company->id,
+            'location_id' => $location->id,
+            'category_id' => $category->id
         ]);
 
         // setup
@@ -84,16 +91,25 @@ class ApiLicensesCest
         $I->wantTo('Update a license with PATCH');
 
         // create
-        $license = \App\Models\License::factory()->acrobat()->create([
+        $depreciation = Depreciation::factory()->create();
+        $company = Company::factory()->create();
+        $license = License::factory()->acrobat()->create([
             'name' => 'Original License Name',
-            'depreciation_id' => 3,
-            'company_id' => 2,
+            'depreciation_id' => $depreciation->id,
+            'company_id' => $company->id
         ]);
-        $I->assertInstanceOf(\App\Models\License::class, $license);
+        $I->assertInstanceOf(License::class, $license);
 
-        $temp_license = \App\Models\License::factory()->office()->make([
-            'company_id' => 3,
-            'depreciation_id' => 2,
+        $category = Category::factory()->create(['category_type' => 'accessory']);
+        $location = Location::factory()->create();
+        $depreciation = Depreciation::factory()->create();
+        $company = Company::factory()->create();
+        $temp_license = License::factory()->acrobat()->make([
+            'name' => 'Test License Name',
+            'depreciation_id' => $depreciation->id,
+            'company_id' => $company->id,
+            'location_id' => $location->id,
+            'category_id' => $category->id
         ]);
 
         $data = [
@@ -147,13 +163,13 @@ class ApiLicensesCest
         $I->wantTo('Ensure a license with seats checked out cannot be deleted');
 
         // create
-        $license = \App\Models\License::factory()->acrobat()->create([
+        $license = License::factory()->acrobat()->create([
             'name' => 'Soon to be deleted',
         ]);
         $licenseSeat = $license->freeSeat();
         $licenseSeat->assigned_to = $this->user->id;
         $licenseSeat->save();
-        $I->assertInstanceOf(\App\Models\License::class, $license);
+        $I->assertInstanceOf(License::class, $license);
 
         // delete
         $I->sendDELETE('/licenses/'.$license->id);

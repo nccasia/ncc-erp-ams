@@ -1,10 +1,8 @@
 <?php
 
-use App\Helpers\Helper;
 use App\Http\Transformers\LocationsTransformer;
 use App\Models\Location;
-use App\Models\Setting;
-use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class ApiLocationsCest
 {
@@ -13,7 +11,7 @@ class ApiLocationsCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -30,7 +28,7 @@ class ApiLocationsCest
 
         $response = json_decode($I->grabResponse(), true);
         // sample verify
-        $location = App\Models\Location::orderByDesc('created_at')
+        $location = Location::orderByDesc('created_at')
             ->withCount('assignedAssets as assigned_assets_count', 'assets as assets_count', 'users as users_count')
             ->take(10)->get()->shuffle()->first();
         $I->seeResponseContainsJson($I->removeTimestamps((new LocationsTransformer)->transformLocation($location)));
@@ -41,21 +39,19 @@ class ApiLocationsCest
     {
         $I->wantTo('Create a new location');
 
-        $temp_location = \App\Models\Location::factory()->make([
+        $temp_location = Location::factory()->make([
             'name' => 'Test Location Tag',
         ]);
 
         // setup
         $data = [
             'name' => $temp_location->name,
-            // 'image' => $temp_location->image,
             'address' => $temp_location->address,
             'address2' => $temp_location->address2,
             'city' => $temp_location->city,
             'state' => $temp_location->state,
             'country' => $temp_location->country,
             'zip' => $temp_location->zip,
-            'parent_id' => $temp_location->parent_id,
             'parent_id' => $temp_location->parent_id,
             'manager_id' => $temp_location->manager_id,
             'currency' => $temp_location->currency,
@@ -76,27 +72,23 @@ class ApiLocationsCest
         $I->wantTo('Update an location with PATCH');
 
         // create
-        $location = \App\Models\Location::factory()->create([
+        $location = Location::factory()->create([
             'name' => 'Original Location Name',
-            'image' => 'test.png'
         ]);
-        $I->assertInstanceOf(\App\Models\Location::class, $location);
+        $I->assertInstanceOf(Location::class, $location);
 
-        $temp_location = \App\Models\Location::factory()->make([
+        $temp_location = Location::factory()->make([
             'name' => 'updated location name',
-            'image' => 'test.png'
         ]);
 
         $data = [
             'name' => $temp_location->name,
-            // 'image' => $temp_location->image,
             'address' => $temp_location->address,
             'address2' => $temp_location->address2,
             'city' => $temp_location->city,
             'state' => $temp_location->state,
             'country' => $temp_location->country,
             'zip' => $temp_location->zip,
-            'parent_id' => $temp_location->parent_id,
             'parent_id' => $temp_location->parent_id,
             'manager_id' => $temp_location->manager_id,
             'currency' => $temp_location->currency,
@@ -134,10 +126,10 @@ class ApiLocationsCest
         $I->wantTo('Delete an location');
 
         // create
-        $location = \App\Models\Location::factory()->create([
+        $location = Location::factory()->create([
             'name' => 'Soon to be deleted',
         ]);
-        $I->assertInstanceOf(\App\Models\Location::class, $location);
+        $I->assertInstanceOf(Location::class, $location);
 
         // delete
         $I->sendDELETE('/locations/'.$location->id);
