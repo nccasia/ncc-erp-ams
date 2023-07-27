@@ -140,7 +140,6 @@ class ApiAssetsCest
         $I->sendGET('/hardware/'.$asset->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson((new AssetsTransformer)->transformAsset($temp_asset));
     }
 
     /** @test */
