@@ -4,6 +4,9 @@ use App\Models\Category;
 use App\Models\Location;
 use App\Models\Setting;
 use App\Models\Supplier;
+use App\Models\Tool;
+use App\Models\User;
+use Faker\Factory;
 
 class ApiToolCest
 {
@@ -12,8 +15,8 @@ class ApiToolCest
     protected $timeFormat;
     public function _before(ApiTester $I)
     {
-        $this->faker = \Faker\Factory::create();
-        $this->user = \App\Models\User::find(1);
+        $this->faker = Factory::create();
+        $this->user = User::factory()->create();
         Setting::getSettings()->time_display_format = 'H:i';
         $I->amBearerAuthenticated($I->getToken($this->user));
         $I->haveHttpHeader('Content-Type', 'application/json');
@@ -36,8 +39,8 @@ class ApiToolCest
         //set up data
         $data =  [
             'name' => $this->faker->name(),
-            'supplier_id' => Supplier::all()->random()->id,
-            'user_id' => 1,
+            'supplier_id' => Supplier::factory()->create()->id,
+            'user_id' => User::factory()->create()->id,
             'assigned_status' => 0,
             'assigned_to' => null,
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
@@ -47,7 +50,7 @@ class ApiToolCest
             'status_id' => 5,
             'category_id' => Category::where('category_type', '=', 'tool')->inRandomOrder()->first()->id,
             'qty' => $this->faker->numberBetween(5, 10),
-            'location_id' => Location::all()->random()->id,
+            'location_id' => Location::factory()->create()->id,
         ];
 
         //send request
@@ -60,16 +63,16 @@ class ApiToolCest
         $I->wantTo('Update a tool with PUT');
 
         // create
-        $tool = \App\Models\Tool::factory()->create([
+        $tool = Tool::factory()->create([
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
             'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years' ,date_default_timezone_get())->format('Y-m-d H:i:s'),
         ]);
-        $I->assertInstanceOf(\App\Models\Tool::class, $tool);
+        $I->assertInstanceOf(Tool::class, $tool);
 
         $data = [
             'name' => 'Updated Tool name',
-            'supplier_id' => Supplier::all()->random()->id,
-            'user_id' => 1,
+            'supplier_id' => Supplier::factory()->create()->id,
+            'user_id' => User::factory()->create()->id,
             'assigned_status' => 0,
             'assigned_to' => null,
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
@@ -79,7 +82,7 @@ class ApiToolCest
             'status_id' => 5,
             'category_id' => Category::where('category_type', '=', 'tool')->inRandomOrder()->first()->id,
             'qty' => $this->faker->numberBetween(5, 10),
-            'location_id' => 1,
+            'location_id' => Location::factory()->create()->id,
         ];
         
 
@@ -97,11 +100,11 @@ class ApiToolCest
     {
         $I->wantTo('Delete a tool');
         // create
-        $tool = \App\Models\Tool::factory()->create([
+        $tool = Tool::factory()->create([
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
             'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years' ,date_default_timezone_get())->format('Y-m-d H:i:s'),
         ]);
-        $I->assertInstanceOf(\App\Models\Tool::class, $tool);
+        $I->assertInstanceOf(Tool::class, $tool);
 
         $I->sendDELETE('/tools/'.$tool->id);
         $I->seeResponseIsJson();
