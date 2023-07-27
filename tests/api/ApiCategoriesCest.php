@@ -4,18 +4,24 @@ use App\Helpers\Helper;
 use App\Http\Transformers\CategoriesTransformer;
 use App\Models\Category;
 use App\Models\Setting;
+use App\Models\User;
+use Faker\Factory;
 use Illuminate\Support\Facades\Auth;
 
 class ApiCategoriesCest
 {
+    protected $faker;
     protected $user;
     protected $timeFormat;
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->faker = Factory::create();
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
+        $this->user->permissions = json_encode(["admin" => "1"]);
+        $this->user->save();
     }
 
     /** @test */
@@ -30,7 +36,7 @@ class ApiCategoriesCest
 
         $response = json_decode($I->grabResponse(), true);
         // sample verify
-        $category = App\Models\Category::withCount('assets as assets_count', 'accessories as accessories_count', 'consumables as consumables_count', 'components as components_count', 'licenses as licenses_count')
+        $category = Category::withCount('assets as assets_count', 'accessories as accessories_count', 'consumables as consumables_count', 'components as components_count', 'licenses as licenses_count')
             ->orderByDesc('created_at')->take(10)->get()->shuffle()->first();
         $I->seeResponseContainsJson($I->removeTimestamps((new CategoriesTransformer)->transformCategory($category)));
     }
@@ -39,21 +45,15 @@ class ApiCategoriesCest
     public function createCategory(ApiTester $I, $scenario)
     {
         $I->wantTo('Create a new category');
-
-        $temp_category = \App\Models\Category::factory()->assetLaptopCategory()->make([
-            'name' => 'Test Category Tag',
-        ]);
-
         // setup
         $data = [
-            'category_type' => $temp_category->category_type,
-            'checkin_email' => $temp_category->checkin_email,
-            'eula_text' => $temp_category->eula_text,
-            'name' => $temp_category->name,
-            'require_acceptance' => $temp_category->require_acceptance,
-            'use_default_eula' => $temp_category->use_default_eula,
+            'category_type' => 'asset',
+            'checkin_email' => $this->faker->numberBetween(0,1),
+            'eula_text' => $this->faker->paragraph(),
+            'name' => $this->faker->name(),
+            'require_acceptance' => $this->faker->numberBetween(0,1),
+            'use_default_eula' =>  $this->faker->numberBetween(0,1),
         ];
-
         // create
         $I->sendPOST('/categories', $data);
         $I->seeResponseIsJson();
@@ -69,14 +69,22 @@ class ApiCategoriesCest
         $I->wantTo('Update an category with PATCH');
 
         // create
-        $category = \App\Models\Category::factory()->assetLaptopCategory()
+        $category = Category::factory()
             ->create([
-                'name' => 'Original Category Name',
+                'name' => $this->faker->name(),
+                'category_type' => 'accessory',
+                'require_acceptance' => $this->faker->numberBetween(0,1),
+                'checkin_email' => $this->faker->boolean(),
+                'use_default_eula' => $this->faker->numberBetween(0,1),
         ]);
-        $I->assertInstanceOf(\App\Models\Category::class, $category);
+        $I->assertInstanceOf(Category::class, $category);
 
-        $temp_category = \App\Models\Category::factory()->accessoryMouseCategory()->make([
-            'name' => 'updated category name',
+        $temp_category = Category::factory()->make([
+            'name' => 'Updated Category name',
+            'category_type' => 'asset',
+            'require_acceptance' => $this->faker->numberBetween(0,1),
+            'checkin_email' => $this->faker->boolean(),
+            'use_default_eula' => $this->faker->numberBetween(0,1),
         ]);
 
         $data = [
@@ -119,10 +127,14 @@ class ApiCategoriesCest
         $I->wantTo('Delete an category');
 
         // create
-        $category = \App\Models\Category::factory()->assetLaptopCategory()->create([
-            'name' => 'Soon to be deleted',
+        $category = Category::factory()->create([
+            'name' => $this->faker->name(),
+            'category_type' => 'asset',
+            'require_acceptance' => $this->faker->numberBetween(0,1),
+            'checkin_email' => $this->faker->boolean(),
+            'use_default_eula' => $this->faker->numberBetween(0,1),
         ]);
-        $I->assertInstanceOf(\App\Models\Category::class, $category);
+        $I->assertInstanceOf(Category::class, $category);
 
         // delete
         $I->sendDELETE('/categories/'.$category->id);
