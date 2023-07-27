@@ -1,10 +1,11 @@
 <?php
 
-use App\Helpers\Helper;
 use App\Http\Transformers\AssetModelsTransformer;
 use App\Models\AssetModel;
-use App\Models\Setting;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Category;
+use App\Models\Depreciation;
+use App\Models\Manufacturer;
+use App\Models\User;
 
 class ApiModelsCest
 {
@@ -13,7 +14,7 @@ class ApiModelsCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -28,8 +29,7 @@ class ApiModelsCest
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
-        $response = json_decode($I->grabResponse(), true);
-        $assetmodel = App\Models\AssetModel::orderByDesc('created_at')
+        $assetmodel = AssetModel::orderByDesc('created_at')
             ->withCount('assets as assets_count')->take(10)->get()->shuffle()->first();
         $I->seeResponseContainsJson($I->removeTimestamps((new AssetModelsTransformer)->transformAssetModel($assetmodel)));
     }
@@ -39,8 +39,14 @@ class ApiModelsCest
     {
         $I->wantTo('Create a new assetmodel');
 
-        $temp_assetmodel = \App\Models\AssetModel::factory()->mbp13Model()->make([
+        $category = Category::factory()->create(['category_type' => 'accessory']);
+        $depreciation = Depreciation::factory()->create();
+        $manufacture = Manufacturer::factory()->create();
+        $temp_assetmodel = AssetModel::factory()->mbp13Model()->make([
             'name' => 'Test AssetModel Tag',
+            'category_id' => $category->id,
+            'depreciation_id' => $depreciation->id,
+            'manufacturer_id' => $manufacture->id
         ]);
 
         // setup
@@ -48,11 +54,11 @@ class ApiModelsCest
             'category_id' => $temp_assetmodel->category_id,
             'depreciation_id' => $temp_assetmodel->depreciation_id,
             'eol' => $temp_assetmodel->eol,
-            'image' => $temp_assetmodel->image,
             'manufacturer_id' => $temp_assetmodel->manufacturer_id,
             'model_number' => $temp_assetmodel->model_number,
             'name' => $temp_assetmodel->name,
             'notes' => $temp_assetmodel->notes,
+            'requestable' => 1
         ];
 
         // create
@@ -61,30 +67,31 @@ class ApiModelsCest
         $I->seeResponseCodeIs(200);
     }
 
-    // Put is routed to the same method in the controller
-    // DO we actually need to test both?
-
     /** @test */
     public function updateAssetModelWithPatch(ApiTester $I, $scenario)
     {
         $I->wantTo('Update an assetmodel with PATCH');
 
         // create
-        $assetmodel = \App\Models\AssetModel::factory()->mbp13Model()->create([
+        $assetmodel = AssetModel::factory()->mbp13Model()->create([
             'name' => 'Original AssetModel Name',
         ]);
-        $I->assertInstanceOf(\App\Models\AssetModel::class, $assetmodel);
+        $I->assertInstanceOf(AssetModel::class, $assetmodel);
 
-        $temp_assetmodel = \App\Models\AssetModel::factory()->polycomcxModel()->make([
-            'name' => 'updated AssetModel name',
-            'fieldset_id' => 2,
-        ]);
+        $category = Category::factory()->create(['category_type' => 'accessory']);
+        $depreciation = Depreciation::factory()->create();
+        $manufacture = Manufacturer::factory()->create();
+        $temp_assetmodel = AssetModel::factory()->mbp13Model()->make([
+            'name' => 'Test AssetModel Tag',
+            'category_id' => $category->id,
+            'depreciation_id' => $depreciation->id,
+            'manufacturer_id' => $manufacture->id
+        ]);;
 
         $data = [
             'category_id' => $temp_assetmodel->category_id,
             'depreciation_id' => $temp_assetmodel->depreciation_id,
             'eol' => $temp_assetmodel->eol,
-            'image' => $temp_assetmodel->image,
             'manufacturer_id' => $temp_assetmodel->manufacturer_id,
             'model_number' => $temp_assetmodel->model_number,
             'name' => $temp_assetmodel->name,
@@ -123,10 +130,10 @@ class ApiModelsCest
         $I->wantTo('Delete an assetmodel');
 
         // create
-        $assetmodel = \App\Models\AssetModel::factory()->mbp13Model()->create([
+        $assetmodel = AssetModel::factory()->mbp13Model()->create([
             'name' => 'Soon to be deleted',
         ]);
-        $I->assertInstanceOf(\App\Models\AssetModel::class, $assetmodel);
+        $I->assertInstanceOf(AssetModel::class, $assetmodel);
 
         // delete
         $I->sendDELETE('/models/'.$assetmodel->id);
