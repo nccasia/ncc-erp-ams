@@ -239,7 +239,7 @@ class UsersController extends Controller
         }
 
         if ($request->filled('location_id')) {
-            $users->where('users.location_id', '=', $request->get('location_id'));
+            $users = $users->where('location_id', '=', $request->get('location_id'));
         }
 
         $users = $users->orderBy('last_name', 'asc')->orderBy('first_name', 'asc');
