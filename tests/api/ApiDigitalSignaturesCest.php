@@ -103,7 +103,7 @@ class ApiDigitalSignaturesCest
         $I->assertNotEquals($digital_signature->name, $data['name']);
 
         // update
-        $I->sendPut('/digital_signatures/' . $digital_signature->id, $data);
+        $I->sendPut('/digital_signatures/'.$digital_signature->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
