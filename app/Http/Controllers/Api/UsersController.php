@@ -232,14 +232,14 @@ class UsersController extends Controller
 
         $users = Company::scopeCompanyables($users);
 
+        if ($request->filled('location_id')) {
+            $users = $users->where('location_id', '=', $request->get('location_id'));
+        }
+
         if ($request->filled('search')) {
             $users = $users->SimpleNameSearch($request->get('search'))
                 ->orWhere('username', 'LIKE', '%'.$request->get('search').'%')
                 ->orWhere('employee_num', 'LIKE', '%'.$request->get('search').'%');
-        }
-
-        if ($request->filled('location_id')) {
-            $users->where('users.location_id', '=', $request->get('location_id'));
         }
 
         $users = $users->orderBy('last_name', 'asc')->orderBy('first_name', 'asc');
