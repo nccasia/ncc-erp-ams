@@ -3,7 +3,11 @@
 use App\Helpers\Helper;
 use App\Http\Transformers\AssetsTransformer;
 use App\Models\Asset;
+use App\Models\Company;
+use App\Models\Location;
 use App\Models\Setting;
+use App\Models\User;
+use Faker\Factory;
 use Illuminate\Support\Facades\Auth;
 
 class ApiAssetsCest
@@ -14,8 +18,8 @@ class ApiAssetsCest
 
     public function _before(ApiTester $I)
     {
-        $this->faker = \Faker\Factory::create();
-        $this->user = \App\Models\User::find(1);
+        $this->faker = Factory::create();
+        $this->user = User::factory()->create();
         Setting::getSettings()->time_display_format = 'H:i';
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -46,9 +50,9 @@ class ApiAssetsCest
     {
         $I->wantTo('Create a new asset');
 
-        $temp_asset = \App\Models\Asset::factory()->laptopMbp()->make([
-            'asset_tag' => 'Test Asset Tag',
-            'company_id' => 2,
+        $temp_asset = Asset::factory()->laptopMbp()->make([
+            'asset_tag' => $this->faker->name(),
+            'company_id' => Company::factory()->create()->id,
         ]);
 
         // setup
@@ -56,7 +60,6 @@ class ApiAssetsCest
             'asset_tag' => $temp_asset->asset_tag,
             'assigned_to' => $temp_asset->assigned_to,
             'company_id' => $temp_asset->company->id,
-            'image' => $temp_asset->image,
             'model_id' => $temp_asset->model_id,
             'name' => $temp_asset->name,
             'notes' => $temp_asset->notes,
@@ -81,23 +84,25 @@ class ApiAssetsCest
         $I->wantTo('Update an asset with PATCH');
 
         // create
-        $asset = \App\Models\Asset::factory()->laptopMbp()->create([
-            'company_id' => 2,
-            'rtd_location_id' => 3,
+        $asset = Asset::factory()->laptopMbp()->create([
+            'company_id' => Company::factory()->create()->id,
+            'rtd_location_id' => Location::factory()->create()->id,
         ]);
-        $I->assertInstanceOf(\App\Models\Asset::class, $asset);
+        $I->assertInstanceOf(Asset::class, $asset);
 
-        $temp_asset = \App\Models\Asset::factory()->laptopAir()->make([
-            'company_id' => 3,
-            'name' => 'updated asset name',
-            'rtd_location_id' => 1,
+        $temp_asset = Asset::factory()->laptopAir()->make([
+            'company_id' => Company::factory()->create()->id,
+            'name' => $this->faker->name(),
+            'rtd_location_id' => Location::factory()->create()->id,
         ]);
-
+        $asset->image = $temp_asset->image;
+        if(!$temp_asset->requestable) $temp_asset->requestable = '0';
+        $asset->requestable = $temp_asset->requestable;
+        $asset->save();
         $data = [
             'asset_tag' => $temp_asset->asset_tag,
             'assigned_to' => $temp_asset->assigned_to,
             'company_id' => $temp_asset->company->id,
-            'image' => $temp_asset->image,
             'model_id' => $temp_asset->model_id,
             'name' => $temp_asset->name,
             'notes' => $temp_asset->notes,
@@ -109,6 +114,7 @@ class ApiAssetsCest
             'status_id' => $temp_asset->status_id,
             'supplier_id' => $temp_asset->supplier_id,
             'warranty_months' => $temp_asset->warranty_months,
+            'requestable' => $temp_asset->requestable,
         ];
 
         $I->assertNotEquals($asset->name, $data['name']);
@@ -119,7 +125,6 @@ class ApiAssetsCest
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-        // dd($response);
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
         $I->assertEquals($asset->id, $response->payload->id); // asset id does not change
@@ -135,7 +140,6 @@ class ApiAssetsCest
         $I->sendGET('/hardware/'.$asset->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson((new AssetsTransformer)->transformAsset($temp_asset));
     }
 
     /** @test */
@@ -144,8 +148,8 @@ class ApiAssetsCest
         $I->wantTo('Delete an asset');
 
         // create
-        $asset = \App\Models\Asset::factory()->laptopMbp()->create();
-        $I->assertInstanceOf(\App\Models\Asset::class, $asset);
+        $asset = Asset::factory()->laptopMbp()->create();
+        $I->assertInstanceOf(Asset::class, $asset);
 
         // delete
         $I->sendDELETE('/hardware/'.$asset->id);

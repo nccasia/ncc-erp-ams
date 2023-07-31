@@ -9,6 +9,7 @@ use Tests\Unit\BaseTest;
 use App\Models\Component;
 use App\Models\Asset;
 use App\Models\Consumable;
+use App\Models\Location;
 use App\Models\User;
 
 class CompanyTest extends BaseTest
@@ -25,7 +26,8 @@ class CompanyTest extends BaseTest
         $user = User::factory()
                 ->create(
                     [
-                        'company_id'=> $company->id
+                        'company_id'=> $company->id,
+                        'location_id' => Location::factory()->create()->id,
                     ]
         );
 
