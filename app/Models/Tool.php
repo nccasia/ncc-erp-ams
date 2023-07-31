@@ -116,6 +116,11 @@ class Tool extends Model
         return $this->morphTo('assigned', 'assigned_type', 'assigned_to')->withTrashed();
     }
 
+    public function getByStatusId($query, $id)
+    {
+        return $query->where('status_id', $id);
+    }
+
     public function scopeOrderUser($query, $order)
     {
         return $query->join('users', 'users.id', '=', $this->table . '.user_id')

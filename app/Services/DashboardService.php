@@ -7,6 +7,8 @@ use App\Models\DigitalSignatures;
 use App\Models\Location;
 use App\Models\Statuslabel;
 use App\Models\Tool;
+use App\Models\Asset;
+use App\Models\Consumable;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardService
@@ -26,11 +28,11 @@ class DashboardService
 
     public function addCategoriesToLocation($location, $categories)
     {
-        $location['categories'] = 
+        $location['categories'] =
             $this->mapStatusToCategory(
-                $location['rtd_assets'], 
-                $categories, 
-                $location['rtd_consumables'], 
+                $location['rtd_assets'],
+                $categories,
+                $location['rtd_consumables'],
                 $location['rtd_accessories'],
                 $location['rtd_tools'],
                 $location['rtd_digital_signatures']
@@ -85,23 +87,33 @@ class DashboardService
             $category['digital_signatures_count'] = count($digital_signatures);
         }
 
-        $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
+        $status_labels = $this->mapValueToStatusLabels($assets, $consumables, $accessories, $tools, $digital_signatures, $status_labels);
         $category['status_labels'] = $status_labels;
 
         return $category;
     }
 
-    public function mapValueToStatusLabels($assets, $status_labels)
+    public function mapValueToStatusLabels($assets, $consumables, $accessories, $tools, $digital_signatures, $status_labels)
     {
-        return $status_labels->map(function ($status_label) use ($assets) {
-            return clone $this->addValueToStatusLabel($assets, $status_label);
+        return $status_labels->map(function ($status_label) use ($assets, $consumables, $accessories, $tools, $digital_signatures) {
+            return clone $this->addValueToStatusLabel($assets, $consumables, $accessories, $tools, $digital_signatures, $status_label);
         });
     }
 
-    public function addValueToStatusLabel($assets, $status_label)
+    public function addValueToStatusLabel($assets, $consumables, $accessories, $tools, $digital_signatures, $status_label)
     {
-        $assets_by_status = (new \App\Models\Asset)->getByStatusId($assets, $status_label['id']);
+        $assets_by_status = (new Asset)->getByStatusId($assets, $status_label['id']);
+        $consumables_by_status = (new Consumable)->getByStatusId($consumables, $status_label['id']);
+        $accessories_by_status = (new Consumable)->getByStatusId($accessories, $status_label['id']);
+        $tools_by_status = (new Consumable)->getByStatusId($tools, $status_label['id']);
+        $digital_signaturess_by_status = (new Consumable)->getByStatusId($digital_signatures, $status_label['id']);
+
         $status_label['assets_count'] = count($assets_by_status->toArray());
+        $status_label['consumables_count'] = count($consumables_by_status->toArray());
+        $status_label['accessories_count'] = count($accessories_by_status->toArray());
+        $status_label['tools_count'] = count($tools_by_status->toArray());
+        $status_label['digital_signatures_count'] = count($digital_signaturess_by_status->toArray());
+
         return $status_label;
     }
 
@@ -247,6 +259,10 @@ class DashboardService
             'status_labels' => $category->status_labels->map(function ($label) {
                 return [
                     'assets_count' => $label->assets_count,
+                    'consumables_count' => $label->consumables_count,
+                    'accessories_count' => $label->accessories_count,
+                    'tools_count' => $label->tools_count,
+                    'digital_signatures_count' => $label->digital_signatures_count,
                     'id' => $label->id,
                     'name' => $label->name,
                 ];
@@ -266,6 +282,10 @@ class DashboardService
             $categoryOld['status_labels'] = $categoryOld['status_labels']->map(function ($value) use ($label) {
                 if ($value['id'] == $label['id']) {
                     $value['assets_count'] += $label['assets_count'];
+                    $value['consumables_count'] += $label['consumables_count'];
+                    $value['accessories_count'] += $label['accessories_count'];
+                    $value['tools_count'] += $label['tools_count'];
+                    $value['digital_signatures_count'] += $label['digital_signatures_count'];
                 }
                 return $value;
             });
