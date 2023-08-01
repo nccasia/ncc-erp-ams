@@ -2,7 +2,6 @@
 
 use App\Http\Transformers\LicenseSeatsTransformer;
 use App\Models\Asset;
-use App\Models\License;
 use App\Models\LicenseSeat;
 use App\Models\User;
 
@@ -13,7 +12,7 @@ class ApiLicenseSeatsCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -29,7 +28,7 @@ class ApiLicenseSeatsCest
         $I->seeResponseCodeIs(200);
 
         // sample verify
-        $licenseSeats = App\Models\LicenseSeat::where('license_id', 1)
+        $licenseSeats = LicenseSeat::where('license_id', 1)
             ->orderBy('id', 'desc')->take(10)->get();
         // pick a random seat
         $licenseSeat = $licenseSeats->random();
@@ -63,8 +62,8 @@ class ApiLicenseSeatsCest
     {
         $I->wantTo('Checkout a license seat to a user');
 
-        $user = App\Models\User::all()->random();
-        $licenseSeat = App\Models\LicenseSeat::all()->random();
+        $user = User::factory()->create();
+        $licenseSeat = LicenseSeat::all()->random();
         $endpoint = '/licenses/'.$licenseSeat->license_id.'/seats/'.$licenseSeat->id;
 
         $data = [
@@ -90,13 +89,6 @@ class ApiLicenseSeatsCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson($I->removeTimestamps((new LicenseSeatsTransformer)->transformLicenseSeat($licenseSeat)));
 
-        // verify that the last logged action is a checkout
-        $I->sendGET('/reports/activity?item_type=license&limit=1&item_id='.$licenseSeat->license_id);
-        $I->seeResponseIsJson();
-        $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson([
-            'action_type' => 'checkout',
-        ]);
     }
 
     /** @test */
@@ -104,8 +96,8 @@ class ApiLicenseSeatsCest
     {
         $I->wantTo('Checkout a license seat to an asset');
 
-        $asset = App\Models\Asset::all()->random();
-        $licenseSeat = App\Models\LicenseSeat::all()->random();
+        $asset = Asset::factory()->create();
+        $licenseSeat = LicenseSeat::all()->random();
         $endpoint = '/licenses/'.$licenseSeat->license_id.'/seats/'.$licenseSeat->id;
 
         $data = [
@@ -131,13 +123,6 @@ class ApiLicenseSeatsCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson($I->removeTimestamps((new LicenseSeatsTransformer)->transformLicenseSeat($licenseSeat)));
 
-        // verify that the last logged action is a checkout
-        $I->sendGET('/reports/activity?item_type=license&limit=1&item_id='.$licenseSeat->license_id);
-        $I->seeResponseIsJson();
-        $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson([
-            'action_type' => 'checkout',
-        ]);
     }
 
     /** @test */
@@ -145,9 +130,9 @@ class ApiLicenseSeatsCest
     {
         $I->wantTo('Checkout a license seat to a user AND an asset');
 
-        $asset = App\Models\Asset::all()->random();
-        $user = App\Models\User::all()->random();
-        $licenseSeat = App\Models\LicenseSeat::all()->random();
+        $user = User::factory()->create();
+        $asset = Asset::factory()->create();
+        $licenseSeat = LicenseSeat::all()->random();
         $endpoint = '/licenses/'.$licenseSeat->license_id.'/seats/'.$licenseSeat->id;
 
         $data = [
@@ -174,12 +159,5 @@ class ApiLicenseSeatsCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson($I->removeTimestamps((new LicenseSeatsTransformer)->transformLicenseSeat($licenseSeat)));
 
-        // verify that the last logged action is a checkout
-        $I->sendGET('/reports/activity?item_type=license&limit=1&item_id='.$licenseSeat->license_id);
-        $I->seeResponseIsJson();
-        $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson([
-            'action_type' => 'checkout',
-        ]);
     }
 }

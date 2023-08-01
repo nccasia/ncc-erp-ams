@@ -1,10 +1,11 @@
 <?php
 
-use App\Helpers\Helper;
 use App\Http\Transformers\ConsumablesTransformer;
+use App\Models\Category;
+use App\Models\Company;
 use App\Models\Consumable;
-use App\Models\Setting;
-use Illuminate\Support\Facades\Auth;
+use App\Models\Location;
+use App\Models\User;
 
 class ApiConsumablesCest
 {
@@ -13,7 +14,7 @@ class ApiConsumablesCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -29,8 +30,9 @@ class ApiConsumablesCest
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse(), true);
+
         // sample verify
-        $consumable = App\Models\Consumable::orderByDesc('created_at')->take(10)->get()->shuffle()->first();
+        $consumable = Consumable::orderByDesc('created_at')->take(10)->get()->shuffle()->first();
 
         $I->seeResponseContainsJson($I->removeTimestamps((new ConsumablesTransformer)->transformConsumable($consumable)));
     }
@@ -39,10 +41,14 @@ class ApiConsumablesCest
     public function createConsumable(ApiTester $I, $scenario)
     {
         $I->wantTo('Create a new consumable');
-
-        $temp_consumable = \App\Models\Consumable::factory()->ink()->make([
+        $category = Category::factory()->create(['category_type' => 'accessory']);
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $temp_consumable = Consumable::factory()->ink()->make([
             'name' => 'Test Consumable Name',
-            'company_id' => 2,
+            'company_id' => $company->id,
+            'location_id' => $location->id,
+            'category_id' => $category->id
         ]);
 
         // setup
@@ -65,26 +71,29 @@ class ApiConsumablesCest
         $I->seeResponseCodeIs(200);
     }
 
-    // Put is routed to the same method in the controller
-    // DO we actually need to test both?
-
     /** @test */
     public function updateConsumableWithPatch(ApiTester $I, $scenario)
     {
         $I->wantTo('Update an consumable with PATCH');
 
         // create
-        $consumable = \App\Models\Consumable::factory()->ink()->create([
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $consumable = Consumable::factory()->ink()->create([
             'name' => 'Original Consumable Name',
-            'company_id' => 2,
-            'location_id' => 3,
+            'company_id' => $company->id,
+            'location_id' => $location->id,
         ]);
-        $I->assertInstanceOf(\App\Models\Consumable::class, $consumable);
+        $I->assertInstanceOf(Consumable::class, $consumable);
 
-        $temp_consumable = \App\Models\Consumable::factory()->cardstock()->make([
-            'company_id' => 3,
-            'name' => 'updated consumable name',
-            'location_id' => 1,
+        $category = Category::factory()->create(['category_type' => 'accessory']);
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $temp_consumable = Consumable::factory()->cardstock()->make([
+            'name' => 'Test Consumable Name',
+            'company_id' => $company->id,
+            'location_id' => $location->id,
+            'category_id' => $category->id
         ]);
 
         $data = [
@@ -133,10 +142,10 @@ class ApiConsumablesCest
         $I->wantTo('Delete an consumable');
 
         // create
-        $consumable = \App\Models\Consumable::factory()->ink()->create([
+        $consumable = Consumable::factory()->ink()->create([
             'name' => 'Soon to be deleted',
         ]);
-        $I->assertInstanceOf(\App\Models\Consumable::class, $consumable);
+        $I->assertInstanceOf(Consumable::class, $consumable);
 
         // delete
         $I->sendDELETE('/consumables/'.$consumable->id);

@@ -1,10 +1,8 @@
 <?php
 
-use App\Helpers\Helper;
 use App\Http\Transformers\StatuslabelsTransformer;
-use App\Models\Setting;
 use App\Models\Statuslabel;
-use Illuminate\Support\Facades\Auth;
+use App\Models\User;
 
 class ApiStatusLabelsCest
 {
@@ -13,7 +11,7 @@ class ApiStatusLabelsCest
 
     public function _before(ApiTester $I)
     {
-        $this->user = \App\Models\User::find(1);
+        $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
@@ -28,9 +26,8 @@ class ApiStatusLabelsCest
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
-        $response = json_decode($I->grabResponse(), true);
         // sample verify
-        $statuslabel = App\Models\Statuslabel::orderByDesc('created_at')
+        $statuslabel = Statuslabel::orderByDesc('created_at')
             ->withCount('assets as assets_count')
             ->take(10)->get()->shuffle()->first();
         $I->seeResponseContainsJson($I->removeTimestamps((new StatuslabelsTransformer)->transformStatuslabel($statuslabel)));
@@ -41,7 +38,7 @@ class ApiStatusLabelsCest
     {
         $I->wantTo('Create a new statuslabel');
 
-        $temp_statuslabel = \App\Models\Statuslabel::factory()->make([
+        $temp_statuslabel = Statuslabel::factory()->make([
             'name' => 'Test Statuslabel Tag',
         ]);
 
@@ -61,23 +58,21 @@ class ApiStatusLabelsCest
         $I->seeResponseCodeIs(200);
     }
 
-    // Put is routed to the same method in the controller
-    // DO we actually need to test both?
-
     /** @test */
     public function updateStatuslabelWithPatch(ApiTester $I, $scenario)
     {
         $I->wantTo('Update an statuslabel with PATCH');
 
         // create
-        $statuslabel = \App\Models\Statuslabel::factory()->rtd()->create([
+        $statuslabel = Statuslabel::factory()->readyToDeploy()->create([
             'name' => 'Original Statuslabel Name',
+            'id' => 98
         ]);
-        $I->assertInstanceOf(\App\Models\Statuslabel::class, $statuslabel);
-
-        $temp_statuslabel = \App\Models\Statuslabel::factory()->pending()->make([
+        $I->assertInstanceOf(Statuslabel::class, $statuslabel);
+        $temp_statuslabel = Statuslabel::factory()->pending()->make([
             'name' => 'updated statuslabel name',
             'type' => 'pending',
+            'id' => 99
         ]);
 
         $data = [
@@ -87,17 +82,19 @@ class ApiStatusLabelsCest
             'notes' => $temp_statuslabel->notes,
             'pending' => $temp_statuslabel->pending,
             'type' => $temp_statuslabel->type,
+            'default_label' => $temp_statuslabel->default_label
         ];
 
         $I->assertNotEquals($statuslabel->name, $data['name']);
 
         // update
+
         $I->sendPATCH('/statuslabels/'.$statuslabel->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-        // dd($response);
+
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/statuslabels/message.update.success'), $response->messages);
         $I->assertEquals($statuslabel->id, $response->payload->id); // statuslabel id does not change
@@ -120,10 +117,10 @@ class ApiStatusLabelsCest
         $I->wantTo('Delete an statuslabel');
 
         // create
-        $statuslabel = \App\Models\Statuslabel::factory()->create([
+        $statuslabel = Statuslabel::factory()->create([
             'name' => 'Soon to be deleted',
         ]);
-        $I->assertInstanceOf(\App\Models\Statuslabel::class, $statuslabel);
+        $I->assertInstanceOf(Statuslabel::class, $statuslabel);
 
         // delete
         $I->sendDELETE('/statuslabels/'.$statuslabel->id);

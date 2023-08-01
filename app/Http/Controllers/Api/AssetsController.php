@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\CheckoutableCheckedIn;
+use App\Helpers\DateFormatter;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 use App\Helpers\Helper;
@@ -192,6 +193,12 @@ class AssetsController extends Controller
         if ($request->filled('dateFrom', 'dateTo')) {
             $assets
                 ->whereBetween('assets.purchase_date', [$request->input('dateFrom'), $request->input('dateTo')]);
+        }
+
+        if ($request->filled('dateCheckoutFrom', 'dateCheckoutTo')) {
+            $filterByCheckoutDate = DateFormatter::formatDate($request->input('dateCheckoutFrom'), $request->input('dateCheckoutTo'));
+            $assets
+                ->whereBetween('assets.last_checkout', [$filterByCheckoutDate]);
         }
 
         if ($request->filled('rtd_location_id')) {

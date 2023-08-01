@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use \Auth;
 
@@ -34,6 +35,7 @@ class UserFactory extends Factory
             'state' => $this->faker->stateAbbr,
             'username' => $this->faker->username,
             'zip' => $this->faker->postcode,
+            'location_id' => Location::all()->random()->id,
         ];
     }
     
