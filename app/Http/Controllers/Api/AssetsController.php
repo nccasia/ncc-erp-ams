@@ -1539,7 +1539,7 @@ class AssetsController extends Controller
                 return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.update.success')));
             }
 
-            return response()->json(Helper::formatStandardApiResponse('error', null, $asset->getErrors()), 200);
+            return response()->json(Helper::formatStandardApiResponse('error', null, $asset->getErrors()), 422);
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/hardware/message.does_not_exist')), 200);
