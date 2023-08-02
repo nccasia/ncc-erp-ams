@@ -344,8 +344,9 @@ class ToolController extends Controller
 
         $checkin_date = $request->get('checkin_at');
         $request->get('notes') ? $note = $request->get('notes') : $note = null;
+        $target = User::findOrFail($tool->assigned_to);
 
-        if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+        if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
             $this->sendMailCheckin($tool->assignedTo, $tool);
             return response()->json(
                 Helper::formatStandardApiResponse(
@@ -396,8 +397,9 @@ class ToolController extends Controller
 
             $checkin_date = $request->get('checkin_at');
             $request->get('notes') ? $note = $request->get('notes') : $note = null;
+            $target = User::findOrFail($tool->assigned_to);
 
-            if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+            if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
                 $this->sendMailCheckin($target,$tool);
             } else {
                 return response()->json(

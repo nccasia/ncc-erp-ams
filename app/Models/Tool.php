@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\CheckoutableCheckedIn;
 use App\Events\CheckoutableCheckedOut;
 use App\Models\Traits\Acceptable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -324,7 +325,7 @@ class Tool extends Model
         return false;
     }
 
-    public function checkIn($target, $checkout_date, $tool_name, $status)
+    public function checkIn($target, $checkout_date, $tool_name, $status, $note)
     {
         if (!$target) {
             return false;
@@ -340,6 +341,7 @@ class Tool extends Model
         }
 
         if ($this->save()) {
+            event(new CheckoutableCheckedIn($this,$target,Auth::user(),$note));
             return true;
         }
 
