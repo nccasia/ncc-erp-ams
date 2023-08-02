@@ -245,6 +245,11 @@ class Asset extends Depreciable
         return $this->belongsTo(\App\Models\Company::class, 'company_id');
     }
 
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id')->where('category_type', '=', 'tool');
+    }
+
 
     public function finfast_request_asset()
     {

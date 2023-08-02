@@ -284,6 +284,11 @@ class Consumable extends SnipeModel
         }
     }
 
+    public function getByStatusId($query, $id)
+    {
+        return $query->where('status_id', $id);
+    }
+
     /**
      * Checks the number of available consumables
      *

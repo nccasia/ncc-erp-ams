@@ -312,6 +312,11 @@ class Accessory extends SnipeModel
             return null;
     }
 
+    public function getByStatusId($query, $id)
+    {
+        return $query->where('status_id', $id);
+    }
+
     /**
      * Check how many items of an accessory remain
      *
