@@ -116,12 +116,12 @@ class DigitalSignatures extends Model
         return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
     }
 
-    public function requireAcceptance()
+    public function getRequireAcceptance()
     {
         return $this->category->require_acceptance;
     }
 
-    public function checkin_email()
+    public function getCheckinEmail()
     {
         return $this->category->checkin_email;
     }
@@ -152,7 +152,7 @@ class DigitalSignatures extends Model
         return $this->name;
     }
 
-    public function getByStatusId($query, $id)
+    public function scopeByStatusId($query, $id)
     {
         return $query->where('status_id', $id);
     }

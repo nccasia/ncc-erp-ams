@@ -2,7 +2,6 @@
 
 namespace App\Notifications;
 
-use App\Models\Accessory;
 use App\Models\Setting;
 use App\Models\Tool;
 use App\Models\User;
@@ -58,7 +57,7 @@ class CheckinToolNotification extends Notification
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
-            if (($this->item->requireAcceptance()) || ($this->item->getEula()) || ($this->item->checkin_email())) {
+            if (($this->item->getRequireAcceptance()) || ($this->item->getEula()) || ($this->item->getCheckinEmail())) {
                 $notifyBy[] = 'mail';
             }
 
@@ -66,7 +65,7 @@ class CheckinToolNotification extends Notification
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
-            if ($this->item->requireAcceptance()) {
+            if ($this->item->getRequireAcceptance()) {
                 \Log::debug('This tool requires acceptance');
             }
 
@@ -80,12 +79,12 @@ class CheckinToolNotification extends Notification
             /**
              * Send an email if an email should be sent at checkin/checkout
              */
-            if ($this->item->checkin_email()) {
+            if ($this->item->getCheckinEmail()) {
                 \Log::debug('This tool has a checkin_email()');
             }
         }
 
-        \Log::debug('checkin_email on this category is '.$this->item->checkin_email());
+        \Log::debug('checkin_email on this category is ' . $this->item->getCheckinEmail());
 
         return $notifyBy;
     }
@@ -99,12 +98,12 @@ class CheckinToolNotification extends Notification
         $botname = ($this->settings->slack_botname) ? $this->settings->slack_botname : 'Snipe-Bot';
 
         $fields = [
-            'To' => '<'.$target->present()->viewUrl().'|'.$target->present()->fullName().'>',
-            'By' => '<'.$admin->present()->viewUrl().'|'.$admin->present()->fullName().'>',
+            'To' => '<' . $target->present()->viewUrl() . '|' . $target->present()->fullName() . '>',
+            'By' => '<' . $admin->present()->viewUrl() . '|' . $admin->present()->fullName() . '>',
         ];
 
         return (new SlackMessage)
-            ->content(':arrow_down: :keyboard: '.trans('mail.Tool_Checkin_Notification'))
+            ->content(':arrow_down: :keyboard: ' . trans('mail.Tool_Checkin_Notification'))
             ->from($botname)
             ->attachment(function ($attachment) use ($item, $note, $admin, $fields) {
                 $attachment->title(htmlspecialchars_decode($item->present()->name), $item->present()->viewUrl())
@@ -123,13 +122,15 @@ class CheckinToolNotification extends Notification
     {
         \Log::debug('to email called');
 
-        return (new MailMessage)->markdown('notifications.markdown.checkin-accessory',
+        return (new MailMessage)->markdown(
+            'notifications.markdown.checkin-accessory',
             [
                 'item'          => $this->item,
                 'admin'         => $this->admin,
                 'note'          => $this->note,
                 'target'        => $this->target,
-            ])
+            ]
+        )
             ->subject(trans('mail.Accessory_Checkin_Notification'));
     }
 }

@@ -284,7 +284,7 @@ class Consumable extends SnipeModel
         }
     }
 
-    public function getByStatusId($query, $id)
+    public function scopeByStatusId($query, $id)
     {
         return $query->where('status_id', $id);
     }

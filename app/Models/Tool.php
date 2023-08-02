@@ -120,12 +120,12 @@ class Tool extends Model
         return $this->morphTo('assigned', 'assigned_type', 'assigned_to')->withTrashed();
     }
 
-    public function requireAcceptance()
+    public function getRequireAcceptance()
     {
         return $this->category->require_acceptance;
     }
 
-    public function checkin_email()
+    public function getCheckinEmail()
     {
         return $this->category->checkin_email;
     }
@@ -140,13 +140,13 @@ class Tool extends Model
             return $Parsedown->text(e(Setting::getSettings()->default_eula_text));
         }
 
-            return null;
+        return null;
     }
 
     public function getImageUrl()
     {
         if ($this->image) {
-            return Storage::disk('public')->url(app('accessories_upload_path').$this->image);
+            return Storage::disk('public')->url(app('accessories_upload_path') . $this->image);
         }
         return false;
     }
@@ -156,7 +156,7 @@ class Tool extends Model
         return $this->name;
     }
 
-    public function getByStatusId($query, $id)
+    public function scopeByStatusId($query, $id)
     {
         return $query->where('status_id', $id);
     }
@@ -172,7 +172,7 @@ class Tool extends Model
         return $query->leftJoin('users', 'users.id', '=', $this->table . '.assigned_to')
             ->orderBy('users.username', $order);
     }
-    
+
     public function scopeOrderCategory($query, $order)
     {
         return $query->join('categories', 'tools.category_id', '=', 'categories.id')->orderBy('categories.name', $order);
@@ -215,8 +215,8 @@ class Tool extends Model
     public function scopeInAssignedStatus($query, $assigned_status)
     {
         $data = $query;
-        if(is_array($assigned_status)) {
-            $data = $data->whereIn('assigned_status',$assigned_status);
+        if (is_array($assigned_status)) {
+            $data = $data->whereIn('assigned_status', $assigned_status);
         } else {
             $data = $data->where('assigned_status', '=', $assigned_status);
         }
@@ -226,8 +226,8 @@ class Tool extends Model
     public function scopeInStatus($query, $status)
     {
         $data = $query;
-        if(is_array($status)) {
-            $data = $data->whereIn('status_id',$status);
+        if (is_array($status)) {
+            $data = $data->whereIn('status_id', $status);
         } else {
             $data = $data->where('status_id', '=', $status);
         }
@@ -301,7 +301,8 @@ class Tool extends Model
         return $query;
     }
 
-    public function checkIsAdmin() {
+    public function checkIsAdmin()
+    {
         $user = Auth::user();
         return $user->isAdmin();
     }
@@ -324,10 +325,10 @@ class Tool extends Model
         }
 
         if ($this->save()) {
-            event(new CheckoutableCheckedOut($this,$target,Auth::user(),$note));
+            event(new CheckoutableCheckedOut($this, $target, Auth::user(), $note));
             return true;
         }
-        
+
         return false;
     }
 
@@ -347,7 +348,7 @@ class Tool extends Model
         }
 
         if ($this->save()) {
-            event(new CheckoutableCheckedIn($this,$target,Auth::user(),$note));
+            event(new CheckoutableCheckedIn($this, $target, Auth::user(), $note));
             return true;
         }
 

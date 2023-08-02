@@ -50,7 +50,7 @@ class CheckoutDigitalSignatureNotification extends Notification
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
-            if ($this->item->requireAcceptance()) {
+            if ($this->item->getRequireAcceptance()) {
                 $notifyBy[1] = 'mail';
             }
 
@@ -64,7 +64,7 @@ class CheckoutDigitalSignatureNotification extends Notification
             /**
              * Send an email if an email should be sent at checkin/checkout
              */
-            if ($this->item->checkin_email()) {
+            if ($this->item->getCheckinEmail()) {
                 $notifyBy[1] = 'mail';
             }
         }
@@ -81,8 +81,8 @@ class CheckoutDigitalSignatureNotification extends Notification
         $botname = ($this->settings->slack_botname) ? $this->settings->slack_botname : 'Snipe-Bot';
 
         $fields = [
-            'To' => '<'.$target->present()->viewUrl().'|'.$target->present()->fullName().'>',
-            'By' => '<'.$admin->present()->viewUrl().'|'.$admin->present()->fullName().'>',
+            'To' => '<' . $target->present()->viewUrl() . '|' . $target->present()->fullName() . '>',
+            'By' => '<' . $admin->present()->viewUrl() . '|' . $admin->present()->fullName() . '>',
         ];
 
         return (new SlackMessage)
@@ -104,11 +104,12 @@ class CheckoutDigitalSignatureNotification extends Notification
     {
         \Log::debug($this->item->getImageUrl());
         $eula = $this->item->getEula();
-        $req_accept = $this->item->requireAcceptance();
+        $req_accept = $this->item->getRequireAcceptance();
 
         $accept_url = is_null($this->acceptance) ? null : route('account.accept.item', $this->acceptance);
 
-        return (new MailMessage)->markdown('notifications.markdown.checkout-accessory',
+        return (new MailMessage)->markdown(
+            'notifications.markdown.checkout-accessory',
             [
                 'item'          => $this->item,
                 'admin'         => $this->admin,
@@ -117,7 +118,8 @@ class CheckoutDigitalSignatureNotification extends Notification
                 'eula'          => $eula,
                 'req_accept'    => $req_accept,
                 'accept_url'    => $accept_url,
-            ])
+            ]
+        )
             ->subject(trans('mail.Confirm_accessory_delivery'));
     }
 }

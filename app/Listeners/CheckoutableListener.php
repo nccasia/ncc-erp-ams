@@ -156,11 +156,6 @@ class CheckoutableListener
      */
     private function getCheckinNotification($event)
     {
-
-        // $model = get_class($event->checkoutable);
-
-
-
         $notificationClass = null;
 
         switch (get_class($event->checkoutable)) {
