@@ -1217,7 +1217,7 @@ class AssetsController extends Controller
                 $asset->use_text .= '('.$asset->assetstatus->getStatuslabelType().')';
             }
 
-            $asset->use_image = ($asset->getImageUrl()) ? $asset->getImageUrl() : null;
+            $asset->use_image = ($asset->image_url) ? $asset->image_url : null;
         }
 
         return (new SelectlistTransformer)->transformSelectlist($assets);
@@ -1360,7 +1360,7 @@ class AssetsController extends Controller
             }
 
             if ($asset->image) {
-                $asset->image = $asset->getImageUrl();
+                $asset->image = $asset->image_url;
             }
 
             return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.create.success')));
@@ -1540,7 +1540,7 @@ class AssetsController extends Controller
                 }
 
                 if ($asset->image) {
-                    $asset->image = $asset->getImageUrl();
+                    $asset->image = $asset->image_url;
                 }
 
                 return response()->json(Helper::formatStandardApiResponse('success', $asset, trans('admin/hardware/message.update.success')));
@@ -1740,7 +1740,7 @@ class AssetsController extends Controller
                     }
     
                     if ($asset->image) {
-                        $asset->image = $asset->getImageUrl();
+                        $asset->image = $asset->image_url;
                     }
 
                     array_push($assets, $asset);

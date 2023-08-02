@@ -116,17 +116,17 @@ class DigitalSignatures extends Model
         return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
     }
 
-    public function getRequireAcceptance()
+    public function getRequireAcceptanceAttribute()
     {
         return $this->category->require_acceptance;
     }
 
-    public function getCheckinEmail()
+    public function getCheckinEmailAttribute()
     {
         return $this->category->checkin_email;
     }
 
-    public function getEula()
+    public function getEulaAttribute()
     {
         $Parsedown = new \Parsedown();
 
@@ -139,7 +139,7 @@ class DigitalSignatures extends Model
         return null;
     }
 
-    public function getImageUrl()
+    public function getImageUrlAttribute()
     {
         if ($this->image) {
             return Storage::disk('public')->url(app('accessories_upload_path') . $this->image);

@@ -50,21 +50,21 @@ class CheckoutAccessoryNotification extends Notification
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
-            if ($this->item->requireAcceptance()) {
+            if ($this->item->require_acceptance) {
                 $notifyBy[1] = 'mail';
             }
 
             /**
              * Send an email if the item has a EULA, since the user should always receive it
              */
-            if ($this->item->getEula()) {
+            if ($this->item->eula) {
                 $notifyBy[1] = 'mail';
             }
 
             /**
              * Send an email if an email should be sent at checkin/checkout
              */
-            if ($this->item->checkin_email()) {
+            if ($this->item->checkin_email) {
                 $notifyBy[1] = 'mail';
             }
         }
@@ -102,9 +102,9 @@ class CheckoutAccessoryNotification extends Notification
      */
     public function toMail()
     {
-        \Log::debug($this->item->getImageUrl());
-        $eula = $this->item->getEula();
-        $req_accept = $this->item->requireAcceptance();
+        \Log::debug($this->item->image_url);
+        $eula = $this->item->eula;
+        $req_accept = $this->item->require_acceptance;
 
         $accept_url = is_null($this->acceptance) ? null : route('account.accept.item', $this->acceptance);
 

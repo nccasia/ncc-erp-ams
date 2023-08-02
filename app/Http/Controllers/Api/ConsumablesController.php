@@ -293,12 +293,12 @@ class ConsumablesController extends Controller
             // Log checkout event
             $logaction = $consumable->logCheckout(e($request->input('note')), $user);
             $data['log_id'] = $logaction->id;
-            $data['eula'] = $consumable->getEula();
+            $data['eula'] = $consumable->eula;
             $data['first_name'] = $user->first_name;
             $data['item_name'] = $consumable->name;
             $data['checkout_date'] = $logaction->created_at;
             $data['note'] = $logaction->note;
-            $data['require_acceptance'] = $consumable->requireAcceptance();
+            $data['require_acceptance'] = $consumable->require_acceptance;
 
             return response()->json(Helper::formatStandardApiResponse('success', ['accessory' => e($consumable->name)], trans('admin/consumables/message.checkout.success')));
         }

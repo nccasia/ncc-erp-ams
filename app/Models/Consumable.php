@@ -212,7 +212,7 @@ class Consumable extends SnipeModel
      * @since [v3.0]
      * @return string | false
      */
-    public function getImageUrl()
+    public function getImageUrlAttribute()
     {
         if ($this->image) {
             return Storage::disk('public')->url(app('consumables_upload_path').$this->image);
@@ -246,7 +246,7 @@ class Consumable extends SnipeModel
      * @since [v4.0]
      * @return bool
      */
-    public function checkin_email()
+    public function getCheckinEmailAttribute()
     {
         return $this->category->checkin_email;
     }
@@ -258,7 +258,7 @@ class Consumable extends SnipeModel
      * @since [v4.0]
      * @return bool
      */
-    public function requireAcceptance()
+    public function getRequireAcceptanceAttribute()
     {
         return $this->category->require_acceptance;
     }
@@ -271,7 +271,7 @@ class Consumable extends SnipeModel
      * @since [v4.0]
      * @return string | false
      */
-    public function getEula()
+    public function getEulaAttribute()
     {
         $Parsedown = new \Parsedown();
 

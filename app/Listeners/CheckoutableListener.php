@@ -111,7 +111,7 @@ class CheckoutableListener
      */
     private function getCheckoutAcceptance($event)
     {
-        if (! $event->checkoutable->requireAcceptance()) {
+        if (! $event->checkoutable->require_acceptance) {
             return null;
         }
 

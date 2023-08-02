@@ -57,7 +57,7 @@ class CheckinToolNotification extends Notification
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
-            if (($this->item->getRequireAcceptance()) || ($this->item->getEula()) || ($this->item->getCheckinEmail())) {
+            if (($this->item->require_acceptance) || ($this->item->eula) || ($this->item->checkin_email)) {
                 $notifyBy[] = 'mail';
             }
 
@@ -65,26 +65,26 @@ class CheckinToolNotification extends Notification
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
-            if ($this->item->getRequireAcceptance()) {
+            if ($this->item->require_acceptance) {
                 \Log::debug('This tool requires acceptance');
             }
 
             /**
              * Send an email if the item has a EULA, since the user should always receive it
              */
-            if ($this->item->getEula()) {
+            if ($this->item->eula) {
                 \Log::debug('This tool has a EULA');
             }
 
             /**
              * Send an email if an email should be sent at checkin/checkout
              */
-            if ($this->item->getCheckinEmail()) {
-                \Log::debug('This tool has a checkin_email()');
+            if ($this->item->checkin_email) {
+                \Log::debug('This tool has a checkin_email');
             }
         }
 
-        \Log::debug('checkin_email on this category is ' . $this->item->getCheckinEmail());
+        \Log::debug('checkin_email on this category is ' . $this->item->checkin_email);
 
         return $notifyBy;
     }
