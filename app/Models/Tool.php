@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Events\CheckoutableCheckedIn;
 use App\Events\CheckoutableCheckedOut;
 use App\Models\Traits\Acceptable;
+use App\Presenters\Presentable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tool extends Model
 {
-    use HasFactory, Searchable, ValidatingTrait, SoftDeletes, Loggable, Acceptable;
+    use HasFactory, Searchable, ValidatingTrait, SoftDeletes, Loggable, Acceptable, Presentable;
 
     public $timestamps = true;
     protected $guarded = 'id';
@@ -148,6 +149,11 @@ class Tool extends Model
             return Storage::disk('public')->url(app('accessories_upload_path').$this->image);
         }
         return false;
+    }
+
+    public function getDisplayNameAttribute()
+    {
+        return $this->name;
     }
 
     public function getByStatusId($query, $id)

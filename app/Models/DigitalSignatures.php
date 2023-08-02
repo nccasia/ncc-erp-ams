@@ -6,6 +6,7 @@ use App\Events\CheckoutableCheckedIn;
 use App\Events\CheckoutableCheckedOut;
 use App\Models\Traits\Acceptable;
 use App\Models\Traits\Searchable;
+use App\Presenters\Presentable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,8 +17,7 @@ use Watson\Validating\ValidatingTrait;
 
 class DigitalSignatures extends Model
 {
-    protected $presenter = \App\Presenters\AssetPresenter::class;
-    use HasFactory, Searchable, ValidatingTrait, SoftDeletes, Loggable, Acceptable;
+    use HasFactory, Searchable, ValidatingTrait, SoftDeletes, Loggable, Acceptable, Presentable;
     public $timestamps = true;
 
     protected $guarded = [];
@@ -145,6 +145,11 @@ class DigitalSignatures extends Model
             return Storage::disk('public')->url(app('accessories_upload_path') . $this->image);
         }
         return false;
+    }
+
+    public function getDisplayNameAttribute()
+    {
+        return $this->name;
     }
 
     public function getByStatusId($query, $id)
