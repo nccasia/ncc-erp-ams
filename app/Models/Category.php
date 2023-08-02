@@ -136,6 +136,16 @@ class Category extends SnipeModel
         return $this->hasMany(\App\Models\Consumable::class);
     }
 
+    public function tools()
+    {
+        return $this->hasMany(Tool::class);
+    }
+
+    public function digital_signatures()
+    {
+        return $this->hasMany(DigitalSignatures::class);
+    }
+
     /**
      * Establishes the category -> consumables relationship
      *
@@ -174,18 +184,6 @@ class Category extends SnipeModel
     }
 
     /**
-     * Establishes the category -> assets relationship
-     *
-     * @author [A. Gianotto] [<snipe@snipe.net>]
-     * @since [v2.0]
-     * @return \Illuminate\Database\Eloquent\Relations\Relation
-     */
-    public function assets()
-    {
-        return $this->hasManyThrough(\App\Models\Asset::class, \App\Models\AssetModel::class, 'category_id', 'model_id');
-    }
-
-    /**
      * Establishes the category -> models relationship
      *
      * @author [A. Gianotto] [<snipe@snipe.net>]
@@ -195,6 +193,18 @@ class Category extends SnipeModel
     public function models()
     {
         return $this->hasMany(\App\Models\AssetModel::class, 'category_id');
+    }
+
+    /**
+     * Establishes the category -> assets relationship
+     *
+     * @author [A. Gianotto] [<snipe@snipe.net>]
+     * @since [v2.0]
+     * @return \Illuminate\Database\Eloquent\Relations\Relation
+     */
+    public function assets()
+    {
+        return $this->hasManyThrough(\App\Models\Asset::class, \App\Models\AssetModel::class, 'category_id', 'model_id');
     }
 
     /**

@@ -3,8 +3,12 @@
 namespace App\Services;
 
 use App\Models\Category;
+use App\Models\DigitalSignatures;
 use App\Models\Location;
 use App\Models\Statuslabel;
+use App\Models\Tool;
+use App\Models\Asset;
+use App\Models\Consumable;
 use Illuminate\Support\Facades\Auth;
 
 class DashboardService
@@ -24,22 +28,30 @@ class DashboardService
 
     public function addCategoriesToLocation($location, $categories)
     {
-        $location['categories'] = $this->mapStatusToCategory($location['rtd_assets'], $categories, $location['rtd_consumables'], $location['rtd_accessories']);
+        $location['categories'] =
+            $this->mapStatusToCategory(
+                $location['rtd_assets'],
+                $categories,
+                $location['rtd_consumables'],
+                $location['rtd_accessories'],
+                $location['rtd_tools'],
+                $location['rtd_digital_signatures']
+            );
         return $location;
     }
 
-    public function mapStatusToCategory($assets, $categories, $consumables, $accessories)
+    public function mapStatusToCategory($assets, $categories, $consumables, $accessories, $tools, $digital_signatures)
     {
         $status_labels = Statuslabel::select([
             'id',
             'name',
         ])->get();
-        return  $categories->map(function ($category) use ($status_labels, $assets, $consumables, $accessories) {
-            return clone $this->addStatusToCategory($assets, $category, $status_labels, $consumables, $accessories);
+        return  $categories->map(function ($category) use ($status_labels, $assets, $consumables, $accessories, $tools, $digital_signatures) {
+            return clone $this->addStatusToCategory($assets, $category, $status_labels, $consumables, $accessories, $tools, $digital_signatures);
         });
     }
 
-    public function addStatusToCategory($assets, $category, $status_labels, $consumables, $accessories)
+    public function addStatusToCategory($assets, $category, $status_labels, $consumables, $accessories, $tools, $digital_signatures)
     {
         if ($assets->isEmpty()) {
             $category['assets_count'] = 0;
@@ -61,23 +73,47 @@ class DashboardService
             $category['accessories_count'] = count($accessories);
         }
 
-        $status_labels = $this->mapValueToStatusLabels($assets, $status_labels);
+        if ($tools->isEmpty()) {
+            $category['tools_count'] = 0;
+        } else {
+            $tools = (new Tool)->scopeInCategory($tools->toQuery(), $category['id'])->get();
+            $category['tools_count'] = count($tools);
+        }
+
+        if ($digital_signatures->isEmpty()) {
+            $category['digital_signatures_count'] = 0;
+        } else {
+            $digital_signatures = (new DigitalSignatures)->scopeInCategory($digital_signatures->toQuery(), $category['id'])->get();
+            $category['digital_signatures_count'] = count($digital_signatures);
+        }
+
+        $status_labels = $this->mapValueToStatusLabels($assets, $consumables, $accessories, $tools, $digital_signatures, $status_labels);
         $category['status_labels'] = $status_labels;
 
         return $category;
     }
 
-    public function mapValueToStatusLabels($assets, $status_labels)
+    public function mapValueToStatusLabels($assets, $consumables, $accessories, $tools, $digital_signatures, $status_labels)
     {
-        return $status_labels->map(function ($status_label) use ($assets) {
-            return clone $this->addValueToStatusLabel($assets, $status_label);
+        return $status_labels->map(function ($status_label) use ($assets, $consumables, $accessories, $tools, $digital_signatures) {
+            return clone $this->addValueToStatusLabel($assets, $consumables, $accessories, $tools, $digital_signatures, $status_label);
         });
     }
 
-    public function addValueToStatusLabel($assets, $status_label)
+    public function addValueToStatusLabel($assets, $consumables, $accessories, $tools, $digital_signatures, $status_label)
     {
-        $assets_by_status = (new \App\Models\Asset)->getByStatusId($assets, $status_label['id']);
+        $assets_by_status = (new Asset)->getByStatusId($assets, $status_label['id']);
+        $consumables_by_status = (new Consumable)->getByStatusId($consumables, $status_label['id']);
+        $accessories_by_status = (new Consumable)->getByStatusId($accessories, $status_label['id']);
+        $tools_by_status = (new Consumable)->getByStatusId($tools, $status_label['id']);
+        $digital_signaturess_by_status = (new Consumable)->getByStatusId($digital_signatures, $status_label['id']);
+
         $status_label['assets_count'] = count($assets_by_status->toArray());
+        $status_label['consumables_count'] = count($consumables_by_status->toArray());
+        $status_label['accessories_count'] = count($accessories_by_status->toArray());
+        $status_label['tools_count'] = count($tools_by_status->toArray());
+        $status_label['digital_signatures_count'] = count($digital_signaturess_by_status->toArray());
+
         return $status_label;
     }
 
@@ -95,14 +131,22 @@ class DashboardService
     public function getAllLocaltions($purchase_date_from, $purchase_date_to)
     {
         $user = Auth::user();
-        if($user->isAdmin()){
+        if ($user->isAdmin()) {
             $locations = Location::select(['id', 'name']);
-        }else{
+        } else {
             $manager_location = json_decode($user->manager_location, true);
             $locations = Location::select(['id', 'name'])->whereIn('id', $manager_location);
         }
         if ($purchase_date_from == null && $purchase_date_to == null) {
-            $locations = $locations->withCount(['rtd_assets as assets_count', 'rtd_consumables as consumables_count', 'rtd_accessories as accessories_count'])->get();
+            $locations = $locations->withCount(
+                [
+                    'rtd_assets as assets_count',
+                    'rtd_consumables as consumables_count',
+                    'rtd_accessories as accessories_count',
+                    'rtd_tools as tools_count',
+                    'rtd_digital_signatures as digital_signatures_count'
+                ]
+            )->get();
         } else {
             $locations =  $locations->with('rtd_assets', function ($query) use ($purchase_date_from, $purchase_date_to) {
                 if (!is_null($purchase_date_from)) {
@@ -123,6 +167,24 @@ class DashboardService
                     return $query;
                 })
                 ->with('rtd_accessories', function ($query) use ($purchase_date_from, $purchase_date_to) {
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
+                    return $query;
+                })
+                ->with('rtd_tools', function ($query) use ($purchase_date_from, $purchase_date_to) {
+                    if (!is_null($purchase_date_from)) {
+                        $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                    }
+                    if (!is_null($purchase_date_to)) {
+                        $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                    }
+                    return $query;
+                })
+                ->with('rtd_digital_signatures', function ($query) use ($purchase_date_from, $purchase_date_to) {
                     if (!is_null($purchase_date_from)) {
                         $query = $query->where('purchase_date', '>=', $purchase_date_from);
                     }
@@ -158,6 +220,24 @@ class DashboardService
                             $query = $query->where('purchase_date', '<=', $purchase_date_to);
                         }
                         return $query;
+                    },
+                    'rtd_tools as tools_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+                        if (!is_null($purchase_date_from)) {
+                            $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                        }
+                        if (!is_null($purchase_date_to)) {
+                            $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                        }
+                        return $query;
+                    },
+                    'rtd_digital_signatures as digital_signatures_count' => function ($query) use ($purchase_date_from, $purchase_date_to) {
+                        if (!is_null($purchase_date_from)) {
+                            $query = $query->where('purchase_date', '>=', $purchase_date_from);
+                        }
+                        if (!is_null($purchase_date_to)) {
+                            $query = $query->where('purchase_date', '<=', $purchase_date_to);
+                        }
+                        return $query;
                     }
                 ])->get();
         }
@@ -171,12 +251,18 @@ class DashboardService
             'assets_count' => $category->assets_count,
             'consumables_count' => $category->consumables_count,
             'accessories_count' => $category->accessories_count,
+            'tools_count' => $category->tools_count,
+            'digital_signatures_count' => $category->digital_signatures_count,
             'category_type' => $category->category_type,
             'id' => $category->id,
             'name' => $category->name,
             'status_labels' => $category->status_labels->map(function ($label) {
                 return [
                     'assets_count' => $label->assets_count,
+                    'consumables_count' => $label->consumables_count,
+                    'accessories_count' => $label->accessories_count,
+                    'tools_count' => $label->tools_count,
+                    'digital_signatures_count' => $label->digital_signatures_count,
                     'id' => $label->id,
                     'name' => $label->name,
                 ];
@@ -190,10 +276,16 @@ class DashboardService
         $categoryOld['assets_count'] += $newData['assets_count'];
         $categoryOld['consumables_count'] += $newData['consumables_count'];
         $categoryOld['accessories_count'] += $newData['accessories_count'];
+        $categoryOld['tools_count'] += $newData['tools_count'];
+        $categoryOld['digital_signatures_count'] += $newData['digital_signatures_count'];
         foreach ($newData['status_labels'] as $label) {
             $categoryOld['status_labels'] = $categoryOld['status_labels']->map(function ($value) use ($label) {
                 if ($value['id'] == $label['id']) {
                     $value['assets_count'] += $label['assets_count'];
+                    $value['consumables_count'] += $label['consumables_count'];
+                    $value['accessories_count'] += $label['accessories_count'];
+                    $value['tools_count'] += $label['tools_count'];
+                    $value['digital_signatures_count'] += $label['digital_signatures_count'];
                 }
                 return $value;
             });
@@ -214,6 +306,8 @@ class DashboardService
         $totalData['assets_count'] = 0;
         $totalData['consumables_count'] = 0;
         $totalData['accessories_count'] = 0;
+        $totalData['tools_count'] = 0;
+        $totalData['digital_signatures_count'] = 0;
         $totalData['items_count'] = 0;
 
         $totalData['categories'] = collect([]);
@@ -223,7 +317,14 @@ class DashboardService
             $totalData['assets_count'] += $location->assets_count;
             $totalData['consumables_count'] += $location->consumables_count;
             $totalData['accessories_count'] += $location->accessories_count;
-            $totalData['items_count'] = $totalData['assets_count'] + $totalData['consumables_count'] + $totalData['accessories_count'];
+            $totalData['tools_count'] += $location->tools_count;
+            $totalData['digital_signatures_count'] += $location->digital_signatures_count;
+            $totalData['items_count'] =
+                $totalData['assets_count'] +
+                $totalData['consumables_count'] +
+                $totalData['accessories_count'] +
+                $totalData['tools_count'] +
+                $totalData['digital_signatures_count'];
 
             // calculate total assest of each category
             foreach ($location->categories as $category) { // loop category

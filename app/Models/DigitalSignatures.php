@@ -116,6 +116,11 @@ class DigitalSignatures extends Model
         return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
     }
 
+    public function getByStatusId($query, $id)
+    {
+        return $query->where('status_id', $id);
+    }
+
     /**
      * Sort signature by user.
      *

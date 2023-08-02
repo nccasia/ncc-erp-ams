@@ -147,7 +147,11 @@ class Tool extends Model
             return Storage::disk('public')->url(app('accessories_upload_path').$this->image);
         }
         return false;
+    }
 
+    public function getByStatusId($query, $id)
+    {
+        return $query->where('status_id', $id);
     }
 
     public function scopeOrderUser($query, $order)

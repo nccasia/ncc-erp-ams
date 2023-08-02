@@ -139,6 +139,16 @@ class Location extends SnipeModel
         return $this->hasMany(\App\Models\Accessory::class, 'location_id');
     }
 
+    public function rtd_tools()
+    {
+        return $this->hasMany(Tool::class,'location_id');
+    }
+
+    public function rtd_digital_signatures()
+    {
+        return $this->hasMany(DigitalSignatures::class,'location_id');
+    }
+
     public function parent()
     {
         return $this->belongsTo(self::class, 'parent_id', 'id')

@@ -81,6 +81,16 @@ class DashboardController extends Controller
                 $bind
             );
 
+            $tools_statistic = DB::select(
+                $this->dashboardService->queryReportAssetByType('tools', 'App\\\Models\\\Tool','location_id', $from, $to),
+                $bind
+            );
+
+            $digital_signatures_statistic = DB::select(
+                $this->dashboardService->queryReportAssetByType('digital_signatures', 'App\\\Models\\\DigitalSignatures','location_id', $from, $to),
+                $bind
+            );
+
 
             return response()->json(
                 Helper::formatStandardApiResponse(
@@ -90,7 +100,9 @@ class DashboardController extends Controller
                         'categories' => $categories,
                         'assets_statistic' => $assets_statistic,
                         'consumables_statistic' => $consumables_statistic,
-                        'accessories_statistic' => $accessories_statistic
+                        'accessories_statistic' => $accessories_statistic,
+                        'tools_statistic' => $tools_statistic,
+                        'digital_signatures_statistic' => $digital_signatures_statistic
                     ],
                     trans('admin/dashboard/message.success')
                 )
@@ -98,72 +110,5 @@ class DashboardController extends Controller
         } else {
             return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/dashboard/message.not_permission')), 401);
         }
-    }
-
-
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
-    {
-        //
     }
 }
