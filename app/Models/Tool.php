@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Events\CheckoutableCheckedOut;
+use App\Models\Traits\Acceptable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tool extends Model
 {
-    use HasFactory, Searchable, ValidatingTrait, SoftDeletes;
+    use HasFactory, Searchable, ValidatingTrait, SoftDeletes, Loggable, Acceptable;
 
     public $timestamps = true;
     protected $guarded = 'id';
@@ -114,6 +116,38 @@ class Tool extends Model
     public function assignedTo()
     {
         return $this->morphTo('assigned', 'assigned_type', 'assigned_to')->withTrashed();
+    }
+
+    public function requireAcceptance()
+    {
+        return $this->category->require_acceptance;
+    }
+
+    public function checkin_email()
+    {
+        return $this->category->checkin_email;
+    }
+
+    public function getEula()
+    {
+        $Parsedown = new \Parsedown();
+
+        if ($this->category->eula_text) {
+            return $Parsedown->text(e($this->category->eula_text));
+        } elseif ((Setting::getSettings()->default_eula_text) && ($this->category->use_default_eula == '1')) {
+            return $Parsedown->text(e(Setting::getSettings()->default_eula_text));
+        }
+
+            return null;
+    }
+
+    public function getImageUrl()
+    {
+        if ($this->image) {
+            return Storage::disk('public')->url(app('accessories_upload_path').$this->image);
+        }
+        return false;
+
     }
 
     public function scopeOrderUser($query, $order)
@@ -261,7 +295,7 @@ class Tool extends Model
         return $user->isAdmin();
     }
 
-    public function checkOut($target, $checkout_date, $tool_name, $status)
+    public function checkOut($target, $checkout_date, $tool_name, $status, $note)
     {
         if (!$target) {
             return false;
@@ -279,6 +313,7 @@ class Tool extends Model
         }
 
         if ($this->save()) {
+            event(new CheckoutableCheckedOut($this,$target,Auth::user(),$note));
             return true;
         }
         

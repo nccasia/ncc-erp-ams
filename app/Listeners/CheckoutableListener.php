@@ -9,16 +9,19 @@ use App\Models\Consumable;
 use App\Models\LicenseSeat;
 use App\Models\Recipients\AdminRecipient;
 use App\Models\Setting;
+use App\Models\Tool;
 use App\Models\User;
 use App\Notifications\CheckinAccessoryNotification;
 use App\Notifications\CheckinAssetNotification;
 use App\Notifications\CheckinLicenseNotification;
 use App\Notifications\CheckinLicenseSeatNotification;
+use App\Notifications\CheckinToolNotification;
 use App\Notifications\CheckoutAccessoryNotification;
 use App\Notifications\CheckoutAssetNotification;
 use App\Notifications\CheckoutConsumableNotification;
 use App\Notifications\CheckoutLicenseNotification;
 use App\Notifications\CheckoutLicenseSeatNotification;
+use App\Notifications\CheckoutToolNotification;
 use Illuminate\Support\Facades\Notification;
 
 class CheckoutableListener
@@ -167,6 +170,9 @@ class CheckoutableListener
             case LicenseSeat::class:
                 $notificationClass = CheckinLicenseSeatNotification::class;
                 break;
+            case Tool::class:
+                $notificationClass = CheckinToolNotification::class;
+                break;
         }
 
         \Log::debug('Notification class: '.$notificationClass);
@@ -197,7 +203,10 @@ class CheckoutableListener
                 break;    
             case LicenseSeat::class:
                 $notificationClass = CheckoutLicenseSeatNotification::class;
-                break;                
+                break;         
+            case Tool::class:
+                $notificationClass = CheckoutToolNotification::class;
+                break;       
         }
 
         return new $notificationClass($event->checkoutable, $event->checkedOutTo, $event->checkedOutBy, $acceptance, $event->note);
