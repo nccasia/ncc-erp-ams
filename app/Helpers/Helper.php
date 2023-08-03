@@ -44,13 +44,8 @@ class Helper
     public static function formatCurrencyOutput($cost)
     {
         if (is_numeric($cost)) {
-
-            if (Setting::getSettings()->digit_separator=='1.234,56') {
-                return number_format($cost, 2, ',', '.');
-            }
-            return number_format($cost, 2, '.', ',');
+            return number_format($cost, 0, '.', ',');
         }
-        // It's already been parsed.
         return $cost;
     }
 
