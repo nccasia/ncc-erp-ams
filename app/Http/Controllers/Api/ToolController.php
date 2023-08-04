@@ -253,11 +253,11 @@ class ToolController extends Controller
             );
         }
         $target = User::find($request->get('assigned_to'));
-
+        $note = request('note', null);
         $checkout_date = $request->get('checkout_at');
         // $request->get('notes') ? $notes = $request->get('notes') : $notes = null;
         $tool->status_id = config('enum.status_id.ASSIGN');
-        if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
+        if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'), $note)) {
             $this->sendMailCheckout($target, $tool);
             return response()->json(
                 Helper::formatStandardApiResponse(
@@ -299,7 +299,7 @@ class ToolController extends Controller
             }
 
             $tool->status_id = config('enum.status_id.ASSIGN');
-            if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
+            if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'), $note)) {
                 $this->sendMailCheckout($target,$tool);
             } else {
                 return response()->json(
@@ -344,8 +344,9 @@ class ToolController extends Controller
 
         $checkin_date = $request->get('checkin_at');
         $request->get('notes') ? $note = $request->get('notes') : $note = null;
+        $target = User::findOrFail($tool->assigned_to);
 
-        if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+        if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
             $this->sendMailCheckin($tool->assignedTo, $tool);
             return response()->json(
                 Helper::formatStandardApiResponse(
@@ -396,8 +397,9 @@ class ToolController extends Controller
 
             $checkin_date = $request->get('checkin_at');
             $request->get('notes') ? $note = $request->get('notes') : $note = null;
+            $target = User::findOrFail($tool->assigned_to);
 
-            if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
+            if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
                 $this->sendMailCheckin($target,$tool);
             } else {
                 return response()->json(

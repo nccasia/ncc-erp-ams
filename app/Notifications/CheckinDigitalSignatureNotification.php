@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\LicenseSeat;
+use App\Models\DigitalSignatures;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -10,28 +10,23 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
 
-class CheckoutLicenseSeatNotification extends Notification
+class CheckinDigitalSignatureNotification extends Notification
 {
     use Queueable;
-    /**
-     * @var
-     */
-    private $params;
 
     /**
      * Create a new notification instance.
      *
      * @param $params
      */
-    public function __construct(LicenseSeat $licenseSeat, $checkedOutTo, User $checkedOutBy, $acceptance, $note)
+    public function __construct(DigitalSignatures $digital_signature, $checkedOutTo, User $checkedInby, $note)
     {
-        $this->item = $licenseSeat->license;
-        $this->admin = $checkedOutBy;
-        $this->note = $note;
+        $this->item = $digital_signature;
         $this->target = $checkedOutTo;
-        $this->acceptance = $acceptance;
-
+        $this->admin = $checkedInby;
+        $this->note = $note;
         $this->settings = Setting::getSettings();
+        \Log::debug('Constructor for notification fired');
     }
 
     /**
@@ -41,7 +36,12 @@ class CheckoutLicenseSeatNotification extends Notification
      */
     public function via()
     {
+        \Log::debug('via called');
         $notifyBy = [];
+
+        if (Setting::getSettings()->slack_endpoint) {
+            $notifyBy[] = 'slack';
+        }
 
         if (Setting::getSettings()->slack_endpoint != '') {
             $notifyBy[] = 'slack';
@@ -51,29 +51,40 @@ class CheckoutLicenseSeatNotification extends Notification
          * Only send notifications to users that have email addresses
          */
         if ($this->target instanceof User && $this->target->email != '') {
+            \Log::debug('The target is a user');
+
+            /**
+             * Send an email if the asset requires acceptance,
+             * so the user can accept or decline the asset
+             */
+            if (($this->item->require_acceptance) || ($this->item->eula) || ($this->item->checkin_email)) {
+                $notifyBy[] = 'mail';
+            }
 
             /**
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
             if ($this->item->require_acceptance) {
-                $notifyBy[1] = 'mail';
+                \Log::debug('This tool requires acceptance');
             }
 
             /**
              * Send an email if the item has a EULA, since the user should always receive it
              */
             if ($this->item->eula) {
-                $notifyBy[1] = 'mail';
+                \Log::debug('This tool has a EULA');
             }
 
             /**
              * Send an email if an email should be sent at checkin/checkout
              */
             if ($this->item->checkin_email) {
-                $notifyBy[1] = 'mail';
+                \Log::debug('This digital signature has a checkin_email()');
             }
         }
+
+        \Log::debug('checkin_email on this category is ' . $this->item->checkin_email);
 
         return $notifyBy;
     }
@@ -87,12 +98,12 @@ class CheckoutLicenseSeatNotification extends Notification
         $botname = ($this->settings->slack_botname) ? $this->settings->slack_botname : 'Snipe-Bot';
 
         $fields = [
-            'To' => '<'.$target->present()->viewUrl().'|'.$target->present()->fullName().'>',
-            'By' => '<'.$admin->present()->viewUrl().'|'.$admin->present()->fullName().'>',
+            'To' => '<' . $target->present()->viewUrl() . '|' . $target->present()->fullName() . '>',
+            'By' => '<' . $admin->present()->viewUrl() . '|' . $admin->present()->fullName() . '>',
         ];
 
         return (new SlackMessage)
-            ->content(':arrow_up: :floppy_disk: License Checked Out')
+            ->content(':arrow_down: :keyboard: ' . trans('mail.Tool_Checkin_Notification'))
             ->from($botname)
             ->attachment(function ($attachment) use ($item, $note, $admin, $fields) {
                 $attachment->title(htmlspecialchars_decode($item->present()->name), $item->present()->viewUrl())
@@ -104,25 +115,22 @@ class CheckoutLicenseSeatNotification extends Notification
     /**
      * Get the mail representation of the notification.
      *
+     * @param  mixed  $notifiable
      * @return \Illuminate\Notifications\Messages\MailMessage
      */
     public function toMail()
     {
-        $eula = method_exists($this->item, 'getEulaAttribute') ? $this->item->eula : '';
-        $req_accept = method_exists($this->item, 'getRequireAcceptanceAttribute') ? $this->item->require_acceptance : 0;
+        \Log::debug('to email called');
 
-        $accept_url = is_null($this->acceptance) ? null : route('account.accept.item', $this->acceptance);
-
-        return (new MailMessage)->markdown('notifications.markdown.checkout-license',
+        return (new MailMessage)->markdown(
+            'notifications.markdown.checkin-accessory',
             [
                 'item'          => $this->item,
                 'admin'         => $this->admin,
                 'note'          => $this->note,
                 'target'        => $this->target,
-                'eula'          => $eula,
-                'req_accept'    => $req_accept,
-                'accept_url'    => $accept_url,
-            ])
-            ->subject(trans('mail.Confirm_license_delivery'));
+            ]
+        )
+            ->subject(trans('mail.Accessory_Checkin_Notification'));
     }
 }

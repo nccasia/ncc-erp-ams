@@ -220,7 +220,7 @@ class Accessory extends SnipeModel
      * @since [v3.0]
      * @return string
      */
-    public function getImageUrl()
+    public function getImageUrlAttribute()
     {
         if ($this->image) {
             return Storage::disk('public')->url(app('accessories_upload_path').$this->image);
@@ -273,7 +273,7 @@ class Accessory extends SnipeModel
      * @since [v3.0]
      * @return bool
      */
-    public function checkin_email()
+    public function getCheckinEmailAttribute()
     {
         return $this->category->checkin_email;
     }
@@ -286,7 +286,7 @@ class Accessory extends SnipeModel
      * @since [v3.0]
      * @return bool
      */
-    public function requireAcceptance()
+    public function getRequireAcceptanceAttribute()
     {
         return $this->category->require_acceptance;
     }
@@ -299,7 +299,7 @@ class Accessory extends SnipeModel
      * @since [v3.0]
      * @return string
      */
-    public function getEula()
+    public function getEulaAttribute()
     {
         $Parsedown = new \Parsedown();
 
@@ -312,7 +312,7 @@ class Accessory extends SnipeModel
             return null;
     }
 
-    public function getByStatusId($query, $id)
+    public function scopeByStatusId($query, $id)
     {
         return $query->where('status_id', $id);
     }

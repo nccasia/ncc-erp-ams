@@ -53,7 +53,7 @@ class CheckinAssetNotification extends Notification
          * Only send checkin notifications to users if the category
          * has the corresponding checkbox checked.
          */
-        if ($this->item->checkin_email() && $this->target instanceof User && $this->target->email != '') {
+        if ($this->item->checkin_email && $this->target instanceof User && $this->target->email != '') {
             \Log::debug('use email');
             $notifyBy[] = 'mail';
         }

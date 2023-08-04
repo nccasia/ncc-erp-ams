@@ -2,6 +2,10 @@
 
 namespace App\Models;
 
+use App\Events\CheckoutableCheckedIn;
+use App\Events\CheckoutableCheckedOut;
+use App\Models\Traits\Acceptable;
+use App\Presenters\Presentable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tool extends Model
 {
-    use HasFactory, Searchable, ValidatingTrait, SoftDeletes;
+    use HasFactory, Searchable, ValidatingTrait, SoftDeletes, Loggable, Acceptable, Presentable;
 
     public $timestamps = true;
     protected $guarded = 'id';
@@ -116,7 +120,43 @@ class Tool extends Model
         return $this->morphTo('assigned', 'assigned_type', 'assigned_to')->withTrashed();
     }
 
-    public function getByStatusId($query, $id)
+    public function getRequireAcceptanceAttribute()
+    {
+        return $this->category->require_acceptance;
+    }
+
+    public function getCheckinEmailAttribute()
+    {
+        return $this->category->checkin_email;
+    }
+
+    public function getEulaAttribute()
+    {
+        $Parsedown = new \Parsedown();
+
+        if ($this->category->eula_text) {
+            return $Parsedown->text(e($this->category->eula_text));
+        } elseif ((Setting::getSettings()->default_eula_text) && ($this->category->use_default_eula == '1')) {
+            return $Parsedown->text(e(Setting::getSettings()->default_eula_text));
+        }
+
+        return null;
+    }
+
+    public function getImageUrlAttribute()
+    {
+        if ($this->image) {
+            return Storage::disk('public')->url(app('accessories_upload_path') . $this->image);
+        }
+        return false;
+    }
+
+    public function getDisplayNameAttribute()
+    {
+        return $this->name;
+    }
+
+    public function scopeByStatusId($query, $id)
     {
         return $query->where('status_id', $id);
     }
@@ -132,7 +172,7 @@ class Tool extends Model
         return $query->leftJoin('users', 'users.id', '=', $this->table . '.assigned_to')
             ->orderBy('users.username', $order);
     }
-    
+
     public function scopeOrderCategory($query, $order)
     {
         return $query->join('categories', 'tools.category_id', '=', 'categories.id')->orderBy('categories.name', $order);
@@ -175,8 +215,8 @@ class Tool extends Model
     public function scopeInAssignedStatus($query, $assigned_status)
     {
         $data = $query;
-        if(is_array($assigned_status)) {
-            $data = $data->whereIn('assigned_status',$assigned_status);
+        if (is_array($assigned_status)) {
+            $data = $data->whereIn('assigned_status', $assigned_status);
         } else {
             $data = $data->where('assigned_status', '=', $assigned_status);
         }
@@ -186,8 +226,8 @@ class Tool extends Model
     public function scopeInStatus($query, $status)
     {
         $data = $query;
-        if(is_array($status)) {
-            $data = $data->whereIn('status_id',$status);
+        if (is_array($status)) {
+            $data = $data->whereIn('status_id', $status);
         } else {
             $data = $data->where('status_id', '=', $status);
         }
@@ -261,12 +301,13 @@ class Tool extends Model
         return $query;
     }
 
-    public function checkIsAdmin() {
+    public function checkIsAdmin()
+    {
         $user = Auth::user();
         return $user->isAdmin();
     }
 
-    public function checkOut($target, $checkout_date, $tool_name, $status)
+    public function checkOut($target, $checkout_date, $tool_name, $status, $note)
     {
         if (!$target) {
             return false;
@@ -284,13 +325,14 @@ class Tool extends Model
         }
 
         if ($this->save()) {
+            event(new CheckoutableCheckedOut($this, $target, Auth::user(), $note));
             return true;
         }
-        
+
         return false;
     }
 
-    public function checkIn($target, $checkout_date, $tool_name, $status)
+    public function checkIn($target, $checkout_date, $tool_name, $status, $note)
     {
         if (!$target) {
             return false;
@@ -306,6 +348,7 @@ class Tool extends Model
         }
 
         if ($this->save()) {
+            event(new CheckoutableCheckedIn($this, $target, Auth::user(), $note));
             return true;
         }
 

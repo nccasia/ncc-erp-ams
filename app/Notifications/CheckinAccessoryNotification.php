@@ -57,7 +57,7 @@ class CheckinAccessoryNotification extends Notification
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
-            if (($this->item->requireAcceptance()) || ($this->item->getEula()) || ($this->item->checkin_email())) {
+            if (($this->item->require_acceptance) || ($this->item->eula) || ($this->item->checkin_email)) {
                 $notifyBy[] = 'mail';
             }
 
@@ -65,26 +65,26 @@ class CheckinAccessoryNotification extends Notification
              * Send an email if the asset requires acceptance,
              * so the user can accept or decline the asset
              */
-            if ($this->item->requireAcceptance()) {
+            if ($this->item->require_acceptance) {
                 \Log::debug('This accessory requires acceptance');
             }
 
             /**
              * Send an email if the item has a EULA, since the user should always receive it
              */
-            if ($this->item->getEula()) {
+            if ($this->item->eula) {
                 \Log::debug('This accessory has a EULA');
             }
 
             /**
              * Send an email if an email should be sent at checkin/checkout
              */
-            if ($this->item->checkin_email()) {
-                \Log::debug('This accessory has a checkin_email()');
+            if ($this->item->checkin_email) {
+                \Log::debug('This accessory has a checkin_email');
             }
         }
 
-        \Log::debug('checkin_email on this category is '.$this->item->checkin_email());
+        \Log::debug('checkin_email on this category is '.$this->item->checkin_email);
 
         return $notifyBy;
     }

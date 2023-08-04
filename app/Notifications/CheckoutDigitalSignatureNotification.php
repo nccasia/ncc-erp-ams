@@ -2,7 +2,7 @@
 
 namespace App\Notifications;
 
-use App\Models\LicenseSeat;
+use App\Models\DigitalSignatures;
 use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
@@ -10,22 +10,16 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Messages\SlackMessage;
 use Illuminate\Notifications\Notification;
 
-class CheckoutLicenseSeatNotification extends Notification
+class CheckoutDigitalSignatureNotification extends Notification
 {
     use Queueable;
-    /**
-     * @var
-     */
-    private $params;
 
     /**
      * Create a new notification instance.
-     *
-     * @param $params
      */
-    public function __construct(LicenseSeat $licenseSeat, $checkedOutTo, User $checkedOutBy, $acceptance, $note)
+    public function __construct(DigitalSignatures $digital_signature, $checkedOutTo, User $checkedOutBy, $acceptance, $note)
     {
-        $this->item = $licenseSeat->license;
+        $this->item = $digital_signature;
         $this->admin = $checkedOutBy;
         $this->note = $note;
         $this->target = $checkedOutTo;
@@ -87,12 +81,12 @@ class CheckoutLicenseSeatNotification extends Notification
         $botname = ($this->settings->slack_botname) ? $this->settings->slack_botname : 'Snipe-Bot';
 
         $fields = [
-            'To' => '<'.$target->present()->viewUrl().'|'.$target->present()->fullName().'>',
-            'By' => '<'.$admin->present()->viewUrl().'|'.$admin->present()->fullName().'>',
+            'To' => '<' . $target->present()->viewUrl() . '|' . $target->present()->fullName() . '>',
+            'By' => '<' . $admin->present()->viewUrl() . '|' . $admin->present()->fullName() . '>',
         ];
 
         return (new SlackMessage)
-            ->content(':arrow_up: :floppy_disk: License Checked Out')
+            ->content(':arrow_up: :keyboard: Digital Signature Checked Out')
             ->from($botname)
             ->attachment(function ($attachment) use ($item, $note, $admin, $fields) {
                 $attachment->title(htmlspecialchars_decode($item->present()->name), $item->present()->viewUrl())
@@ -108,12 +102,14 @@ class CheckoutLicenseSeatNotification extends Notification
      */
     public function toMail()
     {
-        $eula = method_exists($this->item, 'getEulaAttribute') ? $this->item->eula : '';
-        $req_accept = method_exists($this->item, 'getRequireAcceptanceAttribute') ? $this->item->require_acceptance : 0;
+        \Log::debug($this->item->image_url);
+        $eula = $this->item->eula;
+        $req_accept = $this->item->require_acceptance;
 
         $accept_url = is_null($this->acceptance) ? null : route('account.accept.item', $this->acceptance);
 
-        return (new MailMessage)->markdown('notifications.markdown.checkout-license',
+        return (new MailMessage)->markdown(
+            'notifications.markdown.checkout-accessory',
             [
                 'item'          => $this->item,
                 'admin'         => $this->admin,
@@ -122,7 +118,8 @@ class CheckoutLicenseSeatNotification extends Notification
                 'eula'          => $eula,
                 'req_accept'    => $req_accept,
                 'accept_url'    => $accept_url,
-            ])
-            ->subject(trans('mail.Confirm_license_delivery'));
+            ]
+        )
+            ->subject(trans('mail.Confirm_accessory_delivery'));
     }
 }

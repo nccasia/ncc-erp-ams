@@ -390,6 +390,7 @@ class DigitalSignaturesController extends Controller
 
         $checkin_date = $request->get('checkin_at');
         $request->get('note') ? $note = $request->get('note') : $note = null;
+        $target = User::findOrFail($signature->assigned_to);
 
         if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
             $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
@@ -434,6 +435,7 @@ class DigitalSignaturesController extends Controller
 
             $checkin_date = $request->get('checkin_at');
             $request->get('note') ? $note = $request->get('note') : $note = null;
+            $target = User::findOrFail($signature->assigned_to);
 
             if ($signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
                 $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));

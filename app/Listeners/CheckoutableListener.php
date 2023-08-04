@@ -6,19 +6,25 @@ use App\Models\Accessory;
 use App\Models\Asset;
 use App\Models\CheckoutAcceptance;
 use App\Models\Consumable;
+use App\Models\DigitalSignatures;
 use App\Models\LicenseSeat;
 use App\Models\Recipients\AdminRecipient;
 use App\Models\Setting;
+use App\Models\Tool;
 use App\Models\User;
 use App\Notifications\CheckinAccessoryNotification;
 use App\Notifications\CheckinAssetNotification;
+use App\Notifications\CheckinDigitalSignatureNotification;
 use App\Notifications\CheckinLicenseNotification;
 use App\Notifications\CheckinLicenseSeatNotification;
+use App\Notifications\CheckinToolNotification;
 use App\Notifications\CheckoutAccessoryNotification;
 use App\Notifications\CheckoutAssetNotification;
 use App\Notifications\CheckoutConsumableNotification;
+use App\Notifications\CheckoutDigitalSignatureNotification;
 use App\Notifications\CheckoutLicenseNotification;
 use App\Notifications\CheckoutLicenseSeatNotification;
+use App\Notifications\CheckoutToolNotification;
 use Illuminate\Support\Facades\Notification;
 
 class CheckoutableListener
@@ -105,7 +111,7 @@ class CheckoutableListener
      */
     private function getCheckoutAcceptance($event)
     {
-        if (! $event->checkoutable->requireAcceptance()) {
+        if (! $event->checkoutable->require_acceptance) {
             return null;
         }
 
@@ -150,11 +156,6 @@ class CheckoutableListener
      */
     private function getCheckinNotification($event)
     {
-
-        // $model = get_class($event->checkoutable);
-
-
-
         $notificationClass = null;
 
         switch (get_class($event->checkoutable)) {
@@ -166,6 +167,12 @@ class CheckoutableListener
                 break;    
             case LicenseSeat::class:
                 $notificationClass = CheckinLicenseSeatNotification::class;
+                break;
+            case Tool::class:
+                $notificationClass = CheckinToolNotification::class;
+                break;
+            case DigitalSignatures::class:
+                $notificationClass = CheckinDigitalSignatureNotification::class;
                 break;
         }
 
@@ -197,7 +204,13 @@ class CheckoutableListener
                 break;    
             case LicenseSeat::class:
                 $notificationClass = CheckoutLicenseSeatNotification::class;
-                break;                
+                break;         
+            case Tool::class:
+                $notificationClass = CheckoutToolNotification::class;
+                break;  
+            case DigitalSignatures::class:
+                $notificationClass = CheckoutDigitalSignatureNotification::class;
+                break;
         }
 
         return new $notificationClass($event->checkoutable, $event->checkedOutTo, $event->checkedOutBy, $acceptance, $event->note);
