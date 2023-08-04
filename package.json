@@ -61,7 +61,7 @@
     },
     "husky": {
         "hooks": {
-            "pre-commit": "php artisan test && php codecept.phar run api"
+            "pre-commit": "php codecept.phar run api,unit"
         }
     }
 }
