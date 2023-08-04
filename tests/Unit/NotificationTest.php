@@ -27,12 +27,18 @@ class NotificationTest extends BaseTest
         $user = User::factory()->create([
             'location_id' => Location::factory()->create()->id,
         ]);
+        $admin = User::factory()->create();
         $status_label = Statuslabel::factory()->readyToDeploy()->create();
         $supplier = Supplier::factory()->create();
         $location = Location::factory()->create();
         $model = AssetModel::factory()->create(
             [
-                'category_id' => Category::factory()->assetLaptopCategory()->id
+                'category_id' => Category::factory()->create(
+                    [
+                        'name' => 'test for category',
+                        'category_type' => 'asset',
+                    ]
+                )->id
             ]
         );
         
@@ -48,9 +54,8 @@ class NotificationTest extends BaseTest
                 'assigned_status' => 1                
             ]);
 
-        // dd($asset);
         Notification::fake();
-        $asset->checkOut($user, $asset->id);
+        $asset->checkOut($user,$admin);
         Notification::assertSentTo($user, CheckoutAssetNotification::class);
     }
 }
