@@ -35,7 +35,12 @@ class CategoryTest extends BaseTest
 
     public function testACategoryCanHaveAssets()
     {
-        $category = Category::factory()->assetDesktopCategory();
+        $category = Category::factory()->create(
+            [
+                'name' => 'test for category',
+                'category_type' => 'asset',
+            ]
+        );
         $status_label = Statuslabel::factory()->pending()->create();
         $supplier = Supplier::factory()->create();
         $location = Location::factory()->create();
@@ -52,8 +57,7 @@ class CategoryTest extends BaseTest
 
 
         // Loop through the models and create 2 assets in each model
-        $models->each(function ($model) use ($status_label,$supplier,$location) {
-            //dd($model);
+        $models->each(function ($model) use ($status_label, $supplier, $location) {
             $asset = Asset::factory()
                 ->count(2)
                 ->create(
@@ -65,7 +69,7 @@ class CategoryTest extends BaseTest
                         'assigned_status' => 1
                     ]
                 );
-            //dd($asset);
+
         });
 
         $this->assertCount(5, $category->models);
