@@ -247,7 +247,7 @@ class Asset extends Depreciable
 
     public function category()
     {
-        return $this->belongsTo(Category::class, 'category_id')->where('category_type', '=', 'tool');
+        return $this->belongsTo(Category::class, 'category_id')->where('category_type', '=', 'asset');
     }
 
 
