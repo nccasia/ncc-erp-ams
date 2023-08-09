@@ -6,14 +6,17 @@ use App\Models\Company;
 use App\Models\Consumable;
 use App\Models\Location;
 use App\Models\User;
+use Faker\Factory;
 
 class ApiConsumablesCest
 {
     protected $user;
     protected $timeFormat;
+    protected $faker;
 
     public function _before(ApiTester $I)
     {
+        $this->faker = Factory::create();
         $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
@@ -35,6 +38,58 @@ class ApiConsumablesCest
         $consumable = Consumable::orderByDesc('created_at')->take(10)->get()->shuffle()->first();
 
         $I->seeResponseContainsJson($I->removeTimestamps((new ConsumablesTransformer)->transformConsumable($consumable)));
+    }
+
+    protected function sort($I, $column, $order)
+    {
+        $I->sendGET('/consumables?limit=10&offset=0', [
+            'sort' => $column,
+            'order' => $order,
+        ]);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
+    public function sortConsubaleByColumn(ApiTester $I)
+    {
+        $I->wantTo('Search Consumables By Column');
+        //category
+        $this->sort($I, 'category', 'desc');
+
+        //location
+        $this->sort($I, 'location', 'asc');
+    }
+
+    
+    protected function filter($I, $filterName, $value)
+    {
+        $I->sendGET('/consumables?limit=10&offset=0', [
+            $filterName => $value,
+        ]);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
+    protected function filterByDate($I, $from, $to, $value)
+    {
+        $I->sendGET('/consumables?limit=10&offset=0', [
+            $from => $value[0],
+            $to => $value[1],
+        ]);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
+    public function filterConsumable(ApiTester $I)
+    {
+        //search
+        $this->filter($I, 'search', 'k');
+
+        //purchase date from -> to
+        $this->filterByDate($I, 'date_from', 'date_to', ['2023-08-08', '2023-08-14']);
+
+        //category
+        $this->filter($I, 'category_id', [Category::all()->random()->first()->id]);
     }
 
     /** @test */
@@ -69,6 +124,11 @@ class ApiConsumablesCest
         $I->sendPOST('/consumables', $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+
+        //error
+        $data['name'] = null;
+        $I->sendPOST('/consumables', $data);
+        $I->seeResponseCodeIs(400);
     }
 
     /** @test */
@@ -155,10 +215,56 @@ class ApiConsumablesCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/consumables/message.delete.success'), $response->messages);
+    }
 
-        // verify, expect a 200
-        $I->sendGET('/consumables/'.$consumable->id);
+    public function selectlistConsumables(ApiTester $I)
+    {
+        $I->wantTo('get a list of consumables');
+        
+        $I->sendGET('/consumables/selectlist', [
+            'search' => 'h',
+        ]);
+
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
+    public function checkoutConsumables(ApiTester $I)
+    {
+        $I->wantTo("checkout a consumable");
+        $consumable = Consumable::factory()->ink()->create();
+        $id_error = $consumable->id + 1;
+        $user = User::factory()->create();
+
+        //error not exist
+        $I->sendGET("consumables/{$id_error}/checkout");
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals(trans('admin/consumables/message.does_not_exist'), $response->messages);
+
+        //success
+        $I->sendGET("consumables/{$consumable->id}/checkout", [
+            'assigned_to' => $user->id,
+            'name' => $consumable->name,
+            'note' => $this->faker->text(),
+            'category_id' => Category::select('name')->where('id', '=', $consumable->category_id)->first(),
+        ]);
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals(trans('admin/consumables/message.checkout.success'), $response->messages);
+    }
+
+    public function getDataView(ApiTester $I)
+    {
+        $I->wantTo("get Data view of consumable");
+        //$user = User::factory()->create();
+        $consumable = Consumable::factory()->ink()->create();
+
+        $I->sendGET("consumables/view/{$consumable->id}/users");
+        $response = $I->grabResponse();
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseIsJson();
+        $I->assertStringContainsString("total", $response);
     }
 }
