@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Transformers\ConsumablesTransformer;
+use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\Consumable;
 use App\Models\Location;
 use App\Models\User;
 use Faker\Factory;
+use Illuminate\Support\Facades\DB;
 
 class ApiConsumablesCest
 {
@@ -129,6 +131,10 @@ class ApiConsumablesCest
         $data['name'] = null;
         $I->sendPOST('/consumables', $data);
         $I->seeResponseCodeIs(400);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertNull($response->payload);
+        $I->assertEquals('The name field is required.', $response->messages->name[0]);
     }
 
     /** @test */
@@ -215,6 +221,7 @@ class ApiConsumablesCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/consumables/message.delete.success'), $response->messages);
+        $I->assertNull($response->payload);
     }
 
     public function selectlistConsumables(ApiTester $I)
@@ -227,6 +234,9 @@ class ApiConsumablesCest
 
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+        $consumables = Consumable::where('consumables.name', 'LIKE', '%'.'h'.'%');
+        $consumables = $consumables->orderBy('name', 'ASC')->paginate(50);
+        $I->seeResponseContainsJson($I->removeTimestamps(((new SelectlistTransformer)->transformSelectlist($consumables))));
     }
 
     public function checkoutConsumables(ApiTester $I)
@@ -252,7 +262,16 @@ class ApiConsumablesCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
         $response = json_decode($I->grabResponse());
+        $I->assertEquals($consumable->name, $response->payload->consumable);
         $I->assertEquals(trans('admin/consumables/message.checkout.success'), $response->messages);
+
+        //verify
+        $consumable_assigned = DB::table('consumables_users')
+                    ->where([
+                        'user_id' => $user->id,
+                        'consumable_id' => $consumable->id
+                    ])->first();
+        $I->assertNotNull($consumable_assigned);
     }
 
     public function getDataView(ApiTester $I)
