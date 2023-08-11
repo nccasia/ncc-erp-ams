@@ -88,6 +88,10 @@ class ApiDigitalSignaturesCest
         $I->sendGet('/digital_signatures/' . $digital_signature->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson([
+            'id' => $digital_signature->id,
+            'name' => $digital_signature->name
+        ]);
     }
 
     public function createDigitalSignature(ApiTester $I, $scenario)
@@ -118,6 +122,10 @@ class ApiDigitalSignaturesCest
         $I->sendPOST('/digital_signatures', $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson([
+            'name' => $data['name'],
+            'seri' => $data['seri']
+        ]);
     }
 
     public function updateDigitalSignatureWithPatch(ApiTester $I, $scenario)
@@ -181,7 +189,10 @@ class ApiDigitalSignaturesCest
             '_method' => 'PUT'
         ];
         $messages = trans('admin/digital_signatures/message.update.success');
-        $this->testSendPost($I, $link, 'success', $messages, $data_accept_checkout);
+        $I->sendPost($link, $data_accept_checkout);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals($messages, $response->messages);
 
         $digital_signatures_reject_checkout = $this->digitalSignatureFactory(
             2,
@@ -197,7 +208,10 @@ class ApiDigitalSignaturesCest
             '_method' => 'PUT'
         ];
         $messages =  trans('admin/digital_signatures/message.update.success');
-        $this->testSendPost($I, $link, 'success', $messages, $data_reject_checkout);
+        $I->sendPost($link, $data_reject_checkout);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals($messages, $response->messages);
     }
 
     public function digitalSignaturesMultipleConfirmCheckin(ApiTester $I)
@@ -222,7 +236,10 @@ class ApiDigitalSignaturesCest
             '_method' => 'PUT'
         ];
         $messages =  trans('admin/digital_signatures/message.update.success');
-        $this->testSendPost($I, $link, 'success', $messages, $data_accept_checkin);
+        $I->sendPost($link, $data_accept_checkin);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals($messages, $response->messages);
 
         $digital_signatures_reject_checkin = $this->digitalSignatureFactory(
             2,
@@ -238,7 +255,10 @@ class ApiDigitalSignaturesCest
             '_method' => 'PUT'
         ];
         $messages =  trans('admin/digital_signatures/message.update.success');
-        $this->testSendPost($I, $link, 'success', $messages, $data_reject_checkin);
+        $I->sendPost($link, $data_reject_checkin);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals($messages, $response->messages);
     }
 
     public function deleteDigitalSignatureTest(ApiTester $I, $scenario)
@@ -276,7 +296,19 @@ class ApiDigitalSignaturesCest
 
         $link = '/digital_signatures/' . $digital_signature->id . '/checkout';
         $messages = trans('admin/digital_signatures/message.checkout.success');
-        $this->testSendPost($I, $link, 'success', $messages, $data);
+        $I->sendPost($link, $data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals($messages, $response->messages);
+        $I->seeResponseContainsJson([
+            'digital_signature' => $digital_signature->seri
+        ]);
+        $I->sendGet('/digital_signatures/' . $digital_signature->id);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals(config('enum.assigned_status.WAITINGCHECKOUT'),$response->assigned_status);
+        $I->assertEquals(config('enum.status_id.ASSIGN'),$response->status_label->id);
 
         $digital_signature_not_checkoutable = $this->digitalSignatureFactory(
             0,
@@ -294,7 +326,13 @@ class ApiDigitalSignaturesCest
         ];
         $link = '/digital_signatures/' . $digital_signature_not_checkoutable->id . '/checkout';
         $messages = trans('admin/digital_signatures/message.checkout.not_available');
-        $this->testSendPost($I, $link, 'error', $messages, $data_not_checkoutable);
+        $I->sendPost($link, $data_not_checkoutable);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals($messages, $response->messages);
+        $I->seeResponseContainsJson([
+            'signature' => $digital_signature_not_checkoutable->seri
+        ]);
 
         $digital_signature_target_not_available = $this->digitalSignatureFactory();
         $data_target_not_available = [
@@ -305,7 +343,10 @@ class ApiDigitalSignaturesCest
         ];
         $link = '/digital_signatures/' . $digital_signature_target_not_available->id . '/checkout';
         $messages = trans('admin/digital_signatures/message.checkout.error');
-        $this->testSendPost($I, $link, 'error', $messages, $data_target_not_available);
+        $I->sendPost($link, $data_target_not_available);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals($messages, $response->messages);
     }
 
     public function digitalSignatureCanCheckin(ApiTester $I)
@@ -331,7 +372,19 @@ class ApiDigitalSignaturesCest
         ];
         $link = '/digital_signatures/' . $digital_signature->id . '/checkin';
         $messages = trans('admin/digital_signatures/message.checkin.success');
-        $this->testSendPost($I, $link, 'success', $messages, $data);
+        $I->sendPost($link, $data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals($messages, $response->messages);
+        $I->seeResponseContainsJson([
+            'digital_signature' => $digital_signature->seri
+        ]);
+        $I->sendGet('/digital_signatures/' . $digital_signature->id);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals(config('enum.assigned_status.WAITINGCHECKIN'), $response->assigned_status);
+        $I->assertEquals(config('enum.status_id.ASSIGN'), $response->status_label->id);
 
         $digital_signature_already_checkin = $this->digitalSignatureFactory();
         $data_already_checkin = [
@@ -342,7 +395,13 @@ class ApiDigitalSignaturesCest
         ];
         $link = '/digital_signatures/' . $digital_signature_already_checkin->id . '/checkin';
         $messages = trans('admin/digital_signatures/message.checkin.already_checked_in');
-        $this->testSendPost($I, $link, 'error', $messages, $data_already_checkin);
+        $I->sendPost($link, $data_already_checkin);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals($messages, $response->messages);
+        $I->seeResponseContainsJson([
+            'signature' => $digital_signature_already_checkin->seri
+        ]);
 
         $digital_signature_not_checkinable = $this->digitalSignatureFactory(
             0,
@@ -361,7 +420,10 @@ class ApiDigitalSignaturesCest
         ];
         $link = '/digital_signatures/' . $digital_signature_not_checkinable->id . '/checkin';
         $messages = trans('admin/digital_signatures/message.checkin.not_available');
-        $this->testSendPost($I, $link, 'error', $messages, $data_not_checkinable);
+        $I->sendPost($link, $data_not_checkinable);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals($messages, $response->messages);
     }
 
     public function digitalSignaturesCanMultipleCheckout(ApiTester $I)
@@ -380,7 +442,10 @@ class ApiDigitalSignaturesCest
             'note' => 'Testing checkout'
         ];
         $messages = trans('admin/digital_signatures/message.checkout.success');
-        $this->testSendPost($I, $link, 'success', $messages, $data);
+        $I->sendPost($link, $data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals($messages, $response->messages);
 
         $digital_signature_not_checkoutable = $this->digitalSignatureFactory(
             3,
@@ -397,7 +462,10 @@ class ApiDigitalSignaturesCest
             'note' => 'Testing checkout'
         ];
         $messages = trans('admin/digital_signatures/message.checkout.not_available');
-        $this->testSendPost($I, $link, 'error', $messages, $data_not_checkoutable);
+        $I->sendPost($link, $data_not_checkoutable);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals($messages, $response->messages);
 
         $digital_signature_target_not_available = $this->digitalSignatureFactory(3);
         $data_target_not_available = [
@@ -407,7 +475,10 @@ class ApiDigitalSignaturesCest
             'note' => 'Testing checkout'
         ];
         $messages = trans('admin/digital_signatures/message.checkout.error');
-        $this->testSendPost($I, $link, 'error', $messages, $data_target_not_available);
+        $I->sendPost($link, $data_target_not_available);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals($messages, $response->messages);
     }
 
     public function digitalSignatureCanMultipleCheckin(ApiTester $I)
@@ -431,7 +502,10 @@ class ApiDigitalSignaturesCest
             'note' => 'Testing checkin'
         ];
         $messages = trans('admin/digital_signatures/message.checkin.success');
-        $this->testSendPost($I, $link, 'success', $messages, $data);
+        $I->sendPost($link, $data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals($messages, $response->messages);
 
         $digital_signature_already_checkin = $this->digitalSignatureFactory(3);
         $data_already_checkin = [
@@ -439,7 +513,10 @@ class ApiDigitalSignaturesCest
             'note' => 'Testing checkin'
         ];
         $messages = trans('admin/digital_signatures/message.checkin.already_checked_in');
-        $this->testSendPost($I, $link, 'error', $messages, $data_already_checkin);
+        $I->sendPost($link, $data_already_checkin);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals($messages, $response->messages);
 
         $digital_signature_not_checkinable = $this->digitalSignatureFactory(
             3,
@@ -454,6 +531,9 @@ class ApiDigitalSignaturesCest
             'note' => 'Testing checkin'
         ];
         $messages = trans('admin/digital_signatures/message.checkin.not_available');
-        $this->testSendPost($I, $link, 'error', $messages, $data_not_checkinable);
+        $I->sendPost($link, $data_not_checkinable);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals($messages, $response->messages);
     }
 }
