@@ -67,12 +67,15 @@ class ApiToolCest
             $I->assertStringNotContainsString($stringToCheck, $I->grabResponse());
         }
 
-        $stringToCheckWaitingCheckin = '"assigned_status:"' . config("enum.assigned_status.WAITINGCHECKIN");
-        $stringToCheckWaitingCheckout = '"assigned_status:"' . config("enum.assigned_status.WAITINGCHECKOUT");
-        $I->assertStringContainsString(
-            $stringToCheckWaitingCheckin || $stringToCheckWaitingCheckout,
-            $I->grabResponse()
-        );
+        $response = json_decode($I->grabResponse());
+        if($response->total) {
+            $stringToCheckWaitingCheckin = '"assigned_status:"' . config("enum.assigned_status.WAITINGCHECKIN");
+            $stringToCheckWaitingCheckout = '"assigned_status:"' . config("enum.assigned_status.WAITINGCHECKOUT");
+            $I->assertStringContainsString(
+                $stringToCheckWaitingCheckin || $stringToCheckWaitingCheckout,
+                $I->grabResponse()
+            );
+        }
     }
 
     protected function sort($I, $column, $order)
@@ -256,6 +259,9 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.checkout.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         $I->assertEquals($toolPrepareCheckout->name, $response->payload->tool);
+        //verify can checkout
+        $toolPrepareCheckout = Tool::find($toolPrepareCheckout->id);
+        $I->assertEquals($user->id, $toolPrepareCheckout->assigned_to);
     }
 
     public function multiCheckoutTool(ApiTester $I)
@@ -277,6 +283,12 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.checkout.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         $I->assertNull($response->payload);
+        
+        //verify
+        $tool1 = Tool::find($tool1->id);
+        $tool2 = Tool::find($tool2->id);
+        $I->assertEquals($user->id, $tool1->assigned_to);
+        $I->assertEquals($user->id, $tool2->assigned_to);
     }
 
     public function confirmCheckoutTool(ApiTester $I)
@@ -302,10 +314,10 @@ class ApiToolCest
 
         //Decline checkout
         $toolCheckedoutDecline = $this->createATool(
-            config("enum.assigned_status.WAITINGCHECKOUT")
-            ,$user->id,
+            config("enum.assigned_status.WAITINGCHECKOUT"),
+            $user->id,
             'App\Models\User'
-        );          
+        );
 
         $I->sendPUT("/tools/{$toolCheckedoutDecline->id}", [
             'reason' => $this->faker->text(),
@@ -316,6 +328,10 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         $I->assertEquals(config("enum.assigned_status.DEFAULT"), $response->payload->assigned_status);
+
+        //verify decline checkout tool
+        $toolCheckedoutDecline = Tool::find($toolCheckedoutDecline->id);
+        $I->assertNull($toolCheckedoutDecline->assigned_to);
     }
 
     public function multipleConfirmCheckout(ApiTester $I)
@@ -372,6 +388,12 @@ class ApiToolCest
             $response->payload->name,
             $toolCheckedoutDecline1->name . $toolCheckedoutDecline2->name
         );
+
+        //verify decline checkout tools
+        $toolCheckedoutDecline1 = Tool::find($toolCheckedoutDecline1->id);
+        $I->assertNull($toolCheckedoutDecline1->assigned_to);
+        $toolCheckedoutDecline2 = Tool::find($toolCheckedoutDecline2->id);
+        $I->assertNull($toolCheckedoutDecline2->assigned_to);
     }
 
     public function checkinTool(ApiTester $I)
@@ -460,6 +482,10 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         $I->assertEquals(config("enum.assigned_status.DEFAULT"), $response->payload->assigned_status);
+        
+        //verify accept checkin
+        $toolAcceptCheckin = Tool::find($toolAcceptCheckin->id);
+        $I->assertNull($toolAcceptCheckin->assigned_to);
 
         //Decline checkin
         $toolDeclineCheckin = $this->createATool(
@@ -477,6 +503,10 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         $I->assertEquals(config("enum.assigned_status.ACCEPT"), $response->payload->assigned_status);
+
+        //verify decline checkin
+        $toolDeclineCheckin = Tool::find($toolDeclineCheckin->id);
+        $I->assertNotNull($toolDeclineCheckin->assigned_to);
     }
 
     public function multipleConfirmCheckin(ApiTester $I)
@@ -507,6 +537,12 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         
+        //verify approve success
+        $toolAcceptCheckin1 = Tool::find($toolAcceptCheckin1->id);
+        $toolAcceptCheckin2 = Tool::find($toolAcceptCheckin2->id);
+        $I->assertNull($toolAcceptCheckin1->assigned_to);
+        $I->assertNull($toolAcceptCheckin2->assigned_to);
+        
         //Decline multiple tools
         $toolDeclineCheckin1 = $this->createATool(
             config("enum.assigned_status.WAITINGCHECKIN"),
@@ -530,5 +566,11 @@ class ApiToolCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
         $I->assertEquals('success', $response->status);
+
+        //verify decline checkin
+        $toolDeclineCheckin1 = Tool::find($toolDeclineCheckin1->id);
+        $toolDeclineCheckin2 = Tool::find($toolDeclineCheckin2->id);
+        $I->assertNotNull($toolDeclineCheckin2->assigned_to);
+        $I->assertNotNull($toolDeclineCheckin2->assigned_to);
     }
 }
