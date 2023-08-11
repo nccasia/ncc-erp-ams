@@ -67,6 +67,8 @@ class ApiSuppliersCest
         $I->sendGET("/suppliers/{$supplier->id}");
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals($supplier->name, $response->name);
     }
 
     public function updateSupplier(ApiTester $I)
@@ -94,6 +96,9 @@ class ApiSuppliersCest
         $data_update['name'] = null;
         $I->sendPATCH("/suppliers/{$supplier->id}", $data_update);
         $I->seeResponseCodeIs(400);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals('The name field is required.', $response->messages->name[0]);
     }
 
     public function deleteSupplier(ApiTester $I)
@@ -106,6 +111,10 @@ class ApiSuppliersCest
         $I->sendDelete("suppliers/{$supplier->id}");
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/suppliers/message.delete.success'), $response->messages);
+        $I->assertNull($response->payload);
 
         //delete err
         $supplier_err = Supplier::factory()->create();
@@ -116,6 +125,7 @@ class ApiSuppliersCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('error', $response->status);
         $I->assertNull($response->payload);
+        $I->assertStringContainsString($supplier_err->assets->count(), $response->messages);
         $asset = Asset::find($asset->id);
         $asset->supplier_id = Supplier::factory()->create()->id;
         $asset->save();
@@ -129,6 +139,7 @@ class ApiSuppliersCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('error', $response->status);
         $I->assertNull($response->payload);
+        $I->assertStringContainsString($supplier_err->asset_maintenances->count(), $response->messages);
         $assetMaintenance = AssetMaintenance::find($assetMaintenance->id);
         $assetMaintenance->supplier_id = Supplier::factory()->create()->id;
         $assetMaintenance->save();
@@ -141,6 +152,7 @@ class ApiSuppliersCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('error', $response->status);
         $I->assertNull($response->payload);
+        $I->assertStringContainsString($supplier_err->licenses->count(), $response->messages);
     }
 
     public function selectlistSupplier(ApiTester $I)
