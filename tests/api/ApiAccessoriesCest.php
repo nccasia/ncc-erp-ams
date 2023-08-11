@@ -1,16 +1,13 @@
 <?php
 
-use App\Helpers\Helper;
 use App\Http\Transformers\AccessoriesTransformer;
 use App\Models\Accessory;
 use App\Models\Category;
 use App\Models\Company;
 use App\Models\Location;
-use App\Models\Setting;
 use App\Models\Supplier;
 use App\Models\User;
 use Faker\Factory;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class ApiAccessoriesCest
@@ -145,6 +142,10 @@ class ApiAccessoriesCest
         $I->sendPOST('/accessories/accessories', $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(400);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('The name field is required.', $response->messages->name[0]);
+        $I->assertEquals('error', $response->status);
+        $I->assertNull($response->payload);
     }
 
     // Put is routed to the same method in the controller
@@ -227,6 +228,7 @@ class ApiAccessoriesCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/accessories/message.delete.success'), $response->messages);
+        $I->assertNull($response->payload);
     }
 
     public function checkoutAccessory(ApiTester $I)
@@ -246,8 +248,12 @@ class ApiAccessoriesCest
             'name' => $accessory->name,
             'note' => '',
         ]);
+        
+        $response = json_decode($I->grabResponse());
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+        $I->assertEquals($accessory->name, $response->payload->accessory);
+        $I->assertEquals(trans('admin/accessories/message.checkout.success'), $response->messages);
     }
 
     public function selectlistAccessories(ApiTester $I)
@@ -255,7 +261,7 @@ class ApiAccessoriesCest
         $I->wantTo('get a list of accessories');
 
         $I->sendGET('/accessories/selectlist', [
-            'search' => 'hehe',
+            'search' => 'h',
         ]);
 
         $I->seeResponseIsJson();
@@ -290,6 +296,6 @@ class ApiAccessoriesCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/accessories/message.checkin.success'), $response->messages);
-
+        $I->assertEquals($accessory->name, $response->payload->accessory);
     }
 }
