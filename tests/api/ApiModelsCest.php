@@ -69,11 +69,18 @@ class ApiModelsCest
         $I->sendPOST('/models', $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals($data['name'], $response->payload->name);
+        $I->assertEquals($category->id, $response->payload->category_id);
+        $I->assertEquals($manufacture->id, $response->payload->manufacturer_id);
 
         //create error
         $data['name'] = null;
         $I->sendPOST('/models', $data);
         $I->seeResponseCodeIs(400);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals('The name field is required.', $response->messages->name[0]);
     }
 
     /** @test */
@@ -137,6 +144,9 @@ class ApiModelsCest
         $I->sendPATCH('/models/'.$assetmodel->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(400);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('error', $response->status);
+        $I->assertEquals('The name field is required.', $response->messages->name[0]);
     }
 
     /** @test */
