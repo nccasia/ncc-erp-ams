@@ -2,7 +2,11 @@
 
 namespace App\Models;
 
+use App\Events\CheckoutableCheckedIn;
+use App\Events\CheckoutableCheckedOut;
+use App\Models\Traits\Acceptable;
 use App\Models\Traits\Searchable;
+use App\Presenters\Presentable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,11 +17,7 @@ use Watson\Validating\ValidatingTrait;
 
 class DigitalSignatures extends Model
 {
-    protected $presenter = \App\Presenters\AssetPresenter::class;
-    use HasFactory;
-    use SoftDeletes;
-    use ValidatingTrait;
-    use Searchable;
+    use HasFactory, Searchable, ValidatingTrait, SoftDeletes, Loggable, Acceptable, Presentable;
     public $timestamps = true;
 
     protected $guarded = [];
@@ -116,7 +116,43 @@ class DigitalSignatures extends Model
         return $this->belongsTo(\App\Models\Statuslabel::class, 'status_id');
     }
 
-    public function getByStatusId($query, $id)
+    public function getRequireAcceptanceAttribute()
+    {
+        return $this->category->require_acceptance;
+    }
+
+    public function getCheckinEmailAttribute()
+    {
+        return $this->category->checkin_email;
+    }
+
+    public function getEulaAttribute()
+    {
+        $Parsedown = new \Parsedown();
+
+        if ($this->category->eula_text) {
+            return $Parsedown->text(e($this->category->eula_text));
+        } elseif ((Setting::getSettings()->default_eula_text) && ($this->category->use_default_eula == '1')) {
+            return $Parsedown->text(e(Setting::getSettings()->default_eula_text));
+        }
+
+        return null;
+    }
+
+    public function getImageUrlAttribute()
+    {
+        if ($this->image) {
+            return Storage::disk('public')->url(app('accessories_upload_path') . $this->image);
+        }
+        return false;
+    }
+
+    public function getDisplayNameAttribute()
+    {
+        return $this->name;
+    }
+
+    public function scopeByStatusId($query, $id)
     {
         return $query->where('status_id', $id);
     }
@@ -241,8 +277,8 @@ class DigitalSignatures extends Model
     public function scopeInSupplier($query, $supplier_id)
     {
         $data = $query;
-        if(is_array($supplier_id)) {
-            $data = $data->whereIn($this->table . '.supplier_id',$supplier_id);
+        if (is_array($supplier_id)) {
+            $data = $data->whereIn($this->table . '.supplier_id', $supplier_id);
         } else {
             $data = $data->where($this->table . '.supplier_id', '=', $supplier_id);
         }
@@ -252,8 +288,8 @@ class DigitalSignatures extends Model
     public function scopeInAssignedStatus($query, $assigned_status)
     {
         $data = $query;
-        if(is_array($assigned_status)) {
-            $data = $data->whereIn('assigned_status',$assigned_status);
+        if (is_array($assigned_status)) {
+            $data = $data->whereIn('assigned_status', $assigned_status);
         } else {
             $data = $data->where('assigned_status', '=', $assigned_status);
         }
@@ -263,8 +299,8 @@ class DigitalSignatures extends Model
     public function scopeInStatus($query, $status)
     {
         $data = $query;
-        if(is_array($status)) {
-            $data = $data->whereIn('status_id',$status);
+        if (is_array($status)) {
+            $data = $data->whereIn('status_id', $status);
         } else {
             $data = $data->where('status_id', '=', $status);
         }
@@ -330,7 +366,8 @@ class DigitalSignatures extends Model
      *
      * @return bool
      */
-    public function checkIsAdmin() {
+    public function checkIsAdmin()
+    {
         $user = Auth::user();
         return $user->isAdmin();
     }
@@ -365,6 +402,7 @@ class DigitalSignatures extends Model
         }
 
         if ($this->save()) {
+            event(new CheckoutableCheckedOut($this, $target, Auth::user(), $note));
             return true;
         }
 
@@ -388,6 +426,7 @@ class DigitalSignatures extends Model
         }
 
         if ($this->save()) {
+            event(new CheckoutableCheckedIn($this, $target, Auth::user(), $note));
             return true;
         }
 

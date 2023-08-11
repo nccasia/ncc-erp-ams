@@ -247,7 +247,7 @@ class Asset extends Depreciable
 
     public function category()
     {
-        return $this->belongsTo(Category::class, 'category_id')->where('category_type', '=', 'tool');
+        return $this->belongsTo(Category::class, 'category_id')->where('category_type', '=', 'asset');
     }
 
 
@@ -635,7 +635,7 @@ class Asset extends Depreciable
      * @since [v2.0]
      * @return string | false
      */
-    public function getImageUrl()
+    public function getImageUrlAttribute()
     {
         if ($this->image && !empty($this->image)) {
             return Storage::disk('public')->url(app('assets_upload_path') . e($this->image));
@@ -914,7 +914,7 @@ class Asset extends Depreciable
      * @since [v4.0]
      * @return bool
      */
-    public function checkin_email()
+    public function getCheckinEmailAttribute()
     {
         if (($this->model) && ($this->model->category)) {
             return $this->model->category->checkin_email;
@@ -928,7 +928,7 @@ class Asset extends Depreciable
      * @since [v4.0]
      * @return bool
      */
-    public function requireAcceptance()
+    public function getRequireAcceptanceAttribute()
     {
         if (($this->model) && ($this->model->category)) {
             return $this->model->category->require_acceptance;
@@ -943,7 +943,7 @@ class Asset extends Depreciable
      * @since [v4.0]
      * @return string | false
      */
-    public function getEula()
+    public function getEulaAttribute()
     {
         $Parsedown = new \Parsedown();
 
@@ -1821,7 +1821,7 @@ class Asset extends Depreciable
      * @param Integer $id id of status labels
      * @return Builder Modified query builder
      */
-    public function getByStatusId($query, $id)
+    public function scopeByStatusId($query, $id)
     {
         return $query->where('status_id', $id);
     }

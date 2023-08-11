@@ -14,12 +14,11 @@ class LocationTest extends BaseTest
 
     public function testPassesIfNotSelfParent()
     {
-        $this->createValidLocation(['id' => 10]);
+        $this->createValidLocation(['id' => 999]);
 
         $a = Location::factory()->make([
             'name' => 'Test Location',
-            'id' => 1,
-            'parent_id' => 10,
+            'parent_id' => 999,
         ]);
 
         $this->assertTrue($a->isValid());
@@ -29,8 +28,8 @@ class LocationTest extends BaseTest
     {
         $a = Location::factory()->make([
             'name' => 'Test Location',
-            'id' => 1,
-            'parent_id' => 1,
+            'id' => 999,
+            'parent_id' => 999,
         ]);
 
         $this->assertFalse($a->isValid());

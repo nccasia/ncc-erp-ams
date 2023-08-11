@@ -3,8 +3,8 @@
 
 {{ trans('mail.new_item_checked') }}
 
-@if (($snipeSettings->show_images_in_email =='1') && $item->getImageUrl())
-<center><img src="{{ $item->getImageUrl() }}" alt="Asset" style="max-width: 570px;"></center>
+@if (($snipeSettings->show_images_in_email =='1') && $item->image_url)
+<center><img src="{{ $item->image_url }}" alt="Asset" style="max-width: 570px;"></center>
 @endif
 
 @component('mail::table')

@@ -102,11 +102,11 @@ class DashboardService
 
     public function addValueToStatusLabel($assets, $consumables, $accessories, $tools, $digital_signatures, $status_label)
     {
-        $assets_by_status = (new Asset)->getByStatusId($assets, $status_label['id']);
-        $consumables_by_status = (new Consumable)->getByStatusId($consumables, $status_label['id']);
-        $accessories_by_status = (new Consumable)->getByStatusId($accessories, $status_label['id']);
-        $tools_by_status = (new Consumable)->getByStatusId($tools, $status_label['id']);
-        $digital_signaturess_by_status = (new Consumable)->getByStatusId($digital_signatures, $status_label['id']);
+        $assets_by_status = (new Asset)->scopeByStatusId($assets, $status_label['id']);
+        $consumables_by_status = (new Consumable)->scopeByStatusId($consumables, $status_label['id']);
+        $accessories_by_status = (new Consumable)->scopeByStatusId($accessories, $status_label['id']);
+        $tools_by_status = (new Consumable)->scopeByStatusId($tools, $status_label['id']);
+        $digital_signaturess_by_status = (new Consumable)->scopeByStatusId($digital_signatures, $status_label['id']);
 
         $status_label['assets_count'] = count($assets_by_status->toArray());
         $status_label['consumables_count'] = count($consumables_by_status->toArray());

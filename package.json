@@ -16,6 +16,7 @@
         "@fortawesome/fontawesome-free": "^5.15.4",
         "axios": "^0.20.0",
         "babel-preset-latest": "^6.24.1",
+        "husky": "^4.3.8",
         "jquery": "^3.6.0",
         "laravel-mix": "^6.0.39",
         "lodash": "^4.17.20",
@@ -57,5 +58,10 @@
         "tether": "^1.4.0",
         "vue-resource": "^1.5.2",
         "webpack": "^5.65.0"
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "php codecept.phar run api,unit"
+        }
     }
 }

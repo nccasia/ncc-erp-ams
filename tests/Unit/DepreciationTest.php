@@ -1,4 +1,5 @@
 <?php
+
 namespace Tests\Unit;
 
 use App\Models\Depreciation;
@@ -22,13 +23,19 @@ class DepreciationTest extends BaseTest
         $depreciation = Depreciation::factory()->create();
 
         AssetModel::factory()
-                    ->mbp13Model()
-                    ->count(5)
-                    ->create(
+            ->mbp13Model()
+            ->count(5)
+            ->create(
+                [
+                    'category_id' => Category::factory()->create(
                         [
-                            'category_id' => Category::factory()->assetLaptopCategory(),
-                            'depreciation_id' => $depreciation->id               
-                        ]);
+                            'name' => 'test for category',
+                            'category_type' => 'asset',
+                        ]
+                    ),
+                    'depreciation_id' => $depreciation->id
+                ]
+            );
 
 
         $this->assertEquals(5, $depreciation->models->count());
@@ -39,13 +46,19 @@ class DepreciationTest extends BaseTest
 
         $depreciation = Depreciation::factory()->create();
         License::factory()
-                    ->count(5)
-                    ->photoshop()
-                    ->create(
+            ->count(5)
+            ->photoshop()
+            ->create(
+                [
+                    'category_id' => Category::factory()->create(
                         [
-                            'category_id' => Category::factory()->licenseGraphicsCategory(),
-                            'depreciation_id' => $depreciation->id               
-                        ]);
+                            'name' => 'test for category',
+                            'category_type' => 'license',
+                        ]
+                    ),
+                    'depreciation_id' => $depreciation->id
+                ]
+            );;
 
         $this->assertEquals(5, $depreciation->licenses()->count());
     }

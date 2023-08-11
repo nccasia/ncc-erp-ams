@@ -308,7 +308,7 @@ class License extends Depreciable
      * @since [v2.0]
      * @return bool
      */
-    public function checkin_email()
+    public function getCheckinEmailAttribute()
     {
         return $this->category->checkin_email;
     }
@@ -320,7 +320,7 @@ class License extends Depreciable
      * @since [v4.0]
      * @return bool
      */
-    public function requireAcceptance()
+    public function getRequireAcceptanceAttribute()
     {
         return $this->category->require_acceptance;
     }
@@ -333,7 +333,7 @@ class License extends Depreciable
      * @since [v4.0]
      * @return string | false
      */
-    public function getEula()
+    public function getEulaAttribute()
     {
         $Parsedown = new \Parsedown();
 

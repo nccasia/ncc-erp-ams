@@ -1,14 +1,16 @@
 <?php
 
-use App\Helpers\Helper;
-use App\Http\Transformers\AssetsTransformer;
 use App\Models\Asset;
+use App\Models\AssetModel;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\Location;
+use App\Models\Manufacturer;
 use App\Models\Setting;
+use App\Models\Supplier;
 use App\Models\User;
+use Carbon\Carbon;
 use Faker\Factory;
-use Illuminate\Support\Facades\Auth;
 
 class ApiAssetsCest
 {
@@ -24,25 +26,97 @@ class ApiAssetsCest
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
 
+    protected function getFilterForIndex()
+    {
+        $filter = '?limit=20&sort=id&order=desc'
+            . '&assigned_status[0]=' . config('enum.assigned_status.DEFAULT')
+            . '&status_label[0]=' . config('enum.status_id.READY_TO_DEPLOY')
+            . '&category[0]=' . Category::where('category_type', '=', 'asset')->first()->id
+            . '&dateFrom=' . Carbon::now()
+            . '&dateTo=' . Carbon::now()->addDays(5)
+            . '&supplier_id=' . Supplier::all()->random(1)->first()->id
+            . '&location_id=' . Location::all()->random(1)->first()->id
+            . '&manufacturer_id=' . Manufacturer::all()->random(1)->first()->id
+            . '&company_id=' . Company::all()->random(1)->first()->id
+            . '&rtd_location_id=' . Location::all()->random(1)->first()->id
+            . '&model_id=' . AssetModel::all()->random(1)->first()->id
+            . '&assigned_to=' . User::all()->random(1)->first()->id
+            . '&assigned_type=' . 'App/Models/User';
+
+        return $filter;
+    }
+
     /** @test */
     public function indexAssets(ApiTester $I)
     {
         $I->wantTo('Get a list of assets');
 
-        // call
-        $I->sendGET('/hardware?limit=20&sort=id&order=desc');
+        $filter = $this->getFilterForIndex();
+
+        $I->sendGET('/hardware' . $filter);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+    }
 
-        // FIXME: This is disabled because the statuslabel join is doing something weird in Api/AssetsController@index
-        // However, it's hiding other real test errors in other parts of the code, so disabling this for now until we can fix.
-//        $response = json_decode($I->grabResponse(), true);
+    public function indexAssetsExpiration(ApiTester $I)
+    {
+        $I->wantTo('Get a list of assets expiration');
+        // call
+        $filter = $this->getFilterForIndex();
 
-        // sample verify
-//        $asset = Asset::orderByDesc('id')->take(20)->get()->first();
+        $I->sendGET('/hardware/assetExpiration' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
 
-        //
-//        $I->seeResponseContainsJson($I->removeTimestamps((new AssetsTransformer)->transformAsset($asset)));
+    public function indexAssetAssigned(ApiTester $I)
+    {
+        $I->wantTo('Get a list of assigned assets');
+
+        $filter = $this->getFilterForIndex();
+        
+        $I->sendGET('/hardware/assign' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
+    public function indexAssetRequestable(ApiTester $I)
+    {
+        $I->wantTo('Get a list of requestable assets');
+
+        $filter = $this->getFilterForIndex();
+        
+        $I->sendGET('account/requestable/hardware' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
+    public function getAssetByTag(ApiTester $I)
+    {
+        $I->wantTo('Get an asset by asset_tag');
+
+        $asset = $asset = Asset::factory()->laptopMbp()->make([
+            'asset_tag' => $this->faker->name(),
+            'company_id' => Company::factory()->create()->id,
+        ]);
+
+        $I->sendGet('/hardware/bytag/'.$asset->asset_tag);
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseIsJson();
+    }
+
+    public function getAssetBySerial(ApiTester $I)
+    {
+        $I->wantTo('Get an asset by asset_tag');
+
+        $asset = $asset = Asset::factory()->laptopMbp()->make([
+            'asset_tag' => $this->faker->name(),
+            'company_id' => Company::factory()->create()->id,
+        ]);
+
+        $I->sendGet('/hardware/byserial/'.$asset->serial);
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseIsJson();
     }
 
     /** @test */
@@ -168,5 +242,398 @@ class ApiAssetsCest
         // Make sure we're soft deleted.
         $response = json_decode($I->grabResponse());
         $I->assertNotNull($response->deleted_at);
+    }
+
+    public function assetCanCheckout(ApiTester $I)
+    {
+        $I->wantTo('Checkout an asset');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $asset = Asset::factory()->laptopMbp()->create([
+            'name' => 'Test Asset Checkout',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.DEFAULT')
+        ]);
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+
+        $data = [
+            "checkout_at" => Carbon::now(),
+            "status_id" => config('enum.status_id.ASSIGN'),
+            'assigned_user' => $user->id,
+            'checkout_to_type' => 'user'
+        ];
+
+        $I->sendPost('/hardware/'.$asset->id.'/checkout',$data);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.checkout.success'), $response->messages);
+    }
+
+    public function assetCanCheckin(ApiTester $I)
+    {
+        $I->wantTo('Checkin an asset');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $asset = Asset::factory()->laptopMbp()->create([
+            'name' => 'Test Asset Checkin',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User',
+            'withdraw_from' => $user->id
+        ]);
+        $data = [
+            "checkout_at" => Carbon::now(),
+            "status_id" => config('enum.status_id.READY_TO_DEPLOY'),
+            'assigned_user' => $user->id,
+        ];
+
+        $I->sendPost('/hardware/'.$asset->id.'/checkin',$data);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.checkin.success'), $response->messages);
+    }
+
+    public function assetsCanMultipleCheckout(ApiTester $I)
+    {
+        $I->wantTo('Checkout multiple assets');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $assets = Asset::factory()->laptopMbp()->count(3)->create([
+            'name' => 'Test Asset Checkout',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.DEFAULT')
+        ]);
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $data = [
+            "checkout_at" => Carbon::now(),
+            "status_id" => config('enum.status_id.ASSIGN'),
+            'assigned_user' => $user->id,
+            'checkout_to_type' => 'user',
+            'assets' => $assets->pluck('id')->toArray()
+        ];
+
+        $I->sendPost('/hardware/checkout',$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.checkout.success'), $response->messages);
+    }
+
+    public function assetsCanMultipleCheckin(ApiTester $I)
+    {
+        $I->wantTo('Checkin multiple assets');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $assets = Asset::factory()->laptopMbp()->count(3)->create([
+            'name' => 'Test Asset Checkin',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User',
+            'withdraw_from' => $user->id
+        ]);
+        $data = [
+            "checkout_at" => Carbon::now(),
+            "status_id" => config('enum.status_id.READY_TO_DEPLOY'),
+            'assigned_user' => $user->id,
+            'assets' => $assets->pluck('id')->toArray()
+        ];
+
+        $I->sendPost('/hardware/checkin',$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.checkin.success'), $response->messages);
+    }
+
+    public function assetAcceptedCheckout(ApiTester $I)
+    {
+        $I->wantTo('Check accepted checkout');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $asset = Asset::factory()->laptopMbp()->create([
+            'name' => 'Test Asset Accept Checkout',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User'
+        ]);
+        $data = [
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'send_accept' => $asset->id
+        ];
+
+        $I->sendPost('/hardware/'.$asset->id.'?_method=PUT',$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
+    }
+
+    public function assetRejectedCheckout(ApiTester $I)
+    {
+        $I->wantTo('Check rejected checkout');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $asset = Asset::factory()->laptopMbp()->create([
+            'name' => 'Test Asset Accept Checkout',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User'
+        ]);
+        $data = [
+            'assigned_status' => config('enum.assigned_status.REJECT'),
+            'reason' => 'Asset reject test',
+            '_method' => 'PATCH'
+        ];
+
+        $I->sendPost('/hardware/'.$asset->id,$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
+    }
+
+    public function assetAcceptedCheckin(ApiTester $I)
+    {
+        $I->wantTo('Check accepted checkin');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $asset = Asset::factory()->laptopMbp()->create([
+            'name' => 'Test Asset Accept Checkin',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.WAITINGCHECKIN'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User',
+            'withdraw_from' => $user->id
+        ]);
+        $data = [
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'send_accept' => $asset->id
+        ];
+
+        $I->sendPost('/hardware/'.$asset->id.'?_method=PUT',$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
+    }
+
+    public function assetRejectedCheckin(ApiTester $I)
+    {
+        $I->wantTo('Check rejected checkout');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $asset = Asset::factory()->laptopMbp()->create([
+            'name' => 'Test Asset Reject Checkin',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.WAITINGCHECKIN'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User',
+            'withdraw_from' => $user->id
+        ]);
+        $data = [
+            'assigned_status' => config('enum.assigned_status.REJECT'),
+            'reason' => 'Asset reject test',
+            '_method' => 'PATCH'
+        ];
+
+        $I->sendPost('/hardware/'.$asset->id,$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
+    }
+
+    public function assetAcceptedMultipleCheckin(ApiTester $I)
+    {
+        $I->wantTo('Check accepted multiple checkin');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $assets = Asset::factory()->laptopMbp()->count(3)->create([
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.WAITINGCHECKIN'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User',
+            'withdraw_from' => $user->id
+        ]);
+        $data = [
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'assets' => $assets->pluck('id')->toArray()
+        ];
+
+        $I->sendPost('/hardware?_method=PUT',$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
+    }
+
+    public function assetRejectedMultipleCheckin(ApiTester $I)
+    {
+        $I->wantTo('Check rejected multiple checkin');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $assets = Asset::factory()->laptopMbp()->count(3)->create([
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.WAITINGCHECKIN'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User',
+            'withdraw_from' => $user->id
+        ]);
+        $data = [
+            'assigned_status' => config('enum.assigned_status.REJECT'),
+            'assets' => $assets->pluck('id')->toArray()
+        ];
+
+        $I->sendPost('/hardware?_method=PUT',$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
+    }
+
+    public function assetAcceptedMultipleCheckout(ApiTester $I)
+    {
+        $I->wantTo('Check accepted multiple checkin');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $assets = Asset::factory()->laptopMbp()->count(3)->create([
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.WAITINGCHECKOUT'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User'
+        ]);
+        $data = [
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'assets' => $assets->pluck('id')->toArray()
+        ];
+
+        $I->sendPost('/hardware?_method=PUT',$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
+    }
+
+    public function assetRejectedMultipleCheckout(ApiTester $I)
+    {
+        $I->wantTo('Check rejected multiple checkin');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $assets = Asset::factory()->laptopMbp()->count(3)->create([
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.WAITINGCHECKOUT'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User'
+        ]);
+        $data = [
+            'assigned_status' => config('enum.assigned_status.REJECT'),
+            'assets' => $assets->pluck('id')->toArray()
+        ];
+
+        $I->sendPost('/hardware?_method=PUT',$data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.update.success'), $response->messages);
+    }
+
+    public function assetCanCheckinByTag(ApiTester $I)
+    {
+        $I->wantTo('Checkin an asset by tag');
+
+        $location = Location::factory()->create();
+        $company = Company::factory()->create();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => $location->id
+        ]);
+        $asset = Asset::factory()->laptopMbp()->create([
+            'name' => 'Test Asset Checkin',
+            'company_id' => $company->id,
+            'rtd_location_id' => $location->id,
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'status_id' => config('enum.status_id.ASSIGN'),
+            'assigned_to' => $user->id,
+            'assigned_type' => 'App\Models\User',
+            'withdraw_from' => $user->id
+        ]);
+        $data = [
+            "checkout_at" => Carbon::now(),
+            "status_id" => config('enum.status_id.READY_TO_DEPLOY'),
+            'assigned_user' => $user->id,
+            'asset_tag' => $asset->asset_tag
+        ];
+
+        $I->sendPost('/hardware/checkinbytag',$data);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals('success', $response->status);
+        $I->assertEquals(trans('admin/hardware/message.checkin.success'), $response->messages);
     }
 }
