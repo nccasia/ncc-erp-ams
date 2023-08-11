@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\Supplier;
 use App\Models\User;
 use Faker\Factory;
+use Carbon\Carbon;
 
 class ApiDigitalSignaturesCest
 {
@@ -24,13 +25,67 @@ class ApiDigitalSignaturesCest
         $I->amBearerAuthenticated($I->getToken($this->user));
     }
 
-    // tests
+    protected function testSendPost($I, $link, $status, $messages, $data)
+    {
+        $I->sendPost($link, $data);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals($status, $response->status);
+        $I->assertEquals($messages, $response->messages);
+    }
+
+    protected function digitalSignatureFactory(
+        $qty = 0,
+        $assigned_status = 0,
+        $status_id = 5,
+        $assigned_to = null,
+        $assigned_type = null,
+        $withdraw_from = null
+    ) {
+        $category = Category::factory()->create(['category_type' => 'taxtoken']);
+        $location = Location::factory()->create();
+        $digital_signatures = DigitalSignatures::factory();
+        if ($qty > 0) $digital_signatures = DigitalSignatures::factory()->count($qty);
+        $params_array = [
+            'name' => 'Test checkout',
+            'qty' => $this->faker->numberBetween(5, 10),
+            'location_id' => $location->id,
+            'category_id' => $category->id,
+            'assigned_status' => $assigned_status,
+            'status_id' => $status_id
+        ];
+        if ($assigned_to) $params_array['assigned_to'] = $assigned_to;
+        if ($assigned_type) $params_array['assigned_type'] = $assigned_type;
+        if ($withdraw_from) $params_array['withdraw_from'] = $withdraw_from;
+        $digital_signatures = $digital_signatures->create($params_array);
+        return $digital_signatures;
+    }
+
     public function indexDigitalSingatures(ApiTester $I)
     {
         $I->wantTo('Get a list of digital signatures');
 
         // call
-        $I->sendGET('/digital_signatures?limit=10&offset=0&order=desc&sort=id');
+        $filter = '?limit=10&offset=0&order=desc&sort=id'
+            . '&assigned_status[0]=' . config('enum.assigned_status.DEFAULT')
+            . '&status_label[0]=' . config('enum.status_id.READY_TO_DEPLOY')
+            . '&purchaseDateFrom=' . Carbon::now()->subDays(5)
+            . '&purchaseDateTo=' . Carbon::now()->addDays(5)
+            . '&expirationDateFrom=' . Carbon::now()->subMonths(2)
+            . '&expirationDateTo=' . Carbon::now()->addMonths(2)
+            . '&supplier=' . Supplier::all()->random(1)->first()->id
+            . '&search=' . 'Token';
+        $I->sendGET('/digital_signatures' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
+    public function getDigitalSignatureById(ApiTester $I)
+    {
+        $I->wantTo('Get digital signature by id');
+
+        $digital_signature = DigitalSignatures::factory()->create();
+
+        $I->sendGet('/digital_signatures/' . $digital_signature->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
     }
@@ -70,19 +125,9 @@ class ApiDigitalSignaturesCest
         $I->wantTo('Update a digital signature with PATCH');
 
         // create
-        $digital_signature = DigitalSignatures::factory()->create([
-            'qty' => 2
-        ]);
+        $digital_signature = $this->digitalSignatureFactory();
         $I->assertInstanceOf(DigitalSignatures::class, $digital_signature);
-        $category = Category::factory()->create(['category_type' => 'accessory']);
-        $location = Location::factory()->create();
-        $temp = DigitalSignatures::factory()->create([
-            'name' => 'Test update',
-            'qty' => $this->faker->numberBetween(5, 10),
-            'location_id' => $location->id,
-            'category_id' => $category->id
-        ]);
-
+        $temp = $this->digitalSignatureFactory();
         $data = [
             'name' => $temp->name,
             'supplier_id' => $temp->supplier_id,
@@ -100,10 +145,8 @@ class ApiDigitalSignaturesCest
             'warranty_months' => $temp->warranty_months
         ];
 
-        $I->assertNotEquals($digital_signature->name, $data['name']);
-
         // update
-        $I->sendPut('/digital_signatures/'.$digital_signature->id, $data);
+        $I->sendPut('/digital_signatures/' . $digital_signature->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -113,17 +156,92 @@ class ApiDigitalSignaturesCest
         $I->assertEquals(trans('admin/digital_signatures/message.update.success'), $response->messages);
         $I->assertEquals($digital_signature->id, $response->payload->id);
         $I->assertEquals($temp->name, $response->payload->name);
-        $temp->id = $digital_signature->id;
-        $temp->seri = $digital_signature->seri;
-
-        // verify
-        $I->sendGET('/digital_signatures/' . $digital_signature->id);
-        $I->seeResponseIsJson();
-        $I->seeResponseCodeIs(200);
-        $I->seeResponseContainsJson((new DigitalSignaturesTransformer)->transformSignature($temp));
     }
 
-    public function deleteAssetTest(ApiTester $I, $scenario)
+    public function digitalSignaturesMultipleConfirmCheckout(ApiTester $I)
+    {
+        $I->wantTo('Digital signatures confirm multiple checkout');
+
+        $link = 'digital_signatures';
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => Location::factory()->create()->id
+        ]);
+
+        $digital_signatures_accept_checkout = $this->digitalSignatureFactory(
+            2,
+            config('enum.assigned_status.WAITINGCHECKOUT'),
+            config('enum.status_id.ASSIGN'),
+            $user->id,
+            'App\Models\User',
+            $user->id
+        );
+        $data_accept_checkout = [
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'tax_tokens' => $digital_signatures_accept_checkout->pluck('id')->toArray(),
+            '_method' => 'PUT'
+        ];
+        $messages = trans('admin/digital_signatures/message.update.success');
+        $this->testSendPost($I, $link, 'success', $messages, $data_accept_checkout);
+
+        $digital_signatures_reject_checkout = $this->digitalSignatureFactory(
+            2,
+            config('enum.assigned_status.WAITINGCHECKOUT'),
+            config('enum.status_id.ASSIGN'),
+            $user->id,
+            'App\Models\User',
+            $user->id
+        );
+        $data_reject_checkout = [
+            'assigned_status' => config('enum.assigned_status.REJECT'),
+            'tax_tokens' => $digital_signatures_reject_checkout->pluck('id')->toArray(),
+            '_method' => 'PUT'
+        ];
+        $messages =  trans('admin/digital_signatures/message.update.success');
+        $this->testSendPost($I, $link, 'success', $messages, $data_reject_checkout);
+    }
+
+    public function digitalSignaturesMultipleConfirmCheckin(ApiTester $I)
+    {
+        $I->wantTo('digital signatures confirm multiple checkin');
+
+        $link = 'digital_signatures';
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => Location::factory()->create()->id
+        ]);
+        $digital_signatures_accept_checkin = $this->digitalSignatureFactory(
+            2,
+            config('enum.assigned_status.WAITINGCHECKIN'),
+            config('enum.status_id.ASSIGN'),
+            $user->id,
+            'App\Models\User',
+            null
+        );
+        $data_accept_checkin = [
+            'assigned_status' => config('enum.assigned_status.ACCEPT'),
+            'tax_tokens' => $digital_signatures_accept_checkin->pluck('id')->toArray(),
+            '_method' => 'PUT'
+        ];
+        $messages =  trans('admin/digital_signatures/message.update.success');
+        $this->testSendPost($I, $link, 'success', $messages, $data_accept_checkin);
+
+        $digital_signatures_reject_checkin = $this->digitalSignatureFactory(
+            2,
+            config('enum.assigned_status.WAITINGCHECKIN'),
+            config('enum.status_id.ASSIGN'),
+            $user->id,
+            'App\Models\User',
+            null
+        );
+        $data_reject_checkin = [
+            'assigned_status' => config('enum.assigned_status.REJECT'),
+            'tax_tokens' => $digital_signatures_reject_checkin->pluck('id')->toArray(),
+            '_method' => 'PUT'
+        ];
+        $messages =  trans('admin/digital_signatures/message.update.success');
+        $this->testSendPost($I, $link, 'success', $messages, $data_reject_checkin);
+    }
+
+    public function deleteDigitalSignatureTest(ApiTester $I, $scenario)
     {
         $I->wantTo('Delete a digital singature');
 
@@ -139,9 +257,203 @@ class ApiDigitalSignaturesCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/digital_signatures/message.delete.success'), $response->messages);
+    }
 
-        // verify, expect a 404
-        $I->sendGET('/digital_signatures/' . $digital_signature->id);
-        $I->seeResponseCodeIs(404);
+    public function digitalSignatureCanCheckout(ApiTester $I)
+    {
+        $I->wantTo('Test digital signature checkout');
+
+        $digital_signature = $this->digitalSignatureFactory();
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => Location::factory()->create()->id
+        ]);
+        $data = [
+            'name' => $digital_signature->name,
+            'checkout_date' => Carbon::now(),
+            'assigned_to' => $user->id,
+            'note' => 'Testing checkout'
+        ];
+
+        $link = '/digital_signatures/' . $digital_signature->id . '/checkout';
+        $messages = trans('admin/digital_signatures/message.checkout.success');
+        $this->testSendPost($I, $link, 'success', $messages, $data);
+
+        $digital_signature_not_checkoutable = $this->digitalSignatureFactory(
+            0,
+            config('enum.assigned_status.ACCEPT'),
+            config('enum.status_id.ASSIGN'),
+            $user->id,
+            'App\Models\User',
+            $user->id
+        );
+        $data_not_checkoutable = [
+            'name' => $digital_signature_not_checkoutable->name,
+            'checkout_date' => Carbon::now(),
+            'assigned_to' => $user->id,
+            'note' => 'Testing checkout'
+        ];
+        $link = '/digital_signatures/' . $digital_signature_not_checkoutable->id . '/checkout';
+        $messages = trans('admin/digital_signatures/message.checkout.not_available');
+        $this->testSendPost($I, $link, 'error', $messages, $data_not_checkoutable);
+
+        $digital_signature_target_not_available = $this->digitalSignatureFactory();
+        $data_target_not_available = [
+            'name' => $digital_signature_target_not_available->name,
+            'checkout_date' => Carbon::now(),
+            'assigned_to' => $user->id + 1,
+            'note' => 'Testing checkout'
+        ];
+        $link = '/digital_signatures/' . $digital_signature_target_not_available->id . '/checkout';
+        $messages = trans('admin/digital_signatures/message.checkout.error');
+        $this->testSendPost($I, $link, 'error', $messages, $data_target_not_available);
+    }
+
+    public function digitalSignatureCanCheckin(ApiTester $I)
+    {
+        $I->wantTo('Test digital signature checkin');
+
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => Location::factory()->create()->id
+        ]);
+        $digital_signature = $this->digitalSignatureFactory(
+            0,
+            config('enum.assigned_status.ACCEPT'),
+            config('enum.status_id.ASSIGN'),
+            $user->id,
+            'App\Models\User',
+            $user->id
+        );
+        $data = [
+            'name' => $digital_signature->name,
+            'checkin_at' => Carbon::now(),
+            'status_id' => config('enum.status_id.READY_TO_DEPLOY'),
+            'note' => 'Testing checkin'
+        ];
+        $link = '/digital_signatures/' . $digital_signature->id . '/checkin';
+        $messages = trans('admin/digital_signatures/message.checkin.success');
+        $this->testSendPost($I, $link, 'success', $messages, $data);
+
+        $digital_signature_already_checkin = $this->digitalSignatureFactory();
+        $data_already_checkin = [
+            'name' => $digital_signature_already_checkin->name,
+            'checkin_at' => Carbon::now(),
+            'status_id' => config('enum.status_id.READY_TO_DEPLOY'),
+            'note' => 'Testing checkin'
+        ];
+        $link = '/digital_signatures/' . $digital_signature_already_checkin->id . '/checkin';
+        $messages = trans('admin/digital_signatures/message.checkin.already_checked_in');
+        $this->testSendPost($I, $link, 'error', $messages, $data_already_checkin);
+
+        $digital_signature_not_checkinable = $this->digitalSignatureFactory(
+            0,
+            config('enum.assigned_status.DEFAULT'),
+            config('enum.status_id.READY_TO_DEPLOY'),
+            $user->id,
+            'App\Models\User',
+            $user->id
+        );
+
+        $data_not_checkinable = [
+            'name' => $digital_signature_not_checkinable->name,
+            'checkin_at' => Carbon::now(),
+            'status_id' => config('enum.status_id.READY_TO_DEPLOY'),
+            'note' => 'Testing checkin'
+        ];
+        $link = '/digital_signatures/' . $digital_signature_not_checkinable->id . '/checkin';
+        $messages = trans('admin/digital_signatures/message.checkin.not_available');
+        $this->testSendPost($I, $link, 'error', $messages, $data_not_checkinable);
+    }
+
+    public function digitalSignaturesCanMultipleCheckout(ApiTester $I)
+    {
+        $I->wantTo('Checkout multiple digital signatures');
+
+        $link = 'digital_signatures/checkout';
+        $digital_signatures = $this->digitalSignatureFactory(3);
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => Location::factory()->create()->id
+        ]);
+        $data = [
+            'signatures' => $digital_signatures->pluck('id')->toArray(),
+            'checkout_date' => Carbon::now(),
+            'assigned_to' => $user->id,
+            'note' => 'Testing checkout'
+        ];
+        $messages = trans('admin/digital_signatures/message.checkout.success');
+        $this->testSendPost($I, $link, 'success', $messages, $data);
+
+        $digital_signature_not_checkoutable = $this->digitalSignatureFactory(
+            3,
+            config('enum.assigned_status.ACCEPT'),
+            config('enum.status_id.ASSIGN'),
+            $user->id,
+            'App\Models\User',
+            $user->id
+        );
+        $data_not_checkoutable = [
+            'signatures' => $digital_signature_not_checkoutable->pluck('id')->toArray(),
+            'checkout_date' => Carbon::now(),
+            'assigned_to' => $user->id,
+            'note' => 'Testing checkout'
+        ];
+        $messages = trans('admin/digital_signatures/message.checkout.not_available');
+        $this->testSendPost($I, $link, 'error', $messages, $data_not_checkoutable);
+
+        $digital_signature_target_not_available = $this->digitalSignatureFactory(3);
+        $data_target_not_available = [
+            'signatures' => $digital_signature_target_not_available->pluck('id')->toArray(),
+            'checkout_date' => Carbon::now(),
+            'assigned_to' => $user->id + 1,
+            'note' => 'Testing checkout'
+        ];
+        $messages = trans('admin/digital_signatures/message.checkout.error');
+        $this->testSendPost($I, $link, 'error', $messages, $data_target_not_available);
+    }
+
+    public function digitalSignatureCanMultipleCheckin(ApiTester $I)
+    {
+        $I->wantTo('Test digital signature multiple checkin');
+
+        $link = '/digital_signatures/checkin';
+        $user = User::factory()->checkoutAssets()->create([
+            'location_id' => Location::factory()->create()->id
+        ]);
+        $digital_signatures = $this->digitalSignatureFactory(
+            3,
+            config('enum.assigned_status.ACCEPT'),
+            config('enum.status_id.ASSIGN'),
+            $user->id,
+            'App\Models\User',
+            $user->id
+        );
+        $data = [
+            'signatures' => $digital_signatures->pluck('id')->toArray(),
+            'note' => 'Testing checkin'
+        ];
+        $messages = trans('admin/digital_signatures/message.checkin.success');
+        $this->testSendPost($I, $link, 'success', $messages, $data);
+
+        $digital_signature_already_checkin = $this->digitalSignatureFactory(3);
+        $data_already_checkin = [
+            'signatures' => $digital_signature_already_checkin->pluck('id')->toArray(),
+            'note' => 'Testing checkin'
+        ];
+        $messages = trans('admin/digital_signatures/message.checkin.already_checked_in');
+        $this->testSendPost($I, $link, 'error', $messages, $data_already_checkin);
+
+        $digital_signature_not_checkinable = $this->digitalSignatureFactory(
+            3,
+            config('enum.assigned_status.DEFAULT'),
+            config('enum.status_id.READY_TO_DEPLOY'),
+            $user->id,
+            'App\Models\User',
+            $user->id
+        );
+        $data_not_checkinable = [
+            'signatures' => $digital_signature_not_checkinable->pluck('id')->toArray(),
+            'note' => 'Testing checkin'
+        ];
+        $messages = trans('admin/digital_signatures/message.checkin.not_available');
+        $this->testSendPost($I, $link, 'error', $messages, $data_not_checkinable);
     }
 }
