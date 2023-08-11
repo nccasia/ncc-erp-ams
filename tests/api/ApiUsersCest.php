@@ -190,6 +190,14 @@ class ApiUsersCest
         $I->assertEquals($temp_user->location_id, $response->payload->location->id); // user location_id updated
         $newUser = User::where('username', $temp_user->username)->first();
         $I->assertEquals($groups, $newUser->groups()->pluck('id')->toArray());
+        $temp_user->created_at = Carbon::parse($response->payload->created_at->datetime);
+        $temp_user->updated_at = Carbon::parse($response->payload->updated_at->datetime);
+        $temp_user->id = $user->id;
+        // verify
+        $I->sendGET('/users/'.$user->id);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson((new UsersTransformer)->transformUser($temp_user));
     }
 
     public function updateUserAsBranchManager(ApiTester $I, $scenario)
@@ -335,6 +343,10 @@ class ApiUsersCest
         $I->sendGET("/users/{$user->id}/licenses");
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
+        $I->seeResponseContainsJson([
+            'id' => $license->id,
+            'name' => $license->name
+        ]);
     }
 
     public function fetchUserAccessoriesTest(ApiTester $I)
@@ -356,6 +368,10 @@ class ApiUsersCest
         $I->sendGET("/users/{$user->id}/accessories");
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
+        $I->seeResponseContainsJson([
+            'id' => $accessory->id,
+            'name' => $accessory->name
+        ]);
     }
 
     public function postTwoFactorResetTest(ApiTester $I)
@@ -406,12 +422,12 @@ class ApiUsersCest
         $I->wantTo('Get a list of users');
 
         $location = Location::all()->random(1)->first()->id;
-        User::factory()->create([
+        $user = User::factory()->create([
             'first_name' => 'Dick',
             'last_name' => 'Grayson',
             'show_in_list' => 1,
             'location_id' => $location,
-            'employee_num' => rand(1,99),
+            'employee_num' => rand(1, 99),
             'username' => 'testing'
         ]);
 
@@ -422,6 +438,9 @@ class ApiUsersCest
         $I->sendGET('/users/selectlist' . $filter);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson([
+            'id' => $user->id
+        ]);
     }
 
     public function loginTest(ApiTester $I)
@@ -432,7 +451,7 @@ class ApiUsersCest
             'password' => Hash::make('password')
         ]);
 
-        $I->sendPost('auth/login',[
+        $I->sendPost('auth/login', [
             'username' => 'testing',
             'password' => 'wrongpassword'
         ]);
@@ -440,7 +459,7 @@ class ApiUsersCest
         $I->seeResponseCodeIs(401);
         $I->assertEquals('Thông tin đăng nhập không chính xác', $response->message);
 
-        $I->sendPost('auth/login',[
+        $I->sendPost('auth/login', [
             'username' => 'testing',
             'password' => 'password'
         ]);
