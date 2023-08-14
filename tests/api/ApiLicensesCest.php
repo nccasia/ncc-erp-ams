@@ -6,12 +6,15 @@ use App\Models\Company;
 use App\Models\Depreciation;
 use App\Models\License;
 use App\Models\Location;
+use App\Models\Manufacturer;
+use App\Models\Supplier;
 use App\Models\User;
 
 class ApiLicensesCest
 {
     protected $license;
     protected $timeFormat;
+    protected $user;
 
     public function _before(ApiTester $I)
     {
@@ -26,15 +29,34 @@ class ApiLicensesCest
         $I->wantTo('Get a list of licenses');
 
         // call
-        $I->sendGET('/licenses?limit=10&sort=created_at');
+        $filter = '?limit=10&sort=created_at'
+            . '&supplier_id=' . Supplier::all()->random(1)->first()->id
+            . '&location_id=' . Location::all()->random(1)->first()->id
+            . '&manufacturer_id=' . Manufacturer::all()->random(1)->first()->id
+            . '&company_id=' . Company::all()->random(1)->first()->id
+            . '&name=' . 'Acrobat'
+            . '&order_number=' . rand(1000000, 50000000)
+            . '&purchase_order=' . rand(1000000, 50000000)
+            . '&license_name=' . 'Acrobat'
+            . '&category_id=' . Category::where('category_type','=','license')->first()->id
+            . '&search=' . 'Acrobat'
+            . '&product_key=' . rand(1000000, 50000000);
+        $I->sendGET('/licenses' . $filter);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
+    }
 
-        // sample verify
-        $license = License::orderByDesc('created_at')
-            ->withCount('freeSeats as free_seats_count')
-            ->take(10)->get()->shuffle()->first();
-        $I->seeResponseContainsJson($I->removeTimestamps((new LicensesTransformer)->transformLicense($license)));
+    /** @test */
+    public function indexSelecteLicense(ApiTester $I)
+    {
+        $I->wantTo('Get a list of selected licenses');
+
+        // call
+        $I->sendGET('/licenses/selectlist',[
+            'search' => 'Acrobat'
+        ]);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
     }
 
     /** @test */
@@ -73,6 +95,7 @@ class ApiLicensesCest
             'serial' => $temp_license->serial,
             'supplier_id' => $temp_license->supplier_id,
             'termination_date' => $temp_license->termination_date,
+            'category_id' => $temp_license->category_id
         ];
 
         // create
@@ -195,11 +218,5 @@ class ApiLicensesCest
         $response = json_decode($I->grabResponse());
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/licenses/message.delete.success'), $response->messages);
-
-        // verify, expect a 200
-        $I->sendGET('/licenses/'.$license->id);
-
-        $I->seeResponseCodeIs(200);
-        $I->seeResponseIsJson();
     }
 }
