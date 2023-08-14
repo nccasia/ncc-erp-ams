@@ -65,6 +65,10 @@
     "watson/validating": "^6.1"
   },
   "require-dev": {
+    "codeception/module-asserts": "2.0.0",
+    "codeception/module-laravel5": "1.1.1",
+    "codeception/module-rest": "2.0.0",
+    "codeception/module-webdriver": "2.0.0",
     "fakerphp/faker": "^1.16",
     "laravel/dusk": "^6.19",
     "mockery/mockery": "^1.4",
