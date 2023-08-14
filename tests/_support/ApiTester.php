@@ -34,7 +34,7 @@ class ApiTester extends \Codeception\Actor
            'updated_at' => new DateTime,
         ]);
 
-        $user->permissions = json_encode(['superuser' => true]);
+        $user->permissions = json_encode(['superuser' => true, 'admin' => true]);
         $user->save();
 
         $token = $user->createToken('CodeceptionAPItestToken')->accessToken;
