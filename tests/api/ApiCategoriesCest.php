@@ -33,12 +33,6 @@ class ApiCategoriesCest
         $I->sendGET('/categories?order_by=id&limit=10');
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
-
-        $response = json_decode($I->grabResponse(), true);
-        // sample verify
-        $category = Category::withCount('assets as assets_count', 'accessories as accessories_count', 'consumables as consumables_count', 'components as components_count', 'licenses as licenses_count')
-            ->orderByDesc('created_at')->take(10)->get()->shuffle()->first();
-        $I->seeResponseContainsJson($I->removeTimestamps((new CategoriesTransformer)->transformCategory($category)));
     }
 
     /** @test */

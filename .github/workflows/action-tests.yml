@@ -1,0 +1,109 @@
+name: Testing
+
+on:
+  pull_request:
+    types:
+      - opened
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    #grant permissions for token git
+    permissions:
+      pull-requests: write
+      issues: write
+      contents: read
+      packages: read
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: false
+          MYSQL_ROOT_PASSWORD: 12345678
+          MYSQL_DATABASE: ams_testing
+        ports:
+          - 3306/tcp
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: list folder
+        run: ls -l
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@15c43e89cdef867065b0213be354c2841860869e
+        with:
+          php-version: "8.0"
+          coverage: xdebug
+
+      - name: Install Dependencies
+        run: composer install
+
+      - name: Prepare application
+        run: |
+          #setting .env file
+          echo "APP_URL=127.0.0.1" >> .env
+          echo "APP_ENV=local" >> .env
+          echo "APP_DEBUG=false" >> .env
+          echo "APP_KEY=" >> .env
+          echo "DB_HOST=127.0.0.1" >> .env
+          echo "DB_DATABASE=ams_testing" >> .env
+          echo "DB_USERNAME=root" >> .env
+          echo "DB_PASSWORD=12345678" >> .env
+          echo "DB_PORT=${{ job.services.mysql.ports['3306'] }}" >> .env
+
+          echo "MAIL_DRIVER=${{ secrets.MAIL_DRIVER }}" >> .env
+          echo "MAIL_HOST=${{ secrets.MAIL_HOST }}" >> .env
+          echo "MAIL_PORT=${{ secrets.MAIL_PORT }}" >> .env
+          echo "MAIL_USERNAME=${{ secrets.MAIL_USERNAME }}" >> .env
+          echo "MAIL_PASSWORD=${{ secrets.MAIL_PASSWORD }}" >> .env
+          echo "MAIL_ENCRYPTION=${{ secrets.MAIL_ENCRYPTION }}" >> .env
+          echo "MAIL_FROM_ADDR=${{ secrets.MAIL_FROM_ADDR }}" >> .env
+          echo "MAIL_REPLYTO_ADDR=${{ secrets.MAIL_REPLYTO_ADDR }}" >> .env
+          echo "MAIL_AUTO_EMBED_METHOD=${{ secrets.MAIL_AUTO_EMBED_METHOD }}" >> .env
+          echo "MAIL_FROM_NAME='NCC-IT'" >> .env
+          echo "MAIL_REPLYTO_NAME='NCC-IT'" >> .env
+
+          #Generate key for application
+          php artisan key:generate
+
+      - name: Clear Config
+        run: php artisan config:clear
+
+      - name: Migrate, seed passport key
+        run: |
+          php artisan migrate --seed
+          php artisan passport:install
+
+      - name: Generate object tester
+        run: php codecept.phar build
+
+      # unit test dang loi do ubuntu phan biet hoa thuong
+      # - name: Run Unit test
+      #   run: php codecept.phar run unit --coverage-text
+
+      - name: Run api,unit test
+        run: php codecept.phar run api,unit --coverage-text --coverage-xml
+
+      - name: Post coverage comment to pull request
+        uses: actions/github-script@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+          script: |
+            const fs = require('fs');
+
+            const coverageContent = fs.readFileSync('./tests/_output/coverage.txt', 'utf-8');
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'Code Coverage Results:\n\n```\n' + coverageContent + '\n```\n',
+            });
