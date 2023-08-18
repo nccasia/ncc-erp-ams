@@ -24,11 +24,12 @@ class ApiReportCest
 
         $I->sendGet('reports/activity', [
             'search' => 'h',
-            'action_type' => 'checkin from',
+            'action_type' => 'checkout',
         ]);
 
-        $I->assertStringContainsString('checkin from', $I->grabResponse());
+        $I->assertStringContainsString('checkout', $I->grabResponse());
         $I->assertStringNotContainsString('"action_type":"update"', $I->grabResponse());
+        $I->assertStringNotContainsString('"action_type":"checkin from"', $I->grabResponse());
 
         $I->sendGet('reports/activity', [
             'date_from' => '2023-08-10',
