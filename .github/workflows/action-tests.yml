@@ -33,6 +33,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      #Rename file to run unit test in ubuntu
+      - name: Rename file unit.suite -> Unit.suite
+        run: mv tests/unit.suite.yml tests/Unit.suite.yml
+
       - name: list folder
         run: ls -l
 
@@ -84,12 +88,8 @@ jobs:
       - name: Generate object tester
         run: php codecept.phar build
 
-      # unit test dang loi do ubuntu phan biet hoa thuong
-      # - name: Run Unit test
-      #   run: php codecept.phar run unit --coverage-text
-
       - name: Run api,unit test
-        run: php codecept.phar run api,unit --coverage-text --coverage-xml
+        run: php codecept.phar run Unit,api --coverage-text --coverage-xml
 
       - name: Post coverage comment to pull request
         uses: actions/github-script@v5
