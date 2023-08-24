@@ -1,6 +1,10 @@
 <?php
 
 return [
+  "w2_request_type" => [
+    "DEVICE" => "Device Request",
+    "EQUIPMENT" => "", //Todo
+  ],
   "request_status" => [
       "PENDING" => "Pending",
       "SENT" => "Sent",

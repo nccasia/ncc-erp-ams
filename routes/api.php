@@ -1377,5 +1377,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
     });
     //end route digital signatures
 
+    Route::group(['prefix' => 'w2-requests'], function () {
+        Route::get('/', [Api\W2Controller::class, 'getListRequest']);
+    });
 }); // end API routes
 
