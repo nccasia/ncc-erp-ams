@@ -65,6 +65,7 @@ class ApiW2Cest
         $I->assertStringContainsString('"userRequestName":"Nguyen Van B"', $response);
         $I->assertStringNotContainsString('"userRequestName":"Doan Thi C"', $response);
         $I->assertStringContainsString('"type":"' . config("enum.w2_request_type.DEVICE") . '"', $response);
+        $I->assertStringContainsString('"type":"' . config("enum.w2_request_type.EQUIPMENT") . '"', $response);
         $I->assertStringNotContainsString('"type":"WFH Request"', $response);
     }
 
@@ -105,7 +106,7 @@ class ApiW2Cest
                     [
                         "id" => "3a0d2d98-ae28-c417-1e3a-dd07eecbd951",
                         "workflowDefinitionId" => "3a057e11-7cde-1749-5c03-60520662a1f5",
-                        "workflowDefinitionDisplayName" => "Device Request",
+                        "workflowDefinitionDisplayName" => "Office Equipment Request",
                         "userRequestName" => "Nguyen Van B",
                         "createdAt" => "2023-08-22T04:06:06.632796Z",
                         "lastExecutedAt" => "2023-08-22T04:14:39.904948Z",

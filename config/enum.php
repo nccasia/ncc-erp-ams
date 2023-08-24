@@ -3,7 +3,7 @@
 return [
   "w2_request_type" => [
     "DEVICE" => "Device Request",
-    "EQUIPMENT" => "", //Todo
+    "EQUIPMENT" => "Office Equipment Request",
   ],
   "request_status" => [
       "PENDING" => "Pending",
