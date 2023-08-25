@@ -10,6 +10,7 @@ use App\Http\Transformers\ToolsTransformer;
 use App\Jobs\SendCheckinMailTool;
 use App\Jobs\SendCheckoutMailTool;
 use App\Jobs\SendConfirmMailTool;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\Location;
 use App\Models\Setting;
@@ -50,6 +51,69 @@ class ToolController extends Controller
         ];
 
         return $this->getDataTools($request, $tools, $allowed_columns);
+    }
+
+    public function getTotalDetail(Request $request)
+    {
+        $this->authorize('view', Software::class);
+
+        $tools = Tool::select('tools.*');
+
+        $filter = [];
+        if ($request->filled('filter')) {
+            $filter = json_decode($request->input('filter'), true);
+        }
+
+        if ((!is_null($filter)) && (count($filter)) > 0) {
+            $tools->ByFilter($filter);
+        } elseif ($request->filled('search')) {
+            $tools->TextSearch($request->input('search'));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $tools->BySupplier($request->input('supplier_id'));
+        }
+
+        if ($request->status_label) {
+            $tools->InStatus($request->input('status_label'));
+        }
+
+        if ($request->filled('assigned_status')) {
+            $tools->InAssignedStatus($request->input('assigned_status'));
+        }
+
+        if ($request->filled('purchaseDateFrom', 'purchaseDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('purchaseDateFrom'), $request->input('purchaseDateTo'));
+            $tools->whereBetween('tools.purchase_date', [$filterByDate]);
+        }
+
+        if ($request->filled('expirationDateFrom', 'expirationDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('expirationDateFrom'), $request->input('expirationDateTo'));
+            $tools->whereBetween('tools.expiration_date', [$filterByDate]);
+        }
+
+        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+            $tools->where(function ($query) use ($request) {
+                $query->where('tools.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+                    ->orWhere('tools.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
+        }
+
+        $total_tool_by_category = $tools->selectRaw('category_id , count(*) as total')->groupBy('category_id')->pluck('total','category_id');
+        $total_tool_by_category->transform(function ($value,$key) {
+            return [
+                'name' => Category::findOrFail($key)->name,
+                'total' => $value
+            ];
+        });
+        $total_detail = $total_tool_by_category->groupBy('name')->map(function ($item) {
+            return [
+                'name' => $item->first()['name'],
+                'total' => $item->sum('total')
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, trans('admin/hardware/message.update.success')));
     }
 
     /**

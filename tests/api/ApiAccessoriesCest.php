@@ -9,6 +9,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use Faker\Factory;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ApiAccessoriesCest
 {
@@ -38,6 +39,24 @@ class ApiAccessoriesCest
         // sample verify
         $accessory = Accessory::orderByDesc('created_at')->take(10)->get()->shuffle()->first();
         $I->seeResponseContainsJson($I->removeTimestamps((new AccessoriesTransformer)->transformAccessory($accessory)));
+    }
+
+    public function totalDetailAccessories(ApiTester $I)
+    {
+        $I->wantTo('Get total detail of accessories');
+
+        $filter = '?limit=10&offset=0&order=desc&sort=id'
+            . '&assigned_status[0]=' . config('enum.assigned_status.DEFAULT')
+            . '&status_label[0]=' . config('enum.status_id.READY_TO_DEPLOY')
+            . '&purchaseDateFrom=' . Carbon::now()->subDays(5)
+            . '&purchaseDateTo=' . Carbon::now()->addDays(5)
+            . '&expirationDateFrom=' . Carbon::now()->subMonths(2)
+            . '&expirationDateTo=' . Carbon::now()->addMonths(2)
+            . '&supplier=' . Supplier::all()->random(1)->first()->id
+            . '&search=' . 'Token';
+        $I->sendGET('/accessories/total-detail' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
     }
 
     protected function filter($I, $filterName, $value)
@@ -187,7 +206,7 @@ class ApiAccessoriesCest
         $I->assertNotEquals($accessory->name, $data['name']);
 
         // update success
-        $I->sendPATCH('/accessories/accessories/'.$accessory->id, $data);
+        $I->sendPATCH('/accessories/accessories/' . $accessory->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -203,7 +222,7 @@ class ApiAccessoriesCest
         $temp_accessory->updated_at = Carbon::parse($response->payload->updated_at);
         $temp_accessory->id = $accessory->id;
         // verify
-        $I->sendGET('/accessories/accessories/'.$accessory->id);
+        $I->sendGET('/accessories/accessories/' . $accessory->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson((new AccessoriesTransformer)->transformAccessory($temp_accessory));
@@ -221,7 +240,7 @@ class ApiAccessoriesCest
         $I->assertInstanceOf(Accessory::class, $accessory);
 
         // delete
-        $I->sendDELETE('/accessories/accessories/'.$accessory->id);
+        $I->sendDELETE('/accessories/accessories/' . $accessory->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -248,7 +267,7 @@ class ApiAccessoriesCest
             'name' => $accessory->name,
             'note' => '',
         ]);
-        
+
         $response = json_decode($I->grabResponse());
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
@@ -285,7 +304,7 @@ class ApiAccessoriesCest
         ]);
 
         //response null
-        $id_null = $accessory_user+1;
+        $id_null = $accessory_user + 1;
         $I->sendGET("/accessories/{$id_null}/checkin");
         $response = json_decode($I->grabResponse());
         $I->assertEquals('error', $response->status);

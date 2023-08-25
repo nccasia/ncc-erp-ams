@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\ConsumablesTransformer;
 use App\Http\Transformers\SelectlistTransformer;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\Consumable;
 use App\Models\User;
@@ -135,6 +136,74 @@ class ConsumablesController extends Controller
         $consumables = $consumables->skip($offset)->take($limit)->get();
 
         return (new ConsumablesTransformer)->transformConsumables($consumables, $total);
+    }
+
+    public function getTotalDetail(Request $request)
+    {
+        $this->authorize('index', Consumable::class);
+        $consumables = Company::scopeCompanyables(Consumable::select('consumables.*'));
+        
+        $consumables->FilterConsumablesByRole($request->user());
+
+        if ($request->filled('search')) {
+            $consumables = $consumables->TextSearch(e($request->input('search')));
+        }
+
+        if ($request->filled('consumable_id')) {
+            $consumables->where('id', '=', $request->input('consumable_id'));
+        }
+
+        if ($request->filled('company_id')) {
+            $consumables->where('company_id', '=', $request->input('company_id'));
+        }
+
+        if ($request->filled('category_id')) {
+            $consumables->where('category_id', '=', $request->input('category_id'));
+        }
+
+        if ($request->category) {
+            $consumables->InCategory($request->input('category'));
+        }
+
+        if ($request->filled('model_number')) {
+            $consumables->where('model_number','=',$request->input('model_number'));
+        }
+
+        if ($request->filled('manufacturer_id')) {
+            $consumables->where('manufacturer_id', '=', $request->input('manufacturer_id'));
+        }
+        
+        if ($request->filled('supplier_id')) {
+            $consumables->where('supplier_id', '=', $request->input('supplier_id'));
+        }
+
+        if ($request->filled('location_id')) {
+            $consumables->where('location_id','=',$request->input('location_id'));
+        }
+
+        if ($request->filled('notes')) {
+            $consumables->where('notes','=',$request->input('notes'));
+        }
+
+        if ($request->filled('date_from', 'date_to')) {
+            $consumables->whereBetween('purchase_date', [$request->input('date_from'), $request->input('date_to')]);
+        }
+
+        $total_consumable_by_category = $consumables->selectRaw('category_id , count(*) as total')->groupBy('category_id')->pluck('total','category_id');
+        $total_consumable_by_category->transform(function ($value,$key) {
+            return [
+                'name' => Category::findOrFail($key)->name,
+                'total' => $value
+            ];
+        });
+        $total_detail = $total_consumable_by_category->groupBy('name')->map(function ($item) {
+            return [
+                'name' => $item->first()['name'],
+                'total' => $item->sum('total')
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, trans('admin/hardware/message.update.success')));
     }
 
     /**

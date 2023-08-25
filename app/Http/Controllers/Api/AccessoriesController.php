@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Transformers\AccessoriesTransformer;
 use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Accessory;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\User;
 use Auth;
@@ -127,6 +128,71 @@ class AccessoriesController extends Controller
         $accessories = $accessories->skip($offset)->take($limit)->get();
 
         return (new AccessoriesTransformer)->transformAccessories($accessories, $total);
+    }
+
+    public function getTotalDetail(Request $request)
+    {
+        $this->authorize('view', Accessory::class);        
+
+        $accessories = Accessory::select('accessories.*');
+
+        $accessories->FilterAccessoriesByRole($request->user());
+
+        if ($request->filled('search')) {
+            $accessories = $accessories->TextSearch($request->input('search'));
+        }
+
+        if ($request->filled('accessory_id')) {
+            $accessories->where('id', '=', $request->input('accessory_id'));
+        }
+
+        if ($request->filled('company_id')) {
+            $accessories->where('company_id', '=', $request->input('company_id'));
+        }
+
+        if ($request->filled('category_id')) {
+            $accessories->where('category_id', '=', $request->input('category_id'));
+        }
+
+        if ($request->category) {
+            $accessories->InCategory($request->input('category'));
+        }
+
+        if ($request->filled('manufacturer_id')) {
+            $accessories->where('manufacturer_id', '=', $request->input('manufacturer_id'));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $accessories->where('supplier_id', '=', $request->input('supplier_id'));
+        }
+
+        if ($request->filled('location_id')) {
+            $accessories->where('location_id','=',$request->input('location_id'));
+        }
+
+        if ($request->filled('notes')) {
+            $accessories->where('notes','=',$request->input('notes'));
+        }
+
+        if ($request->filled('date_from', 'date_to')) {
+            $accessories->whereBetween('purchase_date', [$request->input('date_from'), $request->input('date_to')]);
+        }
+
+        $total_accessory_by_category = $accessories->selectRaw('category_id , count(*) as total')->groupBy('category_id')->pluck('total','category_id');
+        $total_accessory_by_category->transform(function ($value,$key) {
+            return [
+                'name' => Category::findOrFail($key)->name,
+                'total' => $value
+            ];
+        });
+        $total_detail = $total_accessory_by_category->groupBy('name')->map(function ($item) {
+            return [
+                'name' => $item->first()['name'],
+                'total' => $item->sum('total')
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, trans('admin/hardware/message.update.success')));
     }
 
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\CheckoutableCheckedIn;
 use App\Helpers\DateFormatter;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
@@ -43,7 +44,7 @@ use App\Jobs\SendCheckinMail;
 use App\Http\Requests\AssetCheckinRequest;
 use App\Jobs\SendRejectAllocateMail;
 use App\Jobs\SendRejectRevokeMail;
-
+use App\Models\Category;
 
 /**
  * This class controls all actions related to assets for
@@ -356,6 +357,141 @@ class AssetsController extends Controller
          * variables we set earlier on in this method - we default to AssetsTransformer.
          */
         return (new $transformer)->transformAssets($assets, $total, $request);
+    }
+
+    public function getTotalDetail(Request $request)
+    {
+        $filter_non_deprecable_assets = false;
+        $this->authorize('index', Asset::class);
+
+        $filter = [];
+
+        if ($request->filled('filter')) {
+            $filter = json_decode($request->input('filter'), true);
+        }
+
+        $assets = Company::scopeCompanyables(Asset::select('assets.*'), 'company_id', 'assets')
+            ->with('model.category');
+        
+        $assets->filterAssetByRole($request->user());
+
+        if ($filter_non_deprecable_assets) {
+            $non_deprecable_models = AssetModel::select('id')->whereNotNull('depreciation_id')->get();
+
+            $assets->InModelList($non_deprecable_models->toArray());
+        }
+
+        if ($request->filled('assigned_status')) {
+            $assets->InAssignedStatus($request->input('assigned_status'));
+        }
+
+        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+            $assets->where(function ($query) use ($request) {
+                $query->where('assets.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+                    ->orWhere('assets.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
+        }
+
+        if ($request->filled('status_id')) {
+            $assets->where('assets.status_id', '=', $request->input('status_id'));
+        }
+
+        if ($request->input('requestable') == 'true') {
+            $assets->where('assets.requestable', '=', '1');
+        }
+
+        if ($request->filled('model_id')) {
+            $assets->InModelList([$request->input('model_id')]);
+        }
+
+        if ($request->filled('category_id')) {
+            $assets->InCategory($request->input('category_id'));
+        }
+
+        if ($request->filled('location_id')) {
+            $assets->where('assets.location_id', '=', $request->input('location_id'));
+        }
+
+        if ($request->filled('dateFrom', 'dateTo')) {
+            $assets
+                ->whereBetween('assets.purchase_date', [$request->input('dateFrom'), $request->input('dateTo')]);
+        }
+
+        if ($request->filled('dateCheckoutFrom', 'dateCheckoutTo')) {
+            $filterByCheckoutDate = DateFormatter::formatDate($request->input('dateCheckoutFrom'), $request->input('dateCheckoutTo'));
+            $assets
+                ->whereBetween('assets.last_checkout', [$filterByCheckoutDate]);
+        }
+
+        if ($request->filled('rtd_location_id')) {
+            $assets->where('assets.rtd_location_id', '=', $request->input('rtd_location_id'));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $assets->where('assets.supplier_id', '=', $request->input('supplier_id'));
+        }
+
+        if (($request->filled('assigned_to')) && ($request->filled('assigned_type'))) {
+            $assets->where('assets.assigned_to', '=', $request->input('assigned_to'))
+                ->where('assets.assigned_type', '=', $request->input('assigned_type'));
+        }
+
+        if ($request->filled('company_id')) {
+            $assets->where('assets.company_id', '=', $request->input('company_id'));
+        }
+
+        if ($request->category) {
+            $assets->InCategory($request->input('category'));
+        }
+
+        if ($request->status_label) {
+            $assets->InStatus($request->input('status_label'));
+        }
+
+        if ($request->filled('manufacturer_id')) {
+            $assets->ByManufacturer($request->input('manufacturer_id'));
+        }
+
+        if ($request->filled('depreciation_id')) {
+            $assets->ByDepreciationId($request->input('depreciation_id'));
+        }
+
+        $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
+
+        if ((!is_null($filter)) && (count($filter)) > 0) {
+            $assets->ByFilter($filter);
+        } elseif ($request->filled('search')) {
+            $assets->TextSearch($request->input('search'));
+        }
+
+        if ($request->notRequest == 1) {
+            $assets = $assets->with('finfast_request_asset')->doesntHave('finfast_request_asset');
+        }
+
+        if (isset($request->from)) {
+            $from = Carbon::createFromFormat('Y-m-d', $request->from)->startOfDay()->toDateTimeString();
+            $assets = $assets->where('created_at', '>=', $from);
+        }
+        if (isset($request->to)) {
+            $to = Carbon::createFromFormat('Y-m-d', $request->to)->endOfDay()->toDateTimeString();
+            $assets = $assets->where('created_at', '<=', $to);
+        }
+
+        $total_asset_by_model = $assets->selectRaw('model_id , count(*) as total')->groupBy('model_id')->pluck('total','model_id');
+        $total_asset_by_model->transform(function ($value,$key) {
+            return [
+                'name' => AssetModel::findOrFail($key)->category()->pluck('name')[0],
+                'total' => $value
+            ];
+        });
+        $total_detail = $total_asset_by_model->groupBy('name')->map(function ($item) {
+            return [
+                'name' => $item->first()['name'],
+                'total' => $item->sum('total')
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, trans('admin/hardware/message.update.success')));
     }
 
     public function assetExpiration(Request $request, $audit = null)

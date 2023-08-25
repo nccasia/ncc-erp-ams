@@ -88,6 +88,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             ]
         )->name('api.accessories.selectlist');
 
+        Route::get('total-detail',
+            [
+                Api\AccessoriesController::class,
+                'getTotalDetail'
+            ]
+        )->name('api.accessories.totalDetail');
+
         Route::resource('accessories', 
             Api\AccessoriesController::class,
             ['names' => 
@@ -244,6 +251,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 'selectlist'
             ]
         )->name('api.consumables.selectlist');
+
+        Route::get('total-detail',
+            [
+                Api\ConsumablesController::class,
+                'getTotalDetail'
+            ]
+        )->name('api.consumables.totalDetail');
 
         Route::get('view/{id}/users',
             [
@@ -418,6 +432,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             ]
         );
 
+        Route::get('total-detail',
+            [
+                Api\AssetsController::class,
+                'getTotalDetail'
+            ]
+        )->name('api.assets.totalDetail');
+
         Route::get('assetExpiration',
         [
             Api\AssetsController::class,
@@ -586,6 +607,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
 
         Route::group(['prefix' => 'tools'], function () {
             Route::get('', [Api\ToolController::class, 'index'])->name('api.tools.index');
+            Route::get('total-detail',[Api\ToolController::class,'getTotalDetail'])->name('api.tools.totalDetail');
             Route::get('/checkout', [Api\ToolController::class, 'getToolsCheckout'])->name('api.tools.getToolsCheckout');
             Route::get('/assign', [Api\ToolController::class, 'assign'])->name('api.tools.assign');
             Route::post('', [Api\ToolController::class, 'store'])->name('api.tools.store');
@@ -1220,6 +1242,10 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 Api\ReportsController::class,
                 'index',
             ])->name('api.activity.index');
+
+            Route::get('activity/total-detail', [Api\ReportsController::class, 'getTotalDetail'])->name(
+                'api.activity.total_detail'
+            );
         }); // end reports api routes
         
        
@@ -1353,6 +1379,14 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         // });
 
     // route digital signatures
+    Route::group(['prefix' => 'digital_signatures'], function () {
+        Route::post('/{id}/checkout', [Api\DigitalSignaturesController::class, 'checkOut'])->name('api.digital_signatures.checkOut');
+        Route::post('/checkout', [Api\DigitalSignaturesController::class, 'multiCheckout'])->name('api.digital_signatures.multiCheckout');
+        Route::post('/{id}/checkin', [Api\DigitalSignaturesController::class, 'checkIn'])->name('api.digital_signatures.checkIn');
+        Route::post('/checkin', [Api\DigitalSignaturesController::class, 'multiCheckin'])->name('api.digital_signatures.multiCheckin');
+        Route::put('',[Api\DigitalSignaturesController::class,'multiUpdate'])->name('api.digital_signatures.multiUpdate');
+        Route::get('/total-detail',[Api\DigitalSignaturesController::class,'getTotalDetail'])->name('api.digital_signatures.totalDetail');
+    });
     Route::resource(
         'digital_signatures',
         Api\DigitalSignaturesController::class,
@@ -1368,13 +1402,6 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
             'except' => ['create', 'edit'],
         ]
     );
-    Route::group(['prefix' => 'digital_signatures'], function () {
-        Route::post('/{id}/checkout', [Api\DigitalSignaturesController::class, 'checkOut'])->name('api.digital_signatures.checkOut');
-        Route::post('/checkout', [Api\DigitalSignaturesController::class, 'multiCheckout'])->name('api.digital_signatures.multiCheckout');
-        Route::post('/{id}/checkin', [Api\DigitalSignaturesController::class, 'checkIn'])->name('api.digital_signatures.checkIn');
-        Route::post('/checkin', [Api\DigitalSignaturesController::class, 'multiCheckin'])->name('api.digital_signatures.multiCheckin');
-        Route::put('',[Api\DigitalSignaturesController::class,'multiUpdate'])->name('api.digital_signatures.multiUpdate');
-    });
     //end route digital signatures
 
 }); // end API routes

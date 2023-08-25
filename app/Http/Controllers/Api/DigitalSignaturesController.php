@@ -12,6 +12,7 @@ use App\Jobs\SendConfirmCheckoutMail;
 use App\Jobs\SendRejectCheckinMail;
 use App\Jobs\SendRejectCheckoutMail;
 use App\Jobs\SendCheckoutMailDigitalSignature;
+use App\Models\Category;
 use App\Models\Location;
 use App\Jobs\SendCheckinMailDigitalSignature;
 use App\Models\AssetHistory;
@@ -131,6 +132,70 @@ class DigitalSignaturesController extends Controller
         $digital_signatures = $digital_signatures->skip($offset)->take($limit)->get();
 
         return (new DigitalSignaturesTransformer())->transformSignatures($digital_signatures, $total);
+    }
+
+    public function getTotalDetail(request $request)
+    {
+        $this->authorize('view', DigitalSignatures::class);
+
+        $digital_signatures = DigitalSignatures::select('digital_signatures.*');
+
+        $filter = [];
+
+        if ($request->filled('filter')) {
+            $filter = json_decode($request->input('filter'), true);
+        }
+
+        if ($request->supplier) {
+            $digital_signatures->InSupplier($request->input('supplier'));
+        }
+
+        if ($request->status_label) {
+            $digital_signatures->InStatus($request->input('status_label'));
+        }
+
+        if ($request->filled('assigned_status')) {
+            $digital_signatures->InAssignedStatus($request->input('assigned_status'));
+        }
+
+        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+            $digital_signatures->where(function ($query) use ($request) {
+                $query->where('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+                    ->orWhere('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
+        }
+
+        if ($request->filled('purchaseDateFrom', 'purchaseDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('purchaseDateFrom'), $request->input('purchaseDateTo'));
+            $digital_signatures->whereBetween('digital_signatures.purchase_date', [$filterByDate]);
+        }
+        if ($request->filled('expirationDateFrom', 'expirationDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('expirationDateFrom'), $request->input('expirationDateTo'));
+            $digital_signatures->whereBetween('digital_signatures.expiration_date', [$filterByDate]);
+        }
+
+        if ((! is_null($filter)) && (count($filter)) > 0) {
+            $digital_signatures->ByFilter($filter);
+        } elseif ($request->filled('search')) {
+            $digital_signatures->TextSearch($request->input('search'));
+        }
+
+
+        $total_dg_by_category = $digital_signatures->selectRaw('category_id , count(*) as total')->groupBy('category_id')->pluck('total','category_id');
+        $total_dg_by_category->transform(function ($value,$key) {
+            return [
+                'name' => Category::findOrFail($key)->name,
+                'total' => $value
+            ];
+        });
+        $total_detail = $total_dg_by_category->groupBy('name')->map(function ($item) {
+            return [
+                'name' => $item->first()['name'],
+                'total' => $item->sum('total')
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, trans('admin/hardware/message.update.success')));
     }
 
     /**

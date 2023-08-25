@@ -42,4 +42,21 @@ class ApiReportCest
         $I->assertStringContainsString('total', $I->grabResponse());
         $I->assertStringContainsString('rows', $I->grabResponse());
     }
+
+    public function totalDetailReport(ApiTester $I)
+    {
+        $I->wantTo('Get total detail for reports');
+
+        $filter = '?target_type=' . 'App\\Models\\User'
+            . '&item_type=' . 'App\\Models\\Asset'
+            . '&target_id=' . '1'
+            . '&item_id=' . '1'
+            . '&date_from=' . '2023-08-10'
+            . '&date_to=' . Carbon::now()
+            . '&action_type=' . 'checkout'
+            . '&search=' . 'admin';
+        $I->sendGET('reports/activity/total-detail' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
 }
