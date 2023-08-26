@@ -30,10 +30,10 @@ class AccessoriesController extends Controller
     {
         $this->authorize('view', Accessory::class);
         $allowed_columns = ['id', 'name', 'model_number', 'eol', 'notes', 'created_at', 'min_amt', 'company_id'];
-        
+
         // This array is what determines which fields should be allowed to be sorted on ON the table itself, no relations
         // Relations will be handled in query scopes a little further down.
-        $allowed_columns = 
+        $allowed_columns =
             [
                 'id',
                 'name',
@@ -47,50 +47,8 @@ class AccessoriesController extends Controller
                 'warranty_months'
             ];
 
-
         $accessories = Accessory::select('accessories.*')->with('category', 'company', 'manufacturer', 'users', 'location', 'supplier');
-
-        $accessories->FilterAccessoriesByRole($request->user());
-
-        if ($request->filled('search')) {
-            $accessories = $accessories->TextSearch($request->input('search'));
-        }
-
-        if ($request->filled('accessory_id')) {
-            $accessories->where('id', '=', $request->input('accessory_id'));
-        }
-
-        if ($request->filled('company_id')) {
-            $accessories->where('company_id', '=', $request->input('company_id'));
-        }
-
-        if ($request->filled('category_id')) {
-            $accessories->where('category_id', '=', $request->input('category_id'));
-        }
-
-        if ($request->category) {
-            $accessories->InCategory($request->input('category'));
-        }
-
-        if ($request->filled('manufacturer_id')) {
-            $accessories->where('manufacturer_id', '=', $request->input('manufacturer_id'));
-        }
-
-        if ($request->filled('supplier_id')) {
-            $accessories->where('supplier_id', '=', $request->input('supplier_id'));
-        }
-
-        if ($request->filled('location_id')) {
-            $accessories->where('location_id','=',$request->input('location_id'));
-        }
-
-        if ($request->filled('notes')) {
-            $accessories->where('notes','=',$request->input('notes'));
-        }
-
-        if ($request->filled('date_from', 'date_to')) {
-            $accessories->whereBetween('purchase_date', [$request->input('date_from'), $request->input('date_to')]);
-        }
+        $accessories = $this->filters($accessories, $request);
 
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
         // case we override with the actual count, so we should return 0 items.
@@ -115,15 +73,15 @@ class AccessoriesController extends Controller
                 break;
             case 'manufacturer':
                 $accessories = $accessories->OrderManufacturer($order);
-                break;    
+                break;
             case 'supplier':
                 $accessories = $accessories->OrderSupplier($order);
-                break;       
+                break;
             default:
                 $accessories = $accessories->orderBy($column_sort, $order);
                 break;
         }
- 
+
         $total = $accessories->count();
         $accessories = $accessories->skip($offset)->take($limit)->get();
 
@@ -132,10 +90,27 @@ class AccessoriesController extends Controller
 
     public function getTotalDetail(Request $request)
     {
-        $this->authorize('view', Accessory::class);        
+        $this->authorize('view', Accessory::class);
 
         $accessories = Accessory::select('accessories.*');
+        $accessories = $this->filters($accessories, $request);
 
+        $total_accessory_by_category = $accessories->selectRaw('c.name as name , count(*) as total')
+            ->join('categories as c', 'c.id', '=', 'accessories.category_id')
+            ->groupBy('c.name')
+            ->pluck('total', 'c.name');
+        $total_detail = $total_accessory_by_category->map(function ($value, $key) {
+            return [
+                'name' => $key,
+                'total' => $value
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, null));
+    }
+
+    public function filters($accessories, $request)
+    {
         $accessories->FilterAccessoriesByRole($request->user());
 
         if ($request->filled('search')) {
@@ -167,32 +142,18 @@ class AccessoriesController extends Controller
         }
 
         if ($request->filled('location_id')) {
-            $accessories->where('location_id','=',$request->input('location_id'));
+            $accessories->where('location_id', '=', $request->input('location_id'));
         }
 
         if ($request->filled('notes')) {
-            $accessories->where('notes','=',$request->input('notes'));
+            $accessories->where('notes', '=', $request->input('notes'));
         }
 
         if ($request->filled('date_from', 'date_to')) {
             $accessories->whereBetween('purchase_date', [$request->input('date_from'), $request->input('date_to')]);
         }
 
-        $total_accessory_by_category = $accessories->selectRaw('category_id , count(*) as total')->groupBy('category_id')->pluck('total','category_id');
-        $total_accessory_by_category->transform(function ($value,$key) {
-            return [
-                'name' => Category::findOrFail($key)->name,
-                'total' => $value
-            ];
-        });
-        $total_detail = $total_accessory_by_category->groupBy('name')->map(function ($item) {
-            return [
-                'name' => $item->first()['name'],
-                'total' => $item->sum('total')
-            ];
-        })->values()->toArray();
-
-        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, trans('admin/hardware/message.update.success')));
+        return $accessories;
     }
 
 
@@ -216,7 +177,6 @@ class AccessoriesController extends Controller
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', null, $accessory->getErrors()), Response::HTTP_BAD_REQUEST);
-
     }
 
     /**
@@ -266,7 +226,7 @@ class AccessoriesController extends Controller
         $this->authorize('view', Accessory::class);
 
         $accessory = Accessory::with('lastCheckout')->findOrFail($id);
-        if (! Company::isCurrentUserHasAccess($accessory)) {
+        if (!Company::isCurrentUserHasAccess($accessory)) {
             return ['total' => 0, 'rows' => []];
         }
 
@@ -284,13 +244,13 @@ class AccessoriesController extends Controller
 
         if ($request->filled('search')) {
             $accessory_users = $accessory->users()
-                                         ->where(function ($query) use ($request) {
-                                             $search_str = '%' . $request->input('search') . '%';
-                                             $query->where('first_name', 'like', $search_str)
-                                                   ->orWhere('last_name', 'like', $search_str)
-                                                   ->orWhere('note', 'like', $search_str);
-                                         })
-                                         ->get();
+                ->where(function ($query) use ($request) {
+                    $search_str = '%' . $request->input('search') . '%';
+                    $query->where('first_name', 'like', $search_str)
+                        ->orWhere('last_name', 'like', $search_str)
+                        ->orWhere('note', 'like', $search_str);
+                })
+                ->get();
             $total = $accessory_users->count();
         }
 
@@ -336,7 +296,7 @@ class AccessoriesController extends Controller
         $this->authorize($accessory);
 
         if ($accessory->hasUsers() > 0) {
-            return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/accessories/message.assoc_users', ['count'=> $accessory->hasUsers()])));
+            return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/accessories/message.assoc_users', ['count' => $accessory->hasUsers()])));
         }
 
         $accessory->delete();
@@ -367,7 +327,7 @@ class AccessoriesController extends Controller
 
         if ($accessory->numRemaining() > 0) {
 
-            if (! $user = User::find($request->input('assigned_to'))) {
+            if (!$user = User::find($request->input('assigned_to'))) {
                 return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/accessories/message.checkout.user_does_not_exist')));
             }
 
@@ -388,7 +348,6 @@ class AccessoriesController extends Controller
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', ['accessory' => e($accessory->name)], 'No accessories remaining'));
-
     }
 
     /**
@@ -415,10 +374,10 @@ class AccessoriesController extends Controller
 
         // Was the accessory updated?
         if (DB::table('accessories_users')->where('id', '=', $accessory_user->id)->delete()) {
-            if (! is_null($accessory_user->assigned_to)) {
+            if (!is_null($accessory_user->assigned_to)) {
                 $user = User::find($accessory_user->assigned_to);
             }
-            
+
             $data['log_id'] = $logaction->id;
             $data['first_name'] = $user->first_name;
             $data['last_name'] = $user->last_name;
@@ -431,16 +390,15 @@ class AccessoriesController extends Controller
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', ['accessory' => e($accessory->name)], trans('admin/accessories/message.checkin.error')));
-
     }
 
 
     /**
-    * Gets a paginated collection for the select2 menus
-    *
-    * @see \App\Http\Transformers\SelectlistTransformer
-    *
-    */
+     * Gets a paginated collection for the select2 menus
+     *
+     * @see \App\Http\Transformers\SelectlistTransformer
+     *
+     */
     public function selectlist(Request $request)
     {
 
@@ -450,12 +408,11 @@ class AccessoriesController extends Controller
         ]);
 
         if ($request->filled('search')) {
-            $accessories = $accessories->where('accessories.name', 'LIKE', '%'.$request->get('search').'%');
+            $accessories = $accessories->where('accessories.name', 'LIKE', '%' . $request->get('search') . '%');
         }
 
         $accessories = $accessories->orderBy('name', 'ASC')->paginate(50);
 
         return (new SelectlistTransformer)->transformSelectlist($accessories);
     }
-
 }
