@@ -28,10 +28,9 @@ class SyncListUserFromHRMController extends Controller
      */
     protected function mappingBranch(&$locations, $branch)
     {
-        $branch_temp = strtolower($branch);
 
         foreach ($locations as $location) {
-            if (Str::contains(Str::lower($location->name), $branch_temp)) {
+            if ($location->branch_code === $branch) {
                 return $location->id;
             }
         }
@@ -39,6 +38,7 @@ class SyncListUserFromHRMController extends Controller
         //create new if not exist
         $new_location = new Location;
         $new_location->name  = "NCC " . $branch;
+        $new_location->branch_code = $branch;
         $new_location->save();
         $locations[] = $new_location;
         return $new_location->id;
@@ -66,8 +66,7 @@ class SyncListUserFromHRMController extends Controller
         if ($response == null || !is_array($response->result))
             return response()->json(Helper::formatStandardApiResponse('error'));
 
-        $locations = Location::select(['id', 'name'])->get();
-
+        $locations = Location::select(['id', 'branch_code'])->get();
         foreach ($response->result as $value) {
             if (Str::contains($value->email, '@')) {
                 $userName = explode("@",  $value->email);

@@ -55,6 +55,8 @@ class ApiLocationsCest
             'parent_id' => $temp_location->parent_id,
             'manager_id' => $temp_location->manager_id,
             'currency' => $temp_location->currency,
+            'branch_code' => $temp_location->branch_code,
+
         ];
 
         // create
@@ -89,6 +91,8 @@ class ApiLocationsCest
             'parent_id' => $temp_location->parent_id,
             'manager_id' => $temp_location->manager_id,
             'currency' => $temp_location->currency,
+            'branch_code' => $temp_location->branch_code,
+            
         ];
 
         $I->assertNotEquals($location->name, $data['name']);

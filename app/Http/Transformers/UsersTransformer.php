@@ -71,8 +71,8 @@ class UsersTransformer
                 'updated_at' => Helper::getFormattedDateObject($user->updated_at, 'datetime'),
                 'last_login' => Helper::getFormattedDateObject($user->last_login, 'datetime'),
                 'deleted_at' => ($user->deleted_at) ? Helper::getFormattedDateObject($user->deleted_at, 'datetime') : null,
-                'user_type' => e($user->user_type),
-                'job_position_code' => e($user->job_position_code),
+                'user_type' => ($user->user_type) ? e($user->user_type) : null,
+                'job_position_code' => ($user->job_position_code) ?  e($user->job_position_code) : null,
             ];
 
         $permissions_array['available_actions'] = [

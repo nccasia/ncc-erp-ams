@@ -26,6 +26,7 @@ class Location extends SnipeModel
     protected $table = 'locations';
     protected $rules = [
         'name'          => 'required|min:2|max:255|unique_undeleted',
+        'branch_code'   => 'required',
         'city'          => 'min:2|max:255|nullable',
         'country'       => 'min:2|max:255|nullable',
         'address'       => 'max:80|nullable',
@@ -69,6 +70,7 @@ class Location extends SnipeModel
         'currency',
         'manager_id',
         'image',
+        'branch_code',
     ];
     protected $hidden = ['user_id'];
 
