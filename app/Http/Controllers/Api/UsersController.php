@@ -8,6 +8,7 @@ use App\Http\Requests\SaveUserRequest;
 use App\Http\Transformers\AccessoriesTransformer;
 use App\Http\Transformers\AssetsTransformer;
 use App\Http\Transformers\ConsumablesTransformer;
+use App\Http\Transformers\DatatablesTransformer;
 use App\Http\Transformers\LicensesTransformer;
 use App\Http\Transformers\SelectlistTransformer;
 use App\Http\Transformers\UsersTransformer;
@@ -67,6 +68,8 @@ class UsersController extends Controller
             'users.zip',
             'users.remote',
             'users.ldap_import',
+            'users.user_type',
+            'users.job_position_code'
 
         ])->with('manager', 'groups', 'userloc', 'company', 'department', 'assets', 'licenses', 'accessories', 'consumables')
             ->withCount('assets as assets_count', 'licenses as licenses_count', 'accessories as accessories_count', 'consumables as consumables_count');
@@ -87,8 +90,8 @@ class UsersController extends Controller
             $users = $users->where('users.company_id', '=', $request->input('company_id'));
         }
 
-        if ($request->filled('location_id')) {
-            $users = $users->where('users.location_id', '=', $request->input('location_id'));
+        if ($request->filled('location')) {
+            $users = $users->whereIn('users.location_id', $request->input('location'));
         }
 
         if ($request->filled('email')) {
@@ -141,6 +144,14 @@ class UsersController extends Controller
 
         if ($request->filled('remote')) {
             $users = $users->where('remote', '=', $request->input('remote'));
+        }
+
+        if($request->filled('user_type')) {
+            $users = $users->whereIn('user_type', $request->input('user_type'));
+        }
+
+        if($request->filled('job_position_code')) {
+            $users = $users->whereIn('job_position_code', $request->input('job_position_code'));
         }
 
         if ($request->filled('assets_count')) {
@@ -732,6 +743,18 @@ class UsersController extends Controller
             "token_type" => "Bear",
             "access_token" => $token,
         ]);
+    }
+
+    public function getListUserType()
+    {
+        $list = User::select('users.user_type as name')->distinct()->get();
+        return (new DatatablesTransformer)->transformDatatables($list);
+    }
+
+    public function getListJobPosition()
+    {
+        $list = User::select('users.job_position_code as name')->distinct()->get();
+        return (new DatatablesTransformer)->transformDatatables($list);
     }
 
 }
