@@ -115,7 +115,6 @@ class ApiLocationsCest
         $temp_location->id = $location->id;
 
         // verify
-        $I->sendGET('/locations/'.$location->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson((new LocationsTransformer)->transformLocation($temp_location));
