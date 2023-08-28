@@ -58,6 +58,17 @@ class ApiAssetsCest
         $I->seeResponseCodeIs(200);
     }
 
+    public function totalDetailAssets(ApiTester $I)
+    {
+        $I->wantTo('Get total detail for assets index');
+
+        $filter = $this->getFilterForIndex();
+
+        $I->sendGET('/hardware/total-detail' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
     public function indexAssetsExpiration(ApiTester $I)
     {
         $I->wantTo('Get a list of assets expiration');

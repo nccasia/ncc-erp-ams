@@ -79,6 +79,25 @@ class ApiDigitalSignaturesCest
         $I->seeResponseCodeIs(200);
     }
 
+    public function totalDetailDigitalSingatures(ApiTester $I)
+    {
+        $I->wantTo('Get a list of digital signatures');
+
+        // call
+        $filter = '?limit=10&offset=0&order=desc&sort=id'
+            . '&assigned_status[0]=' . config('enum.assigned_status.DEFAULT')
+            . '&status_label[0]=' . config('enum.status_id.READY_TO_DEPLOY')
+            . '&purchaseDateFrom=' . Carbon::now()->subDays(5)
+            . '&purchaseDateTo=' . Carbon::now()->addDays(5)
+            . '&expirationDateFrom=' . Carbon::now()->subMonths(2)
+            . '&expirationDateTo=' . Carbon::now()->addMonths(2)
+            . '&supplier=' . Supplier::all()->random(1)->first()->id
+            . '&search=' . 'Token';
+        $I->sendGET('/digital_signatures/total-detail' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
     public function getDigitalSignatureById(ApiTester $I)
     {
         $I->wantTo('Get digital signature by id');

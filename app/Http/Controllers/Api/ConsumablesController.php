@@ -6,6 +6,7 @@ use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\ConsumablesTransformer;
 use App\Http\Transformers\SelectlistTransformer;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\Consumable;
 use App\Models\User;
@@ -29,7 +30,7 @@ class ConsumablesController extends Controller
 
         // This array is what determines which fields should be allowed to be sorted on ON the table itself, no relations
         // Relations will be handled in query scopes a little further down.
-        $allowed_columns = 
+        $allowed_columns =
             [
                 'id',
                 'name',
@@ -39,65 +40,19 @@ class ConsumablesController extends Controller
                 'purchase_cost',
                 'company',
                 'category',
-                'model_number', 
-                'item_no', 
+                'model_number',
+                'item_no',
                 'qty',
                 'image',
                 'notes',
                 'supplier_id'
-                ];
-
+            ];
 
         $consumables = Company::scopeCompanyables(
             Consumable::select('consumables.*')
                 ->with('company', 'location', 'category', 'users', 'manufacturer')
         );
-        
-        $consumables->FilterConsumablesByRole($request->user());
-
-        if ($request->filled('search')) {
-            $consumables = $consumables->TextSearch(e($request->input('search')));
-        }
-
-        if ($request->filled('consumable_id')) {
-            $consumables->where('id', '=', $request->input('consumable_id'));
-        }
-
-        if ($request->filled('company_id')) {
-            $consumables->where('company_id', '=', $request->input('company_id'));
-        }
-
-        if ($request->filled('category_id')) {
-            $consumables->where('category_id', '=', $request->input('category_id'));
-        }
-
-        if ($request->category) {
-            $consumables->InCategory($request->input('category'));
-        }
-
-        if ($request->filled('model_number')) {
-            $consumables->where('model_number','=',$request->input('model_number'));
-        }
-
-        if ($request->filled('manufacturer_id')) {
-            $consumables->where('manufacturer_id', '=', $request->input('manufacturer_id'));
-        }
-        
-        if ($request->filled('supplier_id')) {
-            $consumables->where('supplier_id', '=', $request->input('supplier_id'));
-        }
-
-        if ($request->filled('location_id')) {
-            $consumables->where('location_id','=',$request->input('location_id'));
-        }
-
-        if ($request->filled('notes')) {
-            $consumables->where('notes','=',$request->input('notes'));
-        }
-
-        if ($request->filled('date_from', 'date_to')) {
-            $consumables->whereBetween('purchase_date', [$request->input('date_from'), $request->input('date_to')]);
-        }
+        $consumables = $this->filters($consumables, $request);
 
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
         // case we override with the actual count, so we should return 0 items.
@@ -135,6 +90,78 @@ class ConsumablesController extends Controller
         $consumables = $consumables->skip($offset)->take($limit)->get();
 
         return (new ConsumablesTransformer)->transformConsumables($consumables, $total);
+    }
+
+    public function getTotalDetail(Request $request)
+    {
+        $this->authorize('index', Consumable::class);
+
+        $consumables = Company::scopeCompanyables(Consumable::select('consumables.*'));
+        $consumables = $this->filters($consumables, $request);
+
+        $total_consumable_by_category = $consumables->selectRaw('c.name as name , count(*) as total')
+            ->join('categories as c', 'c.id', '=', 'consumables.category_id')
+            ->groupBy('c.name')
+            ->pluck('total', 'c.name');
+        $total_detail = $total_consumable_by_category->map(function ($value, $key) {
+            return [
+                'name' => $key,
+                'total' => $value
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, null));
+    }
+
+    public function filters($consumables, $request)
+    {
+        $consumables->FilterConsumablesByRole($request->user());
+
+        if ($request->filled('search')) {
+            $consumables = $consumables->TextSearch(e($request->input('search')));
+        }
+
+        if ($request->filled('consumable_id')) {
+            $consumables->where('id', '=', $request->input('consumable_id'));
+        }
+
+        if ($request->filled('company_id')) {
+            $consumables->where('company_id', '=', $request->input('company_id'));
+        }
+
+        if ($request->filled('category_id')) {
+            $consumables->where('category_id', '=', $request->input('category_id'));
+        }
+
+        if ($request->category) {
+            $consumables->InCategory($request->input('category'));
+        }
+
+        if ($request->filled('model_number')) {
+            $consumables->where('model_number', '=', $request->input('model_number'));
+        }
+
+        if ($request->filled('manufacturer_id')) {
+            $consumables->where('manufacturer_id', '=', $request->input('manufacturer_id'));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $consumables->where('supplier_id', '=', $request->input('supplier_id'));
+        }
+
+        if ($request->filled('location_id')) {
+            $consumables->where('location_id', '=', $request->input('location_id'));
+        }
+
+        if ($request->filled('notes')) {
+            $consumables->where('notes', '=', $request->input('notes'));
+        }
+
+        if ($request->filled('date_from', 'date_to')) {
+            $consumables->whereBetween('purchase_date', [$request->input('date_from'), $request->input('date_to')]);
+        }
+
+        return $consumables;
     }
 
     /**
@@ -189,12 +216,12 @@ class ConsumablesController extends Controller
         $consumable = Consumable::findOrFail($id);
         $consumable->fill($request->all());
         $consumable = $request->handleImages($consumable);
-        
+
         if ($consumable->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $consumable, trans('admin/consumables/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $consumable->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -216,26 +243,27 @@ class ConsumablesController extends Controller
     }
 
     /**
-    * Returns a JSON response containing details on the users associated with this consumable.
-    *
-    * @author [A. Gianotto] [<snipe@snipe.net>]
-    * @see \App\Http\Controllers\Consumables\ConsumablesController::getView() method that returns the form.
-    * @since [v1.0]
-    * @param int $consumableId
-    * @return array
+     * Returns a JSON response containing details on the users associated with this consumable.
+     *
+     * @author [A. Gianotto] [<snipe@snipe.net>]
+     * @see \App\Http\Controllers\Consumables\ConsumablesController::getView() method that returns the form.
+     * @since [v1.0]
+     * @param int $consumableId
+     * @return array
      */
     public function getDataView($consumableId)
     {
-        $consumable = Consumable::with(['consumableAssignments'=> function ($query) {
-            $query->orderBy($query->getModel()->getTable().'.created_at', 'DESC');
-        },
-        'consumableAssignments.admin'=> function ($query) {
-        },
-        'consumableAssignments.user'=> function ($query) {
-        },
+        $consumable = Consumable::with([
+            'consumableAssignments' => function ($query) {
+                $query->orderBy($query->getModel()->getTable() . '.created_at', 'DESC');
+            },
+            'consumableAssignments.admin' => function ($query) {
+            },
+            'consumableAssignments.user' => function ($query) {
+            },
         ])->find($consumableId);
 
-        if (! Company::isCurrentUserHasAccess($consumable)) {
+        if (!Company::isCurrentUserHasAccess($consumable)) {
             return ['total' => 0, 'rows' => []];
         }
         $this->authorize('view', Consumable::class);
@@ -307,10 +335,10 @@ class ConsumablesController extends Controller
     }
 
     /**
-    * Gets a paginated collection for the select2 menus
-    *
-    * @see \App\Http\Transformers\SelectlistTransformer
-    */
+     * Gets a paginated collection for the select2 menus
+     *
+     * @see \App\Http\Transformers\SelectlistTransformer
+     */
     public function selectlist(Request $request)
     {
         $consumables = Consumable::select([
@@ -319,7 +347,7 @@ class ConsumablesController extends Controller
         ]);
 
         if ($request->filled('search')) {
-            $consumables = $consumables->where('consumables.name', 'LIKE', '%'.$request->get('search').'%');
+            $consumables = $consumables->where('consumables.name', 'LIKE', '%' . $request->get('search') . '%');
         }
 
         $consumables = $consumables->orderBy('name', 'ASC')->paginate(50);
