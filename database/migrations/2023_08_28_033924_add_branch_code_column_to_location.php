@@ -25,8 +25,10 @@ class AddBranchCodeColumnToLocation extends Migration
      */
     public function down()
     {
-        Schema::table('location', function (Blueprint $table) {
-            //
+        Schema::table('locations', function (Blueprint $table) {
+            $table->dropColumn([
+                'branch_code'
+            ]);
         });
     }
 }

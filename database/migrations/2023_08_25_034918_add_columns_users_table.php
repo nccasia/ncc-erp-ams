@@ -26,6 +26,11 @@ class AddColumnsUsersTable extends Migration
      */
     public function down()
     {
-        //
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn([
+                'user_type',
+                'job_position_code'
+            ]);
+        });
     }
 }
