@@ -10,6 +10,7 @@ use App\Http\Transformers\ToolsTransformer;
 use App\Jobs\SendCheckinMailTool;
 use App\Jobs\SendCheckoutMailTool;
 use App\Jobs\SendConfirmMailTool;
+use App\Models\Category;
 use App\Models\Company;
 use App\Models\Location;
 use App\Models\Setting;
@@ -34,6 +35,7 @@ class ToolController extends Controller
         $this->authorize('view', Software::class);
 
         $tools = Tool::select('tools.*')->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
+        $tools = $this->filters($tools, $request);
 
         $allowed_columns = [
             'name',
@@ -50,6 +52,73 @@ class ToolController extends Controller
         ];
 
         return $this->getDataTools($request, $tools, $allowed_columns);
+    }
+
+    public function getTotalDetail(Request $request)
+    {
+        $this->authorize('view', Software::class);
+
+        $tools = Tool::select('tools.*')->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
+        $tools = $this->filters($tools, $request);
+
+        $total_tool_by_category = $tools->selectRaw('c.name as name , count(*) as total')
+            ->join('categories as c', 'c.id', '=', 'tools.category_id')
+            ->groupBy('c.name')
+            ->pluck('total', 'c.name');
+        $total_detail = $total_tool_by_category->map(function ($value, $key) {
+            return [
+                'name' => $key,
+                'total' => $value
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, null));
+    }
+
+    public function filters($tools, $request)
+    {
+
+        $filter = [];
+        if ($request->filled('filter')) {
+            $filter = json_decode($request->input('filter'), true);
+        }
+
+        if ((!is_null($filter)) && (count($filter)) > 0) {
+            $tools->ByFilter($filter);
+        } elseif ($request->filled('search')) {
+            $tools->TextSearch($request->input('search'));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $tools->BySupplier($request->input('supplier_id'));
+        }
+
+        if ($request->status_label) {
+            $tools->InStatus($request->input('status_label'));
+        }
+
+        if ($request->filled('assigned_status')) {
+            $tools->InAssignedStatus($request->input('assigned_status'));
+        }
+
+        if ($request->filled('purchaseDateFrom', 'purchaseDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('purchaseDateFrom'), $request->input('purchaseDateTo'));
+            $tools->whereBetween('tools.purchase_date', [$filterByDate]);
+        }
+
+        if ($request->filled('expirationDateFrom', 'expirationDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request->input('expirationDateFrom'), $request->input('expirationDateTo'));
+            $tools->whereBetween('tools.expiration_date', [$filterByDate]);
+        }
+
+        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+            $tools->where(function ($query) use ($request) {
+                $query->where('tools.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
+                    ->orWhere('tools.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+            });
+        }
+
+        return $tools;
     }
 
     /**
@@ -114,13 +183,13 @@ class ToolController extends Controller
                     $tool->withdraw_from = null;
                     $tool->last_checkout = null;
                     $tool->assigned_to = null;
-                    $this->sendMailConfirm($user,$tool,$is_confirm,$subject);
+                    $this->sendMailConfirm($user, $tool, $is_confirm, $subject);
                 } else {
                     $tool->increment('checkout_counter', 1);
                     $is_confirm = 'đã xác nhận cấp phát';
                     $subject = 'Mail xác nhận cấp phát tool';
                     $tool->status_id = config('enum.status_id.ASSIGN');
-                    $this->sendMailConfirm($user,$tool,$is_confirm,$subject);
+                    $this->sendMailConfirm($user, $tool, $is_confirm, $subject);
                 }
             } elseif ($tool->assigned_status == config('enum.assigned_status.REJECT')) {
                 if ($tool->withdraw_from) {
@@ -129,7 +198,7 @@ class ToolController extends Controller
                     $reason = 'Lý do: ' . $request->get('reason');
                     $tool->status_id = config('enum.status_id.ASSIGN');
                     $tool->assigned_status = config('enum.assigned_status.ACCEPT');
-                    $this->sendMailConfirm($user,$tool,$is_confirm,$subject,$reason);
+                    $this->sendMailConfirm($user, $tool, $is_confirm, $subject, $reason);
                 } else {
                     $is_confirm = 'đã từ chối nhận';
                     $subject = 'Mail từ chối nhận tool';
@@ -139,13 +208,13 @@ class ToolController extends Controller
                     $tool->withdraw_from = null;
                     $tool->last_checkout = null;
                     $tool->assigned_to = null;;
-                    $this->sendMailConfirm($user,$tool,$is_confirm,$subject,$reason);
+                    $this->sendMailConfirm($user, $tool, $is_confirm, $subject, $reason);
                 }
             }
         }
 
         if (!$tool->save()) {
-            return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()),Response::HTTP_BAD_REQUEST);
+            return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()), Response::HTTP_BAD_REQUEST);
         }
         return response()->json(Helper::formatStandardApiResponse('success', $tool, trans('admin/tools/message.update.success')));
     }
@@ -180,13 +249,13 @@ class ToolController extends Controller
                         $tool->withdraw_from = null;
                         $tool->last_checkout = null;
                         $tool->assigned_to = null;
-                        $this->sendMailConfirm($user,$tool,$is_confirm,$subject);
+                        $this->sendMailConfirm($user, $tool, $is_confirm, $subject);
                     } else {
                         $tool->increment('checkout_counter', 1);
                         $is_confirm = 'đã xác nhận cấp phát';
                         $subject = 'Mail xác nhận cấp phát tool';
                         $tool->status_id = config('enum.status_id.ASSIGN');
-                        $this->sendMailConfirm($user,$tool,$is_confirm,$subject);
+                        $this->sendMailConfirm($user, $tool, $is_confirm, $subject);
                     }
                 } elseif ($tool->assigned_status == config('enum.assigned_status.REJECT')) {
                     if ($tool->withdraw_from) {
@@ -195,7 +264,7 @@ class ToolController extends Controller
                         $reason = 'Lý do: ' . $request->get('reason');
                         $tool->status_id = config('enum.status_id.ASSIGN');
                         $tool->assigned_status = config('enum.assigned_status.ACCEPT');
-                        $this->sendMailConfirm($user,$tool,$is_confirm,$subject,$reason);
+                        $this->sendMailConfirm($user, $tool, $is_confirm, $subject, $reason);
                     } else {
                         $is_confirm = 'đã từ chối nhận';
                         $subject = 'Mail từ chối nhận tool';
@@ -205,7 +274,7 @@ class ToolController extends Controller
                         $tool->withdraw_from = null;
                         $tool->last_checkout = null;
                         $tool->assigned_to = null;;
-                        $this->sendMailConfirm($user,$tool,$is_confirm,$subject,$reason);
+                        $this->sendMailConfirm($user, $tool, $is_confirm, $subject, $reason);
                     }
                 }
             }
@@ -232,7 +301,7 @@ class ToolController extends Controller
         if ($tool->delete()) {
             return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/tools/message.delete.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.does_not_exist')),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.does_not_exist')), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -267,7 +336,7 @@ class ToolController extends Controller
                 )
             );
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -300,7 +369,7 @@ class ToolController extends Controller
 
             $tool->status_id = config('enum.status_id.ASSIGN');
             if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'), $note)) {
-                $this->sendMailCheckout($target,$tool);
+                $this->sendMailCheckout($target, $tool);
             } else {
                 return response()->json(
                     Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.checkout.error')),
@@ -356,7 +425,7 @@ class ToolController extends Controller
                 )
             );
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $tool->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -378,11 +447,12 @@ class ToolController extends Controller
             if (is_null($target = $tool->assigned_to)) {
                 return response()->json(
                     Helper::formatStandardApiResponse(
-                        'error', 
-                        ['tool' => e($tool->name)], 
-                        trans('admin/tool/message.checkin.already_checked_in')),
-                        Response::HTTP_BAD_REQUEST
-                    );
+                        'error',
+                        ['tool' => e($tool->name)],
+                        trans('admin/tool/message.checkin.already_checked_in')
+                    ),
+                    Response::HTTP_BAD_REQUEST
+                );
             }
             if (!$tool->availableForCheckin()) {
                 return response()->json(
@@ -400,15 +470,16 @@ class ToolController extends Controller
             $target = User::findOrFail($tool->assigned_to);
 
             if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
-                $this->sendMailCheckin($target,$tool);
+                $this->sendMailCheckin($target, $tool);
             } else {
                 return response()->json(
                     Helper::formatStandardApiResponse(
-                        'error', 
-                        null, 
-                        trans('admin/tools/message.checkin.error')),
-                        Response::HTTP_BAD_REQUEST
-                    );
+                        'error',
+                        null,
+                        trans('admin/tools/message.checkin.error')
+                    ),
+                    Response::HTTP_BAD_REQUEST
+                );
             }
         }
         return response()->json(
@@ -522,9 +593,10 @@ class ToolController extends Controller
 
         $user_id = Auth::id();
 
-        $tools = Tool::select('tools.*')->join('users','tools.assigned_to','users.id')
-        ->where('users.id',$user_id)
-        ->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
+        $tools = Tool::select('tools.*')->join('users', 'tools.assigned_to', 'users.id')
+            ->where('users.id', $user_id)
+            ->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
+        $tools = $this->filters($tools, $request);
 
         $allowed_columns = [
             'id',
@@ -591,29 +663,6 @@ class ToolController extends Controller
      */
     public function getDataTools($request, $tools, $allowed_columns)
     {
-        $filter = [];
-        if ($request->filled('filter')) {
-            $filter = json_decode($request->input('filter'), true);
-        }
-
-        if ((!is_null($filter)) && (count($filter)) > 0) {
-            $tools->ByFilter($filter);
-        } elseif ($request->filled('search')) {
-            $tools->TextSearch($request->input('search'));
-        }
-
-        if ($request->filled('supplier_id')) {
-            $tools->BySupplier($request->input('supplier_id'));
-        }
-
-        if ($request->status_label) {
-            $tools->InStatus($request->input('status_label'));
-        }
-
-        if ($request->filled('assigned_status')) {
-            $tools->InAssignedStatus($request->input('assigned_status'));
-        }
-
         $offset = (($tools) && ($request->get('offset') > $tools->count()))
             ? $tools->count()
             : $request->get('offset', 0);
@@ -623,16 +672,6 @@ class ToolController extends Controller
             : $limit = config('app.max_results');
 
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
-
-        if ($request->filled('purchaseDateFrom', 'purchaseDateTo')) {
-            $filterByDate = DateFormatter::formatDate($request->input('purchaseDateFrom'), $request->input('purchaseDateTo'));
-            $tools->whereBetween('tools.purchase_date', [$filterByDate]);
-        }
-
-        if ($request->filled('expirationDateFrom', 'expirationDateTo')) {
-            $filterByDate = DateFormatter::formatDate($request->input('expirationDateFrom'), $request->input('expirationDateTo'));
-            $tools->whereBetween('tools.expiration_date', [$filterByDate]);
-        }
 
         $sort = $request->input('sort');
 
@@ -656,13 +695,6 @@ class ToolController extends Controller
                 break;
             default:
                 $tools->OrderBy($default_sort, $order);
-        }
-
-        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
-            $tools->where(function ($query) use ($request) {
-                $query->where('tools.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
-                    ->orWhere('tools.assigned_status', '=', $request->input('WAITING_CHECKIN'));
-            });
         }
 
         $total = $tools->count();

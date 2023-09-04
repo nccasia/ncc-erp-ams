@@ -74,7 +74,6 @@ class ApiStatusLabelsCest
             'type' => 'pending',
             'id' => 99
         ]);
-
         $data = [
             'name' => $temp_statuslabel->name,
             'archived' => $temp_statuslabel->archived,
@@ -84,17 +83,14 @@ class ApiStatusLabelsCest
             'type' => $temp_statuslabel->type,
             'default_label' => $temp_statuslabel->default_label
         ];
-
         $I->assertNotEquals($statuslabel->name, $data['name']);
-
         // update
-
-        $I->sendPATCH('/statuslabels/'.$statuslabel->id, $data);
+        $I->sendPATCH('/statuslabels/' . $statuslabel->id, $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
         $response = json_decode($I->grabResponse());
-
+        
         $I->assertEquals('success', $response->status);
         $I->assertEquals(trans('admin/statuslabels/message.update.success'), $response->messages);
         $I->assertEquals($statuslabel->id, $response->payload->id); // statuslabel id does not change
@@ -105,7 +101,7 @@ class ApiStatusLabelsCest
         $temp_statuslabel->id = $statuslabel->id;
 
         // verify
-        $I->sendGET('/statuslabels/'.$statuslabel->id);
+        $I->sendGET('/statuslabels/' . $statuslabel->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
         $I->seeResponseContainsJson((new StatuslabelsTransformer)->transformStatuslabel($temp_statuslabel));
@@ -123,7 +119,7 @@ class ApiStatusLabelsCest
         $I->assertInstanceOf(Statuslabel::class, $statuslabel);
 
         // delete
-        $I->sendDELETE('/statuslabels/'.$statuslabel->id);
+        $I->sendDELETE('/statuslabels/' . $statuslabel->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -132,8 +128,38 @@ class ApiStatusLabelsCest
         $I->assertEquals(trans('admin/statuslabels/message.delete.success'), $response->messages);
 
         // verify, expect a 200
-        $I->sendGET('/statuslabels/'.$statuslabel->id);
+        $I->sendGET('/statuslabels/' . $statuslabel->id);
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
+    }
+
+    public function getAssetCountByStatuslabelTest(ApiTester $I)
+    {
+        $I->wantTo("Test get assest count by status label");
+
+        $statuslabels = Statuslabel::withCount('assets')->get();
+        $labels = [];
+        foreach ($statuslabels as $statuslabel) {
+            if ($statuslabel->assets_count > 0) {
+                $labels[] = $statuslabel->name.' ('.number_format($statuslabel->assets_count).')';
+            }
+        }
+        // call
+        $I->sendGET('/statuslabels/assets');
+        $I->seeResponseIsJson();
+        $I->seeResponseContainsJson([
+            "labels" => $labels
+        ]);
+        $I->seeResponseCodeIs(200);
+    }
+
+    public function getAssetListByStatuslabelTest(ApiTester $I)
+    {
+        $I->wantTo("Test get assest list by status label");
+        $status_label = Statuslabel::all()->random(1)->first();
+        // call
+        $I->sendGET('/statuslabels/' . $status_label->id . '/assetlist?limit=20&sort=id&order=desc');
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
     }
 }

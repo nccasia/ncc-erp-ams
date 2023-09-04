@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\CheckoutableCheckedIn;
 use App\Helpers\DateFormatter;
 use Illuminate\Http\Response;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
@@ -43,7 +44,7 @@ use App\Jobs\SendCheckinMail;
 use App\Http\Requests\AssetCheckinRequest;
 use App\Jobs\SendRejectAllocateMail;
 use App\Jobs\SendRejectRevokeMail;
-
+use App\Models\Category;
 
 /**
  * This class controls all actions related to assets for
@@ -66,7 +67,6 @@ class AssetsController extends Controller
     public function index(Request $request, $audit = null)
     {
         \Log::debug(Route::currentRouteName());
-        $filter_non_deprecable_assets = false;
 
         /**
          * This looks MAD janky (and it is), but the AssetsController@index does a LOT of heavy lifting throughout the 
@@ -117,12 +117,6 @@ class AssetsController extends Controller
             'requests_counter',
         ];
 
-        $filter = [];
-
-        if ($request->filled('filter')) {
-            $filter = json_decode($request->input('filter'), true);
-        }
-
         $all_custom_fields = CustomField::all(); //used as a 'cache' of custom fields throughout this page load
         foreach ($all_custom_fields as $field) {
             $allowed_columns[] = $field->db_column_name();
@@ -139,33 +133,135 @@ class AssetsController extends Controller
                 'model.manufacturer',
                 'model.fieldset',
                 'supplier'
-            ); //it might be tempting to add 'assetlog' here, but don't. It blows up update-heavy users.
+            );
+        $assets = $this->filters($assets, $request);
+
+        $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
+
+        // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
+        // case we override with the actual count, so we should return 0 items.
+        $offset = (($assets) && ($request->get('offset') > $assets->count())) ? $assets->count() : $request->get('offset', 0);
+
+
+        // Check to make sure the limit is not higher than the max allowed
+        ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit'))) ? $limit = $request->input('limit') : $limit = config('app.max_results');
+
+        $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
+
+        // This is used by the audit reporting routes
+        if (Gate::allows('audit', Asset::class)) {
+            switch ($audit) {
+                case 'due':
+                    $assets->DueOrOverdueForAudit($settings);
+                    break;
+                case 'overdue':
+                    $assets->overdueForAudit($settings);
+                    break;
+            }
+        }
+
+        $sort_override = str_replace('custom_fields.', '', $request->input('sort'));
+
+        // This handles all of the pivot sorting (versus the assets.* fields
+        // in the allowed_columns array)
+        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
+
+
+        switch ($sort_override) {
+            case 'model':
+                $assets->OrderModels($order);
+                break;
+            case 'model_number':
+                $assets->OrderModelNumber($order);
+                break;
+            case 'category':
+                $assets->OrderCategory($order);
+                break;
+            case 'manufacturer':
+                $assets->OrderManufacturer($order);
+                break;
+            case 'company':
+                $assets->OrderCompany($order);
+                break;
+            case 'location':
+                $assets->OrderLocation($order);
+            case 'rtd_location':
+                $assets->OrderRtdLocation($order);
+                break;
+            case 'status_label':
+                $assets->OrderStatus($order);
+                break;
+            case 'supplier':
+                $assets->OrderSupplier($order);
+                break;
+            case 'assigned_to':
+                $assets->OrderAssigned($order);
+                break;
+            default:
+                $assets->orderBy($column_sort, $order);
+                break;
+        }
+
+        $total = $assets->count();
+
+        $assets = $assets->skip($offset)->take($limit)->get();
+
+
+        /**
+         * Include additional associated relationships
+         */
+        if ($request->input('components')) {
+            $assets->loadMissing(['components' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            }]);
+        }
+
+
+        /**
+         * Here we're just determining which Transformer (via $transformer) to use based on the 
+         * variables we set earlier on in this method - we default to AssetsTransformer.
+         */
+        return (new $transformer)->transformAssets($assets, $total, $request);
+    }
+
+    public function getTotalDetail(Request $request)
+    {
+        $this->authorize('index', Asset::class);
+
+        $assets = Company::scopeCompanyables(Asset::select('assets.*'), 'company_id', 'assets');
+        $assets = $this->filters($assets, $request);
+
+        $total_asset_by_model = $assets->selectRaw('c.name as category_name , count(*) as total')
+            ->join('models as m', 'assets.model_id', '=', 'm.id')
+            ->join('categories as c', 'm.category_id', '=', 'c.id')
+            ->groupBy('category_name')
+            ->pluck('total', 'category_name');
+
+        $total_detail = $total_asset_by_model->map(function ($value, $key) {
+            return [
+                'name' => $key,
+                'total' => $value
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, null));
+    }
+
+    public function filters($assets, $request)
+    {
+        $filter_non_deprecable_assets = false;
+        $filter = [];
+
+        if ($request->filled('filter')) {
+            $filter = json_decode($request->input('filter'), true);
+        }
 
         $assets->filterAssetByRole($request->user());
-        // if ($request->filled('type')) {
-        //     $type = $request->filled('type');
-
-        //     $assets = $assets->whereHas('asset_history_details', function ($q) use ($type) {
-        //         $q->whereRaw();
-        //     });
-        // }
 
         if ($filter_non_deprecable_assets) {
             $non_deprecable_models = AssetModel::select('id')->whereNotNull('depreciation_id')->get();
 
             $assets->InModelList($non_deprecable_models->toArray());
-        }
-
-        // These are used by the API to query against specific ID numbers.
-        // They are also used by the individual searches on detail pages like
-        // locations, etc.
-
-
-        // Search custom fields by column name
-        foreach ($all_custom_fields as $field) {
-            if ($request->filled($field->db_column_name())) {
-                $assets->where($field->db_column_name(), '=', $request->input($field->db_column_name()));
-            }
         }
 
         if ($request->filled('assigned_status')) {
@@ -231,10 +327,6 @@ class AssetsController extends Controller
             $assets->InCategory($request->input('category'));
         }
 
-        // if ($request->status_label) {
-        //     $assets->where('assets.status_id', '=', $request->input('status_label'));
-        // }
-
         if ($request->status_label) {
             $assets->InStatus($request->input('status_label'));
         }
@@ -249,78 +341,10 @@ class AssetsController extends Controller
 
         $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
 
-        // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
-        // case we override with the actual count, so we should return 0 items.
-        $offset = (($assets) && ($request->get('offset') > $assets->count())) ? $assets->count() : $request->get('offset', 0);
-
-
-        // Check to make sure the limit is not higher than the max allowed
-        ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit'))) ? $limit = $request->input('limit') : $limit = config('app.max_results');
-
-        $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
-
-        // This is used by the audit reporting routes
-        if (Gate::allows('audit', Asset::class)) {
-            switch ($audit) {
-                case 'due':
-                    $assets->DueOrOverdueForAudit($settings);
-                    break;
-                case 'overdue':
-                    $assets->overdueForAudit($settings);
-                    break;
-            }
-        }
-
         if ((!is_null($filter)) && (count($filter)) > 0) {
             $assets->ByFilter($filter);
         } elseif ($request->filled('search')) {
             $assets->TextSearch($request->input('search'));
-        }
-
-
-        // This is kinda gross, but we need to do this because the Bootstrap Tables
-        // API passes custom field ordering as custom_fields.fieldname, and we have to strip
-        // that out to let the default sorter below order them correctly on the assets table.
-        $sort_override = str_replace('custom_fields.', '', $request->input('sort'));
-
-        // This handles all of the pivot sorting (versus the assets.* fields
-        // in the allowed_columns array)
-        $column_sort = in_array($sort_override, $allowed_columns) ? $sort_override : 'assets.created_at';
-
-
-        switch ($sort_override) {
-            case 'model':
-                $assets->OrderModels($order);
-                break;
-            case 'model_number':
-                $assets->OrderModelNumber($order);
-                break;
-            case 'category':
-                $assets->OrderCategory($order);
-                break;
-            case 'manufacturer':
-                $assets->OrderManufacturer($order);
-                break;
-            case 'company':
-                $assets->OrderCompany($order);
-                break;
-            case 'location':
-                $assets->OrderLocation($order);
-            case 'rtd_location':
-                $assets->OrderRtdLocation($order);
-                break;
-            case 'status_label':
-                $assets->OrderStatus($order);
-                break;
-            case 'supplier':
-                $assets->OrderSupplier($order);
-                break;
-            case 'assigned_to':
-                $assets->OrderAssigned($order);
-                break;
-            default:
-                $assets->orderBy($column_sort, $order);
-                break;
         }
 
         if ($request->notRequest == 1) {
@@ -336,26 +360,7 @@ class AssetsController extends Controller
             $assets = $assets->where('created_at', '<=', $to);
         }
 
-        $total = $assets->count();
-
-        $assets = $assets->skip($offset)->take($limit)->get();
-
-
-        /**
-         * Include additional associated relationships
-         */
-        if ($request->input('components')) {
-            $assets->loadMissing(['components' => function ($query) {
-                $query->orderBy('created_at', 'desc');
-            }]);
-        }
-
-
-        /**
-         * Here we're just determining which Transformer (via $transformer) to use based on the 
-         * variables we set earlier on in this method - we default to AssetsTransformer.
-         */
-        return (new $transformer)->transformAssets($assets, $total, $request);
+        return $assets;
     }
 
     public function assetExpiration(Request $request, $audit = null)

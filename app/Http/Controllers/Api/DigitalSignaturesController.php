@@ -12,6 +12,7 @@ use App\Jobs\SendConfirmCheckoutMail;
 use App\Jobs\SendRejectCheckinMail;
 use App\Jobs\SendRejectCheckoutMail;
 use App\Jobs\SendCheckoutMailDigitalSignature;
+use App\Models\Category;
 use App\Models\Location;
 use App\Jobs\SendCheckinMailDigitalSignature;
 use App\Models\AssetHistory;
@@ -38,6 +39,7 @@ class DigitalSignaturesController extends Controller
 
         $digital_signatures = DigitalSignatures::select('digital_signatures.*')
             ->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
+        $digital_signatures = $this->filters($digital_signatures, $request);
 
         $offset = ($digital_signatures && ($request->get('offset') > $digital_signatures->count()))
             ? $digital_signatures->count()
@@ -87,6 +89,34 @@ class DigitalSignaturesController extends Controller
                 $digital_signatures->orderBy($default_sort, $order);
         }
 
+        $total = $digital_signatures->count();
+        $digital_signatures = $digital_signatures->skip($offset)->take($limit)->get();
+
+        return (new DigitalSignaturesTransformer())->transformSignatures($digital_signatures, $total);
+    }
+
+    public function getTotalDetail(request $request)
+    {
+        $this->authorize('view', DigitalSignatures::class);
+        $digital_signatures = DigitalSignatures::select('digital_signatures.*');
+        $digital_signatures = $this->filters($digital_signatures, $request);
+
+        $total_dg_by_category = $digital_signatures->selectRaw('c.name as name , count(*) as total')
+            ->join('categories as c', 'c.id', '=', 'digital_signatures.category_id')
+            ->groupBy('c.name')
+            ->pluck('total', 'c.name');
+        $total_detail = $total_dg_by_category->map(function ($value, $key) {
+            return [
+                'name' => $key,
+                'total' => $value
+            ];
+        })->values()->toArray();
+
+        return response()->json(Helper::formatStandardApiResponse('success', $total_detail, null));
+    }
+
+    public function filters($digital_signatures, $request)
+    {
         $filter = [];
 
         if ($request->filled('filter')) {
@@ -121,16 +151,13 @@ class DigitalSignaturesController extends Controller
             $digital_signatures->whereBetween('digital_signatures.expiration_date', [$filterByDate]);
         }
 
-        if ((! is_null($filter)) && (count($filter)) > 0) {
+        if ((!is_null($filter)) && (count($filter)) > 0) {
             $digital_signatures->ByFilter($filter);
         } elseif ($request->filled('search')) {
             $digital_signatures->TextSearch($request->input('search'));
         }
 
-        $total = $digital_signatures->count();
-        $digital_signatures = $digital_signatures->skip($offset)->take($limit)->get();
-
-        return (new DigitalSignaturesTransformer())->transformSignatures($digital_signatures, $total);
+        return $digital_signatures;
     }
 
     /**
@@ -234,7 +261,6 @@ class DigitalSignaturesController extends Controller
                     $signature->last_checkout = null;
                     $signature->assigned_to = null;
                     SendConfirmCheckinMail::dispatch($data, $it_ncc_email);
-
                 } else {
                     $signature->increment('checkout_counter', 1);
                     $data['is_confirm'] = 'đã xác nhận cấp phát';
@@ -262,7 +288,7 @@ class DigitalSignaturesController extends Controller
             }
         }
         if (!$signature->save()) {
-            return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()),Response::HTTP_BAD_REQUEST);
+            return response()->json(Helper::formatStandardApiResponse('error', null, $signature->getErrors()), Response::HTTP_BAD_REQUEST);
         }
 
         return response()->json(Helper::formatStandardApiResponse('success', $signature, trans('admin/digital_signatures/message.update.success', ['signature' => $signature->seri])));
@@ -315,7 +341,7 @@ class DigitalSignaturesController extends Controller
         $signature->status_id = config('enum.status_id.ASSIGN');
         if ($signature->checkOut($target, $checkout_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
             $this->saveSignatureHistory($digital_signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
-            $this->sendCheckoutMail($target,$signature);
+            $this->sendCheckoutMail($target, $signature);
             return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
         }
         return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/digital_signatures/message.checkout.error')), Response::HTTP_BAD_REQUEST);
@@ -359,7 +385,7 @@ class DigitalSignaturesController extends Controller
             }
         }
 
-        $this->sendCheckoutMail($target,$signature);
+        $this->sendCheckoutMail($target, $signature);
         return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkout.success')));
     }
 
@@ -370,8 +396,8 @@ class DigitalSignaturesController extends Controller
         if (is_null($target = $signature->assigned_to)) {
             return response()->json(
                 Helper::formatStandardApiResponse(
-                    'error', 
-                    ['signature' => e($signature->seri)], 
+                    'error',
+                    ['signature' => e($signature->seri)],
                     trans('admin/digital_signatures/message.checkin.already_checked_in')
                 ),
                 Response::HTTP_BAD_REQUEST
@@ -396,13 +422,13 @@ class DigitalSignaturesController extends Controller
             $this->saveSignatureHistory($signature_id, config('enum.asset_history.CHECK_IN_TYPE'));
 
             $user = $signature->assignedTo;
-            $this->sendCheckinMail($user,$signature);
+            $this->sendCheckinMail($user, $signature);
             return response()->json(Helper::formatStandardApiResponse('success', ['digital_signature' => e($signature->seri)], trans('admin/digital_signatures/message.checkin.success')));
         }
         return response()->json(
             Helper::formatStandardApiResponse(
-                'error', 
-                null, 
+                'error',
+                null,
                 trans('admin/digital_signatures/message.checkin.error')
             ),
             Response::HTTP_BAD_REQUEST
@@ -453,8 +479,8 @@ class DigitalSignaturesController extends Controller
             } else {
                 return response()->json(
                     Helper::formatStandardApiResponse(
-                        'error', 
-                        null, 
+                        'error',
+                        null,
                         trans('admin/digital_signatures/message.checkin.error')
                     ),
                     Response::HTTP_BAD_REQUEST
@@ -510,7 +536,6 @@ class DigitalSignaturesController extends Controller
                         $signature->last_checkout = null;
                         $signature->assigned_to = null;
                         SendConfirmCheckinMail::dispatch($data, $it_ncc_email);
-
                     } else {
                         $signature->increment('checkout_counter', 1);
                         $data['is_confirm'] = 'đã xác nhận cấp phát';
@@ -540,8 +565,8 @@ class DigitalSignaturesController extends Controller
             if (!$signature->save()) {
                 return response()->json(
                     Helper::formatStandardApiResponse(
-                        'error', 
-                        null, 
+                        'error',
+                        null,
                         $signature->getErrors()
                     ),
                     Response::HTTP_BAD_REQUEST

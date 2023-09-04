@@ -79,7 +79,7 @@ class ApiUsersCest
             'location_id' => $location->id,
             'manager_id' => $manager->id,
             'permissions' => '{"assets.view":"1","admin":"1","branchadmin":"1","superuser":"1"}',
-            'manager_location' => $location->id
+            'manager_location' => json_encode($location->id)
         ]);
         Group::factory()->count(2)->create();
         $groups = Group::pluck('id')->toArray();
@@ -141,7 +141,7 @@ class ApiUsersCest
             'location_id' => $location->id,
             'manager_id' => $manager->id,
             'permissions' => '{"assets.view":"1","admin":"1","branchadmin":"1","superuser":"1"}',
-            'manager_location' => $location->id
+            'manager_location' => json_encode($location->id)
         ]);
 
         Group::factory()->count(2)->create();

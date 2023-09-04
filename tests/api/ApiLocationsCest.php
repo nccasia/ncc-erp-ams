@@ -142,4 +142,17 @@ class ApiLocationsCest
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
     }
+
+    public function getSelectListTest(ApiTester $I)
+    {
+        $I->wantTo("Test get select list");
+        $locations = Location::orderBy('name', 'ASC')->limit(10)->get();
+        // call
+        $I->sendGET('/locations/selectlist');     
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson([
+            "id" => $locations->pluck('id')->random(1)->first()
+        ]);
+    }
 }
