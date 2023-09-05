@@ -1,91 +1,119 @@
-## Tool ERP-AMS ( Tool quản lý thiết bị văn phòng)
+# ERP-AMS Back-end
 
-Đây là tool quản lý thiết bị văn phòng cho nội bộ công ty NCC. Tool dùng để quản lý công ty có thiết bị gì , thuộc văn phòng nào , cấp phát cho nhân viên nào 
 
-Tool được build bằng [Laravel 8](http://laravel.com).
 
-Tool ERP-AMS được quản lý và cập nhật thường xuyên bởi đội ngũ nhân viên của NCC
 
------
+## Overview
+The ERP-AMS is an open-source application used to track and manage the company's office equipment and employees to optimize management time. It includes various functions such as inventory management, confirming equipment allocation or retrieval with email notifications, monitoring activities within the application, and managing employees' personal devices. This repository contains the back-end code of ams.
 
-### Installation
+## Table of Contents
 
-1. Cài đặt các thư viện của dự án thông qua [Composer](https://getcomposer.org/) và [NPM](https://nodejs.org/en/download/current)
+- [Overview](#overview)
+- [Table of Contents](#table-of-contents)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Backend Setup](#backend-setup)
+  - [Running](#running)
+  - [Testing](#testing)
+
+## Getting Started
+
+### Prerequisites
+
+Before you begin, ensure you have met the following requirements:
+
+- [Visual Studio Code](https://code.visualstudio.com/download) installed.
+- [PHP 8.1](https://www.php.net/downloads) installed.
+- [Composer 2.4.2](https://getcomposer.org/download/) installed.
+- [MySql 8.0](https://dev.mysql.com/downloads/installer/) installed.
+- [NodeJS](https://nodejs.org/en/download) installed
+
+### Backend Setup
+
+1. **Create a folder** to store the backend code.
+- example:  folder `erp-ams`
+
+2. **Open a command prompt** in the created folder.
+
+3. **Clone the backend repository** using the following command:
+
+   ```bash
+   git clone https://github.com/ncc-erp/ncc-erp-ams
+   ```
+
+4. Create local database:
+- Create new databse in `MySql server`.
+
+5. Open the backend using **Visual Studio Code**:
+- Open `Visual Studio Code`.
+- Navigate to the folder `erp-ams` and open the file.
+
+6. **Setup the project env:**
+- Copy and rename `.env.example` file into `.env`.
+- Update the variables for database connection:
+```json
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_DATABASE=<YOUR DATABSE NAME>
+    DB_USERNAME=<YOUR DATABSE USERNAME>
+    DB_PASSWORD=<YOUR DATABSE PASSWORD>
 ```
 
-	composer install 
-
-	&& 
-
-	npm install
-
+7. **Install project's dependencies**:
+- Open terminal in `Visual Studio Code`.
+- Run command to install dependencies
+```bash
+composer install
+```
+```bash
+npm install
 ```
 
-2. Sao chép file `.env.example` và đổi tên thành `.env` để cài đặt các biến môi trường.
-
-3. Khởi tạo APP_KEY cho dự án
+8. **Generate new application key**:
+```bash
+php artisan key:generate
 ```
 
-	php artisan key:generate
-
+9. **Migrate database**:
+```bash
+php artisan migrate --seed
 ```
 
-4. Khởi tạo DB cho dự án
+10. **Migrate passport** for generate auth token:
+```bash
+php artisan passport:install
 ```
 
-	php artisan migrate --seed
+### Running
+To run the project, follow these steps:
 
+1. Open the backend using `Visual Studio Code` and termimal.
+
+2. Start the backend serve:
+
+```bash
+php artisan serve
 ```
 
-5. Khởi tạo token để authenticate
+### Testing
+The project supports testing with [Codeception](https://codeception.com/) and pre-commit test with [Husky](https://typicode.github.io/husky/).
+- Build tester for testing:
+```bash
+php codecept.phar build
 ```
-
-	php artisan passport:install
-
+- Run Unit test in folder `/tests/Unit`
+```bash
+php codecept.phar run unit
 ```
-
-6. Chạy server 
+- Run Unit test in folder `/tests/api`
+```bash
+php codecept.phar run api
 ```
-
-	php artisan serve
-
-```
-
------
-
-### Tests
-
-Dự án có hỗ trợ testing bằng thư viện [Codeception](https://codeception.com/).
-Chạy command để build các Tester
-```
-
-	php codecept.phar build
-
-```
-#### UNIT TEST
-Chạy command để test các Unit Test trong thư mục `/tests/Unit`
-```
-
-	php codecept.phar run unit
-
-```
-
-#### API TEST 
-Chạy command để test các API Test trong thư mục `/tests/api`
-```
-
-	php codecept.phar run api
-
-```
-
-#### PRE-COMMIT TEST
-Dự án có cài đặt [Husky](https://typicode.github.io/husky/) để chạy test trước khi commit lên Github. Husky được config ở trong file `package.json`
-```
-
-	"husky": {
-        "hooks": {
-            "pre-commit": "php codecept.phar run api,unit"
-        }
-    }
-
+- Pre-commit test is configured at `package.json`
+```json
+    "husky": {
+        "hooks": {
+            "pre-commit": "php codecept.phar run unit,api"
+        }
+    }
 ```
