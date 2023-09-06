@@ -172,6 +172,8 @@ class ApiAssetsCest
         $asset = Asset::factory()->laptopMbp()->create([
             'company_id' => Company::factory()->create()->id,
             'rtd_location_id' => Location::factory()->create()->id,
+            'assigned_status' => config('enum.assigned_status.DEFAULT'),
+            'withdraw_from' => null,
         ]);
         $I->assertInstanceOf(Asset::class, $asset);
 
@@ -179,6 +181,8 @@ class ApiAssetsCest
             'company_id' => Company::factory()->create()->id,
             'name' => $this->faker->name(),
             'rtd_location_id' => Location::factory()->create()->id,
+            'assigned_status' => config('enum.assigned_status.DEFAULT'),
+            'withdraw_from' => null,
         ]);
         $asset->image = $temp_asset->image;
         if(!$temp_asset->requestable) $temp_asset->requestable = '0';
@@ -200,6 +204,8 @@ class ApiAssetsCest
             'supplier_id' => $temp_asset->supplier_id,
             'warranty_months' => $temp_asset->warranty_months,
             'requestable' => $temp_asset->requestable,
+            'assigned_status' => $temp_asset->assigned_status,
+            'withdraw_from' => $temp_asset->withdraw_from,
         ];
 
         $I->assertNotEquals($asset->name, $data['name']);

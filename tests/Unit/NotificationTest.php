@@ -51,7 +51,8 @@ class NotificationTest extends BaseTest
                 'warranty_months' => 24,
                 'rtd_location_id' => $location->id,
                 'purchase_date' =>   Carbon::createFromDate(2017, 1, 1)->hour(0)->minute(0)->second(0),
-                'assigned_status' => 1                
+                'assigned_status' => 1,
+                'withdraw_from' => null,
             ]);
 
         Notification::fake();

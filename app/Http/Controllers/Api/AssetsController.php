@@ -1197,7 +1197,7 @@ class AssetsController extends Controller
                     $data['is_confirm'] = 'đã xác nhận';
                     $data['asset_count'] = 1;
                     if ($asset->withdraw_from) {
-                        $asset->increment('checkin_counter', 1);
+                        $asset->checkin_counter += 1;
                         $data['is_confirm'] = 'đã xác nhận thu hồi';
                         if ($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
@@ -1211,7 +1211,7 @@ class AssetsController extends Controller
                         $asset->accepted = null;
                         SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
                     } else {
-                        $asset->increment('checkout_counter', 1);
+                        $asset->checkout_counter += 1;
                         $data['is_confirm'] = 'đã xác nhận cấp phát';
                         $asset->status_id = config('enum.status_id.ASSIGN');
                         SendConfirmMail::dispatch($data, $it_ncc_email);

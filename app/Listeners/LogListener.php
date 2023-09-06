@@ -24,12 +24,12 @@ class LogListener
 {
     public function onCheckoutableCheckedIn(CheckoutableCheckedIn $event)
     {
-        $event->checkoutable->logCheckin($event->checkedOutTo, $event->note, $event->action_date);
+        //$event->checkoutable->logCheckin($event->checkedOutTo, $event->note, $event->action_date);
     }
 
     public function onCheckoutableCheckedOut(CheckoutableCheckedOut $event)
     {
-        $event->checkoutable->logCheckout($event->note, $event->checkedOutTo, $event->checkoutable->last_checkout);
+        //$event->checkoutable->logCheckout($event->note, $event->checkedOutTo, $event->checkoutable->last_checkout);
     }
 
     public function onCheckoutAccepted(CheckoutAccepted $event)
