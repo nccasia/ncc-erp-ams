@@ -237,7 +237,9 @@ class UsersController extends Controller
         }
 
         if ($request->filled('search')) {
-            $users = $users->SimpleNameSearch($request->get('search'));
+            $users = $users->SimpleNameSearch($request->get('search'))
+                    ->orWhere('username', 'LIKE', '%'.$request->get('search').'%')
+                    ->orWhere('employee_num', 'LIKE', '%'.$request->get('search').'%');
         }
         
         $users = $users->orderBy('last_name', 'asc')->orderBy('first_name', 'asc');
