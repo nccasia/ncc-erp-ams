@@ -4,51 +4,21 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Transformers\AssetHistoriesTransformer;
-use App\Models\Actionlog;
-use App\Models\User;
+use App\Services\AssetReportService;
 use Illuminate\Http\Request;
 
 class AssetReportController extends Controller
 {
-    protected function getUser($assetHistories)
+    protected $assetReportService;
+
+    public function __construct(AssetReportService $assetReportService)
     {
-        $rs = [];
-        foreach ($assetHistories as $assetHistory) {
-            $temp = $assetHistory;
-            $log_meta = json_decode($assetHistory['log_meta']);
-            if ($log_meta) {
-                switch ($assetHistory['action_type']) {
-                    case 'checkout accepted':
-                        $user_id = $log_meta->assigned_to->new;
-                        break;
-                    case 'checkin accepted':
-                        $user_id = $log_meta->withdraw_from->old;
-                        break;
-                }
-                $user = User::withTrashed()->where('id', '=', $user_id)->first();
-                $temp['user'] = $user;
-            }
-            $rs [] = $temp;
-        }
-        return $rs;
+        $this->assetReportService = $assetReportService;
     }
+
     public function getAssetHistory($asset_id)
     {
-        $assetHistories = Actionlog::select([
-            'action_logs.created_at',
-            'action_logs.action_type',
-            'action_logs.log_meta',
-        ])
-            ->where('item_type', '=', 'App\Models\Asset')
-            ->where('item_id', '=', $asset_id)
-            ->where(function ($query) {
-                $query->where('action_type', '=', 'checkout accepted')
-                    ->orWhere('action_type', '=', 'checkin accepted');
-            })
-            ->orderBy('id', 'desc')
-            ->get();
-
-        $assetHistories = collect($this->getUser($assetHistories));
+        $assetHistories = $this->assetReportService->getAssetHistory($asset_id);
         return (new AssetHistoriesTransformer)->transformAssetHistories($assetHistories);
     }
 }

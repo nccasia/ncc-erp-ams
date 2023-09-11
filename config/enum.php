@@ -36,4 +36,12 @@ return [
     "NOT_ACTIVE" => 0,
     "ASSIGN" => 1
   ],
+  "assigned_status_log" => [
+    'CHECKOUT_ACCEPTED' => 'checkout accepted',
+    'CHECKIN_ACCEPTED' => 'checkin accepted',
+    'CHECKOUT_REJECTED' => 'checkin rejected',
+    'CHECKIN_REJECTED' => 'checkin rejected',
+    'CHECKIN' => 'checkin from',
+    'CHECKOUT' => 'checkout',
+  ],
 ];

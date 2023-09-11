@@ -1194,11 +1194,11 @@ class AssetsController extends Controller
                     'reason' => '',
                 ];
                 if ($asset->assigned_status === config('enum.assigned_status.ACCEPT')) {
-                    $data['is_confirm'] = 'đã xác nhận';
+                    $data['is_confirm'] = trans('general.is_confirm' , [], 'vi');
                     $data['asset_count'] = 1;
                     if ($asset->withdraw_from) {
                         $asset->checkin_counter += 1;
-                        $data['is_confirm'] = 'đã xác nhận thu hồi';
+                        $data['is_confirm'] = trans('general.is_confirm_checkin' , [], 'vi');
                         if ($asset->status_id != config('enum.status_id.PENDING') && $asset->status_id != config('enum.status_id.BROKEN')) {
                             $asset->status_id = config('enum.status_id.READY_TO_DEPLOY');
                         }
@@ -1212,7 +1212,7 @@ class AssetsController extends Controller
                         SendConfirmRevokeMail::dispatch($data, $it_ncc_email);
                     } else {
                         $asset->checkout_counter += 1;
-                        $data['is_confirm'] = 'đã xác nhận cấp phát';
+                        $data['is_confirm'] = trans('general.is_confirm_checkout' , [], 'vi');
                         $asset->status_id = config('enum.status_id.ASSIGN');
                         SendConfirmMail::dispatch($data, $it_ncc_email);
                     }

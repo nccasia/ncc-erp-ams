@@ -347,4 +347,7 @@
     'checkout_tooltip' => 'Check this item out',
     'checkin_tooltip' => 'Check this item in',
     'checkout_user_tooltip' => 'Check this item out to a user',
+    'is_confirmed'          => 'Đã xác nhận',
+    'is_confirmed_checkin'  => 'Đã xác nhận thu hồi',
+    'is_confirmed_checkout'  => 'Đã xác nhận cấp phát',
 ];

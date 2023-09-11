@@ -10,6 +10,7 @@ use App\Models\CustomFieldset;
 use App\Models\Depreciation;
 use App\Models\Setting;
 use App\Models\Statuslabel;
+use Illuminate\Support\Str;
 use Crypt;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Image;
@@ -1079,5 +1080,11 @@ class Helper
             $label['name'] = $vi_labels[$label['name']];
         }
         return $labels;
+    }
+
+    public static function translateActionType($action_type, $locale = "vi")
+    {
+        $actionlogType = Str::replace(' ', '_', $action_type);
+        return trans('admin/reports/general.' . $actionlogType, [], $locale);
     }
 }

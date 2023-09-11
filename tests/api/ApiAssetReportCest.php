@@ -9,6 +9,7 @@ use App\Models\Location;
 use App\Models\Statuslabel;
 use App\Models\Supplier;
 use App\Models\User;
+use Carbon\Carbon;
 use Faker\Factory;
 
 class ApiAssetReportCest
@@ -28,31 +29,28 @@ class ApiAssetReportCest
         $status_label = Statuslabel::factory()->readyToDeploy()->create();
         $supplier = Supplier::factory()->create();
         $location = Location::factory()->create();
-        $model = AssetModel::factory()->create(
-            [
-                'category_id' => Category::factory()->create(
-                    [
+        $category = Category::factory()->create([
                         'name' => 'test for category',
                         'category_type' => 'asset',
-                    ]
-                )->id
-            ]
-        );
+                    ]);
+        $model = AssetModel::factory()->create([
+                    'category_id' => $category->id
+                ]);
         $asset = Asset::factory()->create([
             'model_id' => $model->id,
             'status_id' => $status_label->id,
             'supplier_id' => $supplier->id,
             'warranty_months' => 24,
             'rtd_location_id' => $location->id,
-            'purchase_date' =>   \Carbon::createFromDate(2017, 1, 1)->hour(0)->minute(0)->second(0),
+            'purchase_date' =>   Carbon::createFromDate(2017, 1, 1)->hour(0)->minute(0)->second(0),
             'assigned_status' => 1,
             'withdraw_from' => null,
         ]);
 
         $actionLog1 = Actionlog::create([
             'user_id' => $this->user->id,
-            'action_type' => 'checkout accepted',
-            'item_type' => 'App\Models\Asset',
+            'action_type' => config("enum.assigned_status_log.CHECKOUT_ACCEPTED"),
+            'item_type' => Asset::class,
             'item_id' => $asset->id,
             'log_meta' => '{"assigned_to":{"old":'. $this->user->id .',"new":'. $this->user->id .'},"assigned_status":{"old":4,"new":2},"checkout_counter":{"old":0,"new":1},"withdraw_from":{"old":null,"new":null}}',
         ]);
@@ -60,8 +58,8 @@ class ApiAssetReportCest
 
         $actionLog2 = Actionlog::create([
             'user_id' => $this->user->id,
-            'action_type' => 'checkin accepted',
-            'item_type' => 'App\Models\Asset',
+            'action_type' => config("enum.assigned_status_log.CHECKIN_ACCEPTED"),
+            'item_type' => Asset::class,
             'item_id' => $asset->id,
             'log_meta' => '{"assigned_to":{"old":' . $this->user->id . ',"new":null},"status_id":{"old":4,"new":5},"assigned_status":{"old":5,"new":0},"checkin_counter":{"old":0,"new":1},"withdraw_from":{"old":' . $this->user->id . ',"new":null}}',
         ]);
@@ -72,8 +70,8 @@ class ApiAssetReportCest
         ]);
         $actionLog3 = Actionlog::create([
             'user_id' => $another_user->id,
-            'action_type' => 'checkout accepted',
-            'item_type' => 'App\Models\Asset',
+            'action_type' => config("enum.assigned_status_log.CHECKOUT_ACCEPTED"),
+            'item_type' => Asset::class,
             'item_id' => $asset->id,
             'log_meta' => '{"assigned_to":{"old":' . $another_user->id . ',"new":' . $another_user->id . '},"assigned_status":{"old":4,"new":2},"checkout_counter":{"old":1,"new":2},"withdraw_from":{"old":null,"new":null}}',
         ]);
