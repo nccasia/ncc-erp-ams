@@ -24,10 +24,36 @@ class CategoriesController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view', Category::class);
-        $allowed_columns = ['id', 'name', 'category_type', 'category_type', 'use_default_eula', 'eula_text', 'require_acceptance', 'checkin_email', 'assets_count', 'accessories_count', 'consumables_count', 'components_count', 'licenses_count', 'image'];
+        $allowed_columns =
+            [
+                'id',
+                'name',
+                'category_type',
+                'category_type',
+                'use_default_eula',
+                'eula_text',
+                'require_acceptance',
+                'checkin_email',
+                'assets_count',
+                'accessories_count',
+                'consumables_count',
+                'components_count',
+                'licenses_count',
+                'tools_count',
+                'digital_signatures_count',
+                'image'
+            ];
 
         $categories = Category::select(['id', 'created_at', 'updated_at', 'name', 'category_type', 'use_default_eula', 'eula_text', 'require_acceptance', 'checkin_email', 'image'])
-            ->withCount('assets as assets_count', 'accessories as accessories_count', 'consumables as consumables_count', 'components as components_count', 'licenses as licenses_count');
+            ->withCount(
+                'assets as assets_count',
+                'accessories as accessories_count',
+                'consumables as consumables_count',
+                'components as components_count',
+                'licenses as licenses_count',
+                'tools as tools_count',
+                'digital_signatures as digital_signatures_count'
+            );
 
         if ($request->filled('search')) {
             $categories = $categories->TextSearch($request->input('search'));
@@ -52,7 +78,6 @@ class CategoriesController extends Controller
         $categories = $categories->skip($offset)->take($limit)->get();
 
         return (new CategoriesTransformer)->transformCategories($categories, $total);
-
     }
 
 
@@ -75,8 +100,7 @@ class CategoriesController extends Controller
         if ($category->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $category, trans('admin/categories/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $category->getErrors()),Response::HTTP_BAD_REQUEST);
-
+        return response()->json(Helper::formatStandardApiResponse('error', null, $category->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -92,7 +116,6 @@ class CategoriesController extends Controller
         $this->authorize('view', Category::class);
         $category = Category::findOrFail($id);
         return (new CategoriesTransformer)->transformCategory($category);
-
     }
 
 
@@ -117,7 +140,7 @@ class CategoriesController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $category, trans('admin/categories/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $category->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $category->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -133,9 +156,9 @@ class CategoriesController extends Controller
         $this->authorize('delete', Category::class);
         $category = Category::findOrFail($id);
 
-        if (! $category->isDeletable()) {
+        if (!$category->isDeletable()) {
             return response()->json(
-                Helper::formatStandardApiResponse('error', null, trans('admin/categories/message.assoc_items', ['asset_type'=>$category->category_type]))
+                Helper::formatStandardApiResponse('error', null, trans('admin/categories/message.assoc_items', ['asset_type' => $category->category_type]))
             );
         }
         $category->delete();
@@ -161,7 +184,7 @@ class CategoriesController extends Controller
         ]);
 
         if ($request->filled('search')) {
-            $categories = $categories->where('name', 'LIKE', '%'.$request->get('search').'%');
+            $categories = $categories->where('name', 'LIKE', '%' . $request->get('search') . '%');
         }
 
         $categories = $categories->where('category_type', $category_type)->orderBy('name', 'ASC')->paginate(50);
@@ -170,7 +193,7 @@ class CategoriesController extends Controller
         // This lets us have more flexibility in special cases like assets, where
         // they may not have a ->name value but we want to display something anyway
         foreach ($categories as $category) {
-            $category->use_image = ($category->image) ? Storage::disk('public')->url('categories/'.$category->image, $category->image) : null;
+            $category->use_image = ($category->image) ? Storage::disk('public')->url('categories/' . $category->image, $category->image) : null;
         }
 
         return (new SelectlistTransformer)->transformSelectlist($categories);
