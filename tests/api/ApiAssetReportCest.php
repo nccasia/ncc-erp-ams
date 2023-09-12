@@ -30,12 +30,12 @@ class ApiAssetReportCest
         $supplier = Supplier::factory()->create();
         $location = Location::factory()->create();
         $category = Category::factory()->create([
-                        'name' => 'test for category',
-                        'category_type' => 'asset',
-                    ]);
+            'name' => 'test for category',
+            'category_type' => 'asset',
+        ]);
         $model = AssetModel::factory()->create([
-                    'category_id' => $category->id
-                ]);
+            'category_id' => $category->id
+        ]);
         $asset = Asset::factory()->create([
             'model_id' => $model->id,
             'status_id' => $status_label->id,
@@ -52,7 +52,7 @@ class ApiAssetReportCest
             'action_type' => config("enum.log_status.CHECKOUT_ACCEPTED"),
             'item_type' => Asset::class,
             'item_id' => $asset->id,
-            'log_meta' => '{"assigned_to":{"old":'. $this->user->id .',"new":'. $this->user->id .'},"assigned_status":{"old":4,"new":2},"checkout_counter":{"old":0,"new":1},"withdraw_from":{"old":null,"new":null}}',
+            'log_meta' => '{"assigned_to":{"old":' . $this->user->id . ',"new":' . $this->user->id . '},"assigned_status":{"old":4,"new":2},"checkout_counter":{"old":0,"new":1},"withdraw_from":{"old":null,"new":null}}',
         ]);
         $actionLog1->user = $this->user;
 

@@ -13,21 +13,21 @@ class AssetObserver
     {
         $action_name = config("enum.log_status.UPDATED");
         //checkout
-        if(
+        if (
             $assetOld['assigned_status'] === config("enum.assigned_status.DEFAULT") &&
             $assetNew['assigned_status'] === config("enum.assigned_status.WAITINGCHECKOUT")
         ) {
             $action_name = config("enum.log_status.CHECKOUT");
         }
 
-        if(
+        if (
             $assetOld['assigned_status'] === config("enum.assigned_status.WAITINGCHECKOUT") &&
             $assetNew['assigned_status'] === config("enum.assigned_status.ACCEPT")
         ) {
             $action_name = config("enum.log_status.CHECKOUT_ACCEPTED");
         }
 
-        if(
+        if (
             $assetOld['assigned_status'] === config("enum.assigned_status.WAITINGCHECKOUT") &&
             $assetNew['assigned_status'] === config("enum.assigned_status.DEFAULT")
         ) {
@@ -35,21 +35,21 @@ class AssetObserver
         }
 
         //checkin
-        if(
+        if (
             $assetNew['assigned_status'] === config("enum.assigned_status.ACCEPT") &&
             !is_null($assetNew['withdraw_from'])
         ) {
             $action_name = config("enum.log_status.CHECKIN_REJECTED");
         }
 
-        if(
+        if (
             is_null($assetNew['withdraw_from']) &&
             !is_null($assetOld['withdraw_from'])
         ) {
             $action_name = config("enum.log_status.CHECKIN_ACCEPTED");
         }
 
-        if(
+        if (
             $assetOld['assigned_status'] === config("enum.assigned_status.ACCEPT") &&
             $assetNew['assigned_status'] === config("enum.assigned_status.WAITINGCHECKIN")
         ) {
@@ -88,7 +88,7 @@ class AssetObserver
         $logAction->user_id = Auth::id();
         $logAction->log_meta = json_encode($changed);
         $action = $this->getActionName($asset->getOriginal(), $asset->getAttributes());
-        if($action === 'checkout') {
+        if ($action === 'checkout') {
             $logAction->target_id = $asset->getAttributes()['assigned_to'];
             $logAction->target_type = 'App\Models\User';
         }

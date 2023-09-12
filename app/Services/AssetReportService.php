@@ -24,13 +24,13 @@ class AssetReportService
             if ($log_meta) {
                 switch ($assetHistory['action_type']) {
                     case config("enum.log_status.CHECKOUT_ACCEPTED"):
-                        if(!is_null($log_meta->assigned_to)) {
+                        if (!is_null($log_meta->assigned_to)) {
                             $user_id = $log_meta->assigned_to->new;
                         }
                         break;
 
                     case config("enum.log_status.CHECKIN_ACCEPTED"):
-                        if(!is_null($log_meta->withdraw_from)) {
+                        if (!is_null($log_meta->withdraw_from)) {
                             $user_id = $log_meta->withdraw_from->old;
                         }
                         break;
