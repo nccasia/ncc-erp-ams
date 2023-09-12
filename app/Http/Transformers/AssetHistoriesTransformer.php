@@ -19,9 +19,10 @@ class AssetHistoriesTransformer
 
     public function transformAssetHistory(Actionlog $actionlog = null)
     {
+        $actionType = Helper::replaceSpacesWithUnderscores($actionlog->action_type);
         if ($actionlog) {
             $array = [
-                'action_type' => e(Helper::translateActionType($actionlog->action_type)),
+                'action_type' => e(trans('admin/reports/general.' . $actionType, [], "vi")),
                 'created_at' => Helper::getFormattedDateObject($actionlog->created_at, 'datetime'),
                 'user' => e($actionlog->user->fullname),
             ];

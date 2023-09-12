@@ -11,27 +11,27 @@ class AssetObserver
 {
     protected function getActionName($assetOld, $assetNew)
     {
-        $action_name = "update";
+        $action_name = config("enum.log_status.UPDATED");
         //checkout
         if(
             $assetOld['assigned_status'] === config("enum.assigned_status.DEFAULT") &&
             $assetNew['assigned_status'] === config("enum.assigned_status.WAITINGCHECKOUT")
         ) {
-            $action_name = 'checkout';
+            $action_name = config("enum.log_status.CHECKOUT");
         }
 
         if(
             $assetOld['assigned_status'] === config("enum.assigned_status.WAITINGCHECKOUT") &&
             $assetNew['assigned_status'] === config("enum.assigned_status.ACCEPT")
         ) {
-            $action_name = 'checkout accepted';
+            $action_name = config("enum.log_status.CHECKOUT_ACCEPTED");
         }
 
         if(
             $assetOld['assigned_status'] === config("enum.assigned_status.WAITINGCHECKOUT") &&
             $assetNew['assigned_status'] === config("enum.assigned_status.DEFAULT")
         ) {
-            $action_name = 'checkout rejected';
+            $action_name = config("enum.log_status.CHECKOUT_REJECTED");
         }
 
         //checkin
@@ -39,21 +39,21 @@ class AssetObserver
             $assetNew['assigned_status'] === config("enum.assigned_status.ACCEPT") &&
             !is_null($assetNew['withdraw_from'])
         ) {
-            $action_name = 'checkin rejected';
+            $action_name = config("enum.log_status.CHECKIN_REJECTED");
         }
 
         if(
             is_null($assetNew['withdraw_from']) &&
             !is_null($assetOld['withdraw_from'])
         ) {
-            $action_name = 'checkin accepted';
+            $action_name = config("enum.log_status.CHECKIN_ACCEPTED");
         }
 
         if(
             $assetOld['assigned_status'] === config("enum.assigned_status.ACCEPT") &&
             $assetNew['assigned_status'] === config("enum.assigned_status.WAITINGCHECKIN")
         ) {
-            $action_name = 'checkin from';
+            $action_name = config("enum.log_status.CHECKIN");
         }
 
         return $action_name;

@@ -1082,9 +1082,8 @@ class Helper
         return $labels;
     }
 
-    public static function translateActionType($action_type, $locale = "vi")
+    public static function replaceSpacesWithUnderscores($string)
     {
-        $actionlogType = Str::replace(' ', '_', $action_type);
-        return trans('admin/reports/general.' . $actionlogType, [], $locale);
+        return Str::replace(' ', '_', $string);
     }
 }

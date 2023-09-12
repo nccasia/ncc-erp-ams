@@ -25,8 +25,8 @@ class ActionlogRepository
             ->where('item_type', '=', Asset::class)
             ->where('item_id', '=', $asset_id)
             ->where(function ($query) {
-                $query->where('action_type', '=', config("enum.assigned_status_log.CHECKOUT_ACCEPTED"))
-                    ->orWhere('action_type', '=', config("enum.assigned_status_log.CHECKIN_ACCEPTED"));
+                $query->where('action_type', '=', config("enum.log_status.CHECKOUT_ACCEPTED"))
+                    ->orWhere('action_type', '=', config("enum.log_status.CHECKIN_ACCEPTED"));
             })
             ->orderBy('id', 'desc')
             ->get();

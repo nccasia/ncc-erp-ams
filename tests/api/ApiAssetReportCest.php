@@ -49,7 +49,7 @@ class ApiAssetReportCest
 
         $actionLog1 = Actionlog::create([
             'user_id' => $this->user->id,
-            'action_type' => config("enum.assigned_status_log.CHECKOUT_ACCEPTED"),
+            'action_type' => config("enum.log_status.CHECKOUT_ACCEPTED"),
             'item_type' => Asset::class,
             'item_id' => $asset->id,
             'log_meta' => '{"assigned_to":{"old":'. $this->user->id .',"new":'. $this->user->id .'},"assigned_status":{"old":4,"new":2},"checkout_counter":{"old":0,"new":1},"withdraw_from":{"old":null,"new":null}}',
@@ -58,7 +58,7 @@ class ApiAssetReportCest
 
         $actionLog2 = Actionlog::create([
             'user_id' => $this->user->id,
-            'action_type' => config("enum.assigned_status_log.CHECKIN_ACCEPTED"),
+            'action_type' => config("enum.log_status.CHECKIN_ACCEPTED"),
             'item_type' => Asset::class,
             'item_id' => $asset->id,
             'log_meta' => '{"assigned_to":{"old":' . $this->user->id . ',"new":null},"status_id":{"old":4,"new":5},"assigned_status":{"old":5,"new":0},"checkin_counter":{"old":0,"new":1},"withdraw_from":{"old":' . $this->user->id . ',"new":null}}',
@@ -70,7 +70,7 @@ class ApiAssetReportCest
         ]);
         $actionLog3 = Actionlog::create([
             'user_id' => $another_user->id,
-            'action_type' => config("enum.assigned_status_log.CHECKOUT_ACCEPTED"),
+            'action_type' => config("enum.log_status.CHECKOUT_ACCEPTED"),
             'item_type' => Asset::class,
             'item_id' => $asset->id,
             'log_meta' => '{"assigned_to":{"old":' . $another_user->id . ',"new":' . $another_user->id . '},"assigned_status":{"old":4,"new":2},"checkout_counter":{"old":1,"new":2},"withdraw_from":{"old":null,"new":null}}',

@@ -23,13 +23,13 @@ class AssetReportService
 
             if ($log_meta) {
                 switch ($assetHistory['action_type']) {
-                    case config("enum.assigned_status_log.CHECKOUT_ACCEPTED"):
+                    case config("enum.log_status.CHECKOUT_ACCEPTED"):
                         if(!is_null($log_meta->assigned_to)) {
                             $user_id = $log_meta->assigned_to->new;
                         }
                         break;
 
-                    case config("enum.assigned_status_log.CHECKIN_ACCEPTED"):
+                    case config("enum.log_status.CHECKIN_ACCEPTED"):
                         if(!is_null($log_meta->withdraw_from)) {
                             $user_id = $log_meta->withdraw_from->old;
                         }
@@ -48,7 +48,6 @@ class AssetReportService
     public function getAssetHistory($asset_id)
     {
         $assetHistories = $this->actionlogRepository->getAssetHistory($asset_id);
-        $assetHistories = collect($this->getUser($assetHistories));
-        return $assetHistories;
+        return collect($this->getUser($assetHistories));
     }
 }
