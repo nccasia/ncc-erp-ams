@@ -24,7 +24,7 @@ class LocationsTransformer
     {
         if ($location) {
             $children_arr = [];
-            if (! is_null($location->children)) {
+            if (!is_null($location->children)) {
                 foreach ($location->children as $child) {
                     $children_arr[] = [
                         'id' => (int) $child->id,
@@ -36,23 +36,27 @@ class LocationsTransformer
             $array = [
                 'id' => (int) $location->id,
                 'name' => e($location->name),
-                'image' =>   ($location->image) ? Storage::disk('public')->url('locations/'.e($location->image)) : null,
-                'address' =>  ($location->address) ? e($location->address) : null,
-                'address2' =>  ($location->address2) ? e($location->address2) : null,
-                'city' =>  ($location->city) ? e($location->city) : null,
-                'state' =>  ($location->state) ? e($location->state) : null,
+                'image' => ($location->image) ? Storage::disk('public')->url('locations/' . e($location->image)) : null,
+                'address' => ($location->address) ? e($location->address) : null,
+                'address2' => ($location->address2) ? e($location->address2) : null,
+                'city' => ($location->city) ? e($location->city) : null,
+                'state' => ($location->state) ? e($location->state) : null,
                 'country' => ($location->country) ? e($location->country) : null,
                 'zip' => ($location->zip) ? e($location->zip) : null,
                 'assigned_assets_count' => (int) $location->assigned_assets_count,
                 'assets_count'    => (int) $location->assets_count,
                 'users_count'    => (int) $location->users_count,
-                'currency' =>  ($location->currency) ? e($location->currency) : null,
-                'ldap_ou' =>  ($location->ldap_ou) ? e($location->ldap_ou) : null,
+                'tools_count' => (int) $location->tools_count,
+                'digital_signatures_count' => (int) $location->digital_signatures_count,
+                'accessories_count' => (int) $location->accessories_count,
+                'consumables_count' => (int) $location->consumables_count,
+                'currency' => ($location->currency) ? e($location->currency) : null,
+                'ldap_ou' => ($location->ldap_ou) ? e($location->ldap_ou) : null,
                 'created_at' => Helper::getFormattedDateObject($location->created_at, 'datetime'),
                 'updated_at' => Helper::getFormattedDateObject($location->updated_at, 'datetime'),
                 'parent' => ($location->parent) ? [
                     'id' => (int) $location->parent->id,
-                    'name'=> e($location->parent->name),
+                    'name' => e($location->parent->name),
                 ] : null,
                 'manager' => ($location->manager) ? (new UsersTransformer)->transformUser($location->manager) : null,
 

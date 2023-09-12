@@ -135,6 +135,22 @@ class DigitalSignaturesController extends Controller
             $digital_signatures->InAssignedStatus($request->input('assigned_status'));
         }
 
+        if ($request->filled('location_id')) {
+            $digital_signatures->where('digital_signatures.location_id', '=', $request->input('location_id'));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $digital_signatures->where('supplier_id', '=', $request->input('supplier_id'));
+        }
+
+        if ($request->filled('manufacture_id')) {
+            $digital_signatures->where('manufacture_id', '=', $request->input('manufacture_id'));
+        }
+
+        if ($request->filled('category_id')) {
+            $digital_signatures->where('category_id', '=', $request->input('category_id'));
+        }
+
         if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
             $digital_signatures->where(function ($query) use ($request) {
                 $query->where('digital_signatures.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
