@@ -2,16 +2,18 @@
 
 namespace App\Services;
 
-use App\Models\User;
 use App\Repositories\ActionlogRepository;
+use App\Repositories\UserRepository;
 
 class AssetReportService
 {
     protected $actionlogRepository;
+    protected $userRepository;
 
-    public function __construct(ActionlogRepository $actionlogRepository)
+    public function __construct(ActionlogRepository $actionlogRepository, UserRepository $userRepository)
     {
         $this->actionlogRepository = $actionlogRepository;
+        $this->userRepository = $userRepository;
     }
 
     protected function getUser($assetHistories)
@@ -36,7 +38,7 @@ class AssetReportService
                         break;
                 }
 
-                $user = User::withTrashed()->where('id', '=', $user_id)->first();
+                $user = $this->userRepository->findUserWithTrash($user_id);
                 $assetHistoryTemp['user'] = $user;
             }
 
