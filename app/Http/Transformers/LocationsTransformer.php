@@ -61,6 +61,7 @@ class LocationsTransformer
                 'manager' => ($location->manager) ? (new UsersTransformer)->transformUser($location->manager) : null,
 
                 'children' => $children_arr,
+                'branch_code' => ($location->branch_code) ? e($location->branch_code) : null,
             ];
 
             $permissions_array['available_actions'] = [

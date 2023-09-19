@@ -1051,6 +1051,19 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
                 ]
             )->name('api.users.syncListUser');
 
+            Route::get('/list-user-type',
+                [
+                    Api\UsersController::class,
+                    'getListUserType'
+                ]
+            )->name('api.users.getListUserType');
+
+            Route::get('/list-user-position',
+                [
+                    Api\UsersController::class,
+                    'getListJobPosition'
+                ]
+            )->name('api.users.getListJobPosition');
         }); 
     
         Route::resource('users', 

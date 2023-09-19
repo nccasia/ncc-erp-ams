@@ -76,6 +76,8 @@ jobs:
           echo "MAIL_FROM_NAME='NCC-IT'" >> .env
           echo "MAIL_REPLYTO_NAME='NCC-IT'" >> .env
 
+          echo "MAIL_DOMAIN='example.org'" >> .env
+
           #Generate key for application
           php artisan key:generate
 
