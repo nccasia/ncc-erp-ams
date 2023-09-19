@@ -26,10 +26,10 @@ class CategoriesTransformer
             $array = [
                 'id' => (int) $category->id,
                 'name' => e($category->name),
-                'image' =>   ($category->image) ? Storage::disk('public')->url('categories/'.e($category->image)) : null,
+                'image' => ($category->image) ? Storage::disk('public')->url('categories/' . e($category->image)) : null,
                 'category_type' => ucwords(e($category->category_type)),
                 'has_eula' => ($category->getEula() ? true : false),
-                'use_default_eula' => ($category->use_default_eula=='1' ? true : false),
+                'use_default_eula' => ($category->use_default_eula == '1' ? true : false),
                 'eula' => ($category->getEula()),
                 'checkin_email' => ($category->checkin_email == '1'),
                 'require_acceptance' => ($category->require_acceptance == '1'),
@@ -39,6 +39,8 @@ class CategoriesTransformer
                 'consumables_count' => (int) $category->consumables_count,
                 'components_count' => (int) $category->components_count,
                 'licenses_count' => (int) $category->licenses_count,
+                'tools_count' => (int) $category->tools_count,
+                'digital_signatures_count' => (int) $category->digital_signatures_count,
                 'created_at' => Helper::getFormattedDateObject($category->created_at, 'datetime'),
                 'updated_at' => Helper::getFormattedDateObject($category->updated_at, 'datetime'),
             ];
