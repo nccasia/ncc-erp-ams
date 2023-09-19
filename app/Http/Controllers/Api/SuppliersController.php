@@ -24,11 +24,35 @@ class SuppliersController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view', Supplier::class);
-        $allowed_columns = ['id', 'name', 'address', 'phone', 'contact', 'fax', 'email', 'image', 'assets_count', 'licenses_count', 'accessories_count', 'zip', 'url'];
-        
+        $allowed_columns = [
+            'id',
+            'name',
+            'address',
+            'phone',
+            'contact',
+            'fax',
+            'email',
+            'image',
+            'assets_count',
+            'licenses_count',
+            'accessories_count',
+            'consumables_count',
+            'tools_count',
+            'digital_signatures_count',
+            'zip',
+            'url'
+        ];
+
         $suppliers = Supplier::select(
-                ['id', 'name', 'address', 'address2', 'city', 'state', 'country', 'fax', 'phone', 'email', 'zip', 'url', 'contact', 'created_at', 'updated_at', 'deleted_at', 'image', 'notes']
-            )->withCount('assets as assets_count')->withCount('licenses as licenses_count')->withCount('accessories as accessories_count');
+            ['id', 'name', 'address', 'address2', 'city', 'state', 'country', 'fax', 'phone', 'email', 'zip', 'url', 'contact', 'created_at', 'updated_at', 'deleted_at', 'image', 'notes']
+        )->withCount(
+            'assets as assets_count',
+            'licenses as licenses_count',
+            'accessories as accessories_count',
+            'consumables as consumables_count',
+            'tools as tools_count',
+            'digital_signatures as digital_signatures_count'
+        );
 
 
         if ($request->filled('search')) {
@@ -71,8 +95,7 @@ class SuppliersController extends Controller
         if ($supplier->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $supplier, trans('admin/suppliers/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $supplier->getErrors()),Response::HTTP_BAD_REQUEST);
-
+        return response()->json(Helper::formatStandardApiResponse('error', null, $supplier->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -112,7 +135,7 @@ class SuppliersController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $supplier, trans('admin/suppliers/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $supplier->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $supplier->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -166,7 +189,7 @@ class SuppliersController extends Controller
         ]);
 
         if ($request->filled('search')) {
-            $suppliers = $suppliers->where('suppliers.name', 'LIKE', '%'.$request->get('search').'%');
+            $suppliers = $suppliers->where('suppliers.name', 'LIKE', '%' . $request->get('search') . '%');
         }
 
         $suppliers = $suppliers->orderBy('name', 'ASC')->paginate(50);
@@ -176,7 +199,7 @@ class SuppliersController extends Controller
         // they may not have a ->name value but we want to display something anyway
         foreach ($suppliers as $supplier) {
             $supplier->use_text = $supplier->name;
-            $supplier->use_image = ($supplier->image) ? Storage::disk('public')->url('suppliers/'.$supplier->image, $supplier->image) : null;
+            $supplier->use_image = ($supplier->image) ? Storage::disk('public')->url('suppliers/' . $supplier->image, $supplier->image) : null;
         }
 
         return (new SelectlistTransformer)->transformSelectlist($suppliers);

@@ -118,7 +118,22 @@ class Supplier extends SnipeModel
      */
     public function accessories()
     {
-        return $this->hasMany(\App\Models\Accessory::class, 'supplier_id');
+        return $this->hasMany(Accessory::class, 'supplier_id');
+    }
+
+    public function consumables()
+    {
+        return $this->hasMany(Consumable::class, 'supplier_id');
+    }
+
+    public function tools()
+    {
+        return $this->hasMany(Tool::class,'supplier_id');
+    }
+
+    public function digital_signatures()
+    {
+        return $this->hasMany(DigitalSignatures::class,'supplier_id');
     }
 
     /**

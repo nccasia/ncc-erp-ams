@@ -30,7 +30,9 @@ class LocationsController extends Controller
         $allowed_columns = [
             'id', 'name', 'address', 'address2', 'city', 'state', 'country', 'zip', 'created_at',
             'updated_at', 'manager_id', 'image',
-            'assigned_assets_count', 'users_count', 'assets_count', 'currency', 'ldap_ou', ];
+            'assigned_assets_count', 'users_count', 'assets_count', 'currency', 'ldap_ou',
+            'accessories_count', 'consumables_count', 'tools_count', 'digital_signatures_count'
+        ];
 
         $locations = Location::with('parent', 'manager', 'children')->select([
             'locations.id',
@@ -49,11 +51,17 @@ class LocationsController extends Controller
             'locations.ldap_ou',
             'locations.currency',
         ])->withCount('assignedAssets as assigned_assets_count')
-            ->withCount('assets as assets_count')
-            ->withCount('users as users_count');
-        
+            ->withCount(
+                'assets as assets_count',
+                'users as users_count',
+                'rtd_tools as tools_count',
+                'rtd_accessories as accessories_count',
+                'rtd_consumables as consumables_count',
+                'rtd_digital_signatures as digital_signatures_count'
+            );
+
         $user = User::find(Auth::id());
-        if($user->isBranchadmin()){     
+        if ($user->isBranchadmin()) {
             $manager_locations = json_decode($user->manager_location, true);
             $locations->whereIn('id', $manager_locations);
         }
@@ -63,7 +71,7 @@ class LocationsController extends Controller
         }
 
         if ($request->filled('location_id')) {
-            $locations = $locations->where('id','=', $request->input('location_id'));
+            $locations = $locations->where('id', '=', $request->input('location_id'));
         }
 
         $offset = (($locations) && (request('offset') > $locations->count())) ? $locations->count() : request('offset', 0);
@@ -113,7 +121,7 @@ class LocationsController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', (new LocationsTransformer)->transformLocation($location), trans('admin/locations/message.create.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $location->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $location->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -181,7 +189,7 @@ class LocationsController extends Controller
             );
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $location->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $location->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -196,9 +204,9 @@ class LocationsController extends Controller
     {
         $this->authorize('delete', Location::class);
         $location = Location::findOrFail($id);
-        if (! $location->isDeletable()) {
+        if (!$location->isDeletable()) {
             return response()
-                    ->json(Helper::formatStandardApiResponse('error', null, trans('admin/companies/message.assoc_users')));
+                ->json(Helper::formatStandardApiResponse('error', null, trans('admin/companies/message.assoc_users')));
         }
         $this->authorize('delete', $location);
         $location->delete();
@@ -252,7 +260,7 @@ class LocationsController extends Controller
         }
 
         if ($request->filled('search')) {
-            $locations = $locations->where('locations.name', 'LIKE', '%'.$request->input('search').'%');
+            $locations = $locations->where('locations.name', 'LIKE', '%' . $request->input('search') . '%');
         }
 
         $locations = $locations->orderBy('name', 'ASC')->get();
@@ -260,7 +268,7 @@ class LocationsController extends Controller
         $locations_with_children = [];
 
         foreach ($locations as $location) {
-            if (! array_key_exists($location->parent_id, $locations_with_children)) {
+            if (!array_key_exists($location->parent_id, $locations_with_children)) {
                 $locations_with_children[$location->parent_id] = [];
             }
             $locations_with_children[$location->parent_id][] = $location;

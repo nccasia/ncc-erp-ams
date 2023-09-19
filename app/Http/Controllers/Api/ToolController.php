@@ -78,6 +78,22 @@ class ToolController extends Controller
     public function filters($tools, $request)
     {
 
+        if ($request->filled('location_id')) {
+            $tools->where('tools.location_id', '=', $request->input('location_id'));
+        }
+
+        if ($request->filled('category_id')) {
+            $tools->where('category_id', '=', $request->input('category_id'));
+        }
+
+        if ($request->filled('supplier_id')) {
+            $tools->where('supplier_id', '=', $request->input('supplier_id'));
+        }
+
+        if ($request->filled('manufacture_id')) {
+            $tools->where('manufacture_id', '=', $request->input('manufacture_id'));
+        }
+
         $filter = [];
         if ($request->filled('filter')) {
             $filter = json_decode($request->input('filter'), true);

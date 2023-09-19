@@ -24,11 +24,31 @@ class ManufacturersController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view', Manufacturer::class);
-        $allowed_columns = ['id', 'name', 'url', 'support_url', 'support_email', 'support_phone', 'created_at', 'updated_at', 'image', 'assets_count', 'consumables_count', 'components_count', 'licenses_count'];
+        $allowed_columns = [
+            'id',
+            'name',
+            'url',
+            'support_url',
+            'support_email',
+            'support_phone',
+            'created_at',
+            'updated_at',
+            'image',
+            'assets_count',
+            'consumables_count',
+            'accessories_count',
+            'components_count',
+            'licenses_count'
+        ];
 
         $manufacturers = Manufacturer::select(
             ['id', 'name', 'url', 'support_url', 'support_email', 'support_phone', 'created_at', 'updated_at', 'image', 'deleted_at']
-        )->withCount('assets as assets_count')->withCount('licenses as licenses_count')->withCount('consumables as consumables_count')->withCount('accessories as accessories_count');
+        )->withCount(
+            'assets as assets_count',
+            'licenses as licenses_count',
+            'consumables as consumables_count',
+            'accessories as accessories_count'
+        );
 
         if ($request->input('deleted') == 'true') {
             $manufacturers->onlyTrashed();
@@ -38,8 +58,8 @@ class ManufacturersController extends Controller
             $manufacturers = $manufacturers->TextSearch($request->input('search'));
         }
 
-        if($request->filled('manufacturer_id')){
-            $manufacturers = $manufacturers->where('id', '=', $request->input('manufacturer_id'));
+        if ($request->filled('manufacture_id')) {
+            $manufacturers = $manufacturers->where('id', '=', $request->input('manufacture_id'));
         }
 
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
@@ -77,8 +97,7 @@ class ManufacturersController extends Controller
         if ($manufacturer->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $manufacturer, trans('admin/manufacturers/message.create.success')));
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $manufacturer->getErrors()),Response::HTTP_BAD_REQUEST);
-
+        return response()->json(Helper::formatStandardApiResponse('error', null, $manufacturer->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -117,7 +136,7 @@ class ManufacturersController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', $manufacturer, trans('admin/manufacturers/message.update.success')));
         }
 
-        return response()->json(Helper::formatStandardApiResponse('error', null, $manufacturer->getErrors()),Response::HTTP_BAD_REQUEST);
+        return response()->json(Helper::formatStandardApiResponse('error', null, $manufacturer->getErrors()), Response::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -140,7 +159,6 @@ class ManufacturersController extends Controller
         }
 
         return response()->json(Helper::formatStandardApiResponse('error', null,  trans('admin/manufacturers/message.assoc_users')));
-
     }
 
     /**
@@ -161,7 +179,7 @@ class ManufacturersController extends Controller
         ]);
 
         if ($request->filled('search')) {
-            $manufacturers = $manufacturers->where('name', 'LIKE', '%'.$request->get('search').'%');
+            $manufacturers = $manufacturers->where('name', 'LIKE', '%' . $request->get('search') . '%');
         }
 
         $manufacturers = $manufacturers->orderBy('name', 'ASC')->paginate(50);
@@ -171,7 +189,7 @@ class ManufacturersController extends Controller
         // they may not have a ->name value but we want to display something anyway
         foreach ($manufacturers as $manufacturer) {
             $manufacturer->use_text = $manufacturer->name;
-            $manufacturer->use_image = ($manufacturer->image) ? Storage::disk('public')->url('manufacturers/'.$manufacturer->image, $manufacturer->image) : null;
+            $manufacturer->use_image = ($manufacturer->image) ? Storage::disk('public')->url('manufacturers/' . $manufacturer->image, $manufacturer->image) : null;
         }
 
         return (new SelectlistTransformer)->transformSelectlist($manufacturers);
