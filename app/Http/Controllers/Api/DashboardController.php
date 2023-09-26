@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\Helper;
@@ -51,14 +52,15 @@ class DashboardController extends Controller
         $bind = [];
         $from = $request->from;
         $to = $request->to;
+        $is_external = true;
 
         if ($from && $to) {
             $bind = ['from' => $from, 'to' => $to];
         }
         $user = Auth::user();
-        if($user->isAdmin()){
+        if ($user->isAdmin()) {
             $locations = Location::select(['id', 'name'])->get();
-        }else{
+        } else {
             $manager_location = json_decode($user->manager_location, true);
             $locations = Location::select(['id', 'name'])->whereIn('id', $manager_location)->get();
         }
@@ -67,7 +69,7 @@ class DashboardController extends Controller
         if (Auth::user()->hasAccess('admin')) {
 
             $assets_statistic = DB::select(
-                $this->dashboardService->queryReportAssetByType('assets', 'App\\\Models\\\Asset','rtd_location_id', $from, $to),
+                $this->dashboardService->queryReportAssetByType('assets', 'App\\\Models\\\Asset', 'rtd_location_id', $from, $to),
                 $bind
             );
 
@@ -77,20 +79,24 @@ class DashboardController extends Controller
             );
 
             $accessories_statistic = DB::select(
-                $this->dashboardService->queryReportAssetByType('accessories', 'App\\\Models\\\Accessory','location_id', $from, $to),
+                $this->dashboardService->queryReportAssetByType('accessories', 'App\\\Models\\\Accessory', 'location_id', $from, $to),
                 $bind
             );
 
             $tools_statistic = DB::select(
-                $this->dashboardService->queryReportAssetByType('tools', 'App\\\Models\\\Tool','location_id', $from, $to),
+                $this->dashboardService->queryReportAssetByType('tools', 'App\\\Models\\\Tool', 'location_id', $from, $to),
                 $bind
             );
 
             $digital_signatures_statistic = DB::select(
-                $this->dashboardService->queryReportAssetByType('digital_signatures', 'App\\\Models\\\DigitalSignatures','location_id', $from, $to),
+                $this->dashboardService->queryReportAssetByType('digital_signatures', 'App\\\Models\\\DigitalSignatures', 'location_id', $from, $to),
                 $bind
             );
 
+            $client_assets_statistic = DB::select(
+                $this->dashboardService->queryReportAssetByType('assets', 'App\\\Models\\\Asset', 'rtd_location_id', $from, $to, true),
+                $bind
+            );
 
             return response()->json(
                 Helper::formatStandardApiResponse(
@@ -102,7 +108,8 @@ class DashboardController extends Controller
                         'consumables_statistic' => $consumables_statistic,
                         'accessories_statistic' => $accessories_statistic,
                         'tools_statistic' => $tools_statistic,
-                        'digital_signatures_statistic' => $digital_signatures_statistic
+                        'digital_signatures_statistic' => $digital_signatures_statistic,
+                        'client_assets_statistic' => $client_assets_statistic,
                     ],
                     trans('admin/dashboard/message.success')
                 )

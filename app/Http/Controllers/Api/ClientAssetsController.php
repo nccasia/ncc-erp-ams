@@ -54,7 +54,7 @@ use App\Models\Category;
  * @author [A. Gianotto] [<snipe@snipe.net>]
  */
 
-class AssetsController extends Controller
+class ClientAssetsController extends Controller
 {
     /**
      * Returns JSON listing of all assets
@@ -229,7 +229,6 @@ class AssetsController extends Controller
         $this->authorize('index', Asset::class);
 
         $assets = Company::scopeCompanyables(Asset::select('assets.*'), 'company_id', 'assets');
-
         $assets = $this->filters($assets, $request);
 
         $total_asset_by_model = $assets->selectRaw('c.name as category_name , count(*) as total')
@@ -361,7 +360,7 @@ class AssetsController extends Controller
             $assets = $assets->where('created_at', '<=', $to);
         }
 
-        $assets = $assets->where('assets.is_external', '=', false);
+        $assets = $assets->where('assets.is_external', '=', true);
 
         return $assets;
     }
@@ -516,7 +515,7 @@ class AssetsController extends Controller
             $assets->ByDepreciationId($request->input('depreciation_id'));
         }
 
-        $assets = $assets->where('assets.is_external', '=', false);
+        $assets = $assets->where('assets.is_external', '=', true);
 
         $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
 
@@ -1011,12 +1010,11 @@ class AssetsController extends Controller
             $assets = $assets->RTD();
         }
 
-        $assets = $assets->where('assets.is_external', '=', false);
-
         if ($request->filled('search')) {
             $assets = $assets->AssignedSearch($request->input('search'));
         }
 
+        $assets = $assets->where('assets.is_external', '=', true);
 
         $assets = $assets->paginate(50);
 
@@ -1080,6 +1078,7 @@ class AssetsController extends Controller
         $asset->rtd_location_id         = $request->get('rtd_location_id', null);
         $asset->location_id             = $request->get('location_id', null);
         $asset->assigned_status         = $request->get('assigned_status', 0);
+        $asset->is_external             = true;
 
         /**
          * this is here just legacy reasons. Api\AssetController

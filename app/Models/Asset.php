@@ -147,6 +147,7 @@ class Asset extends Depreciable
         'requestable',
         'last_checkout',
         'expected_checkin',
+        'is_external',
     ];
 
     use Searchable;
@@ -283,21 +284,21 @@ class Asset extends Depreciable
         //         return true;
         //     }
         // }
-        return $this->checkIsAdmin() && 
-            !$this->deleted_at && 
-            !$this->assigned_to && 
-            !$this->withdraw_from && 
-            $this->assigned_status === config('enum.assigned_status.DEFAULT') && 
+        return $this->checkIsAdmin() &&
+            !$this->deleted_at &&
+            !$this->assigned_to &&
+            !$this->withdraw_from &&
+            $this->assigned_status === config('enum.assigned_status.DEFAULT') &&
             $this->status_id === config('enum.status_id.READY_TO_DEPLOY');
     }
 
     public function availableForCheckin()
     {
         return $this->checkIsAdmin() &&
-            !$this->deleted_at && 
-            $this->assigned_to && 
+            !$this->deleted_at &&
+            $this->assigned_to &&
             in_array($this->assigned_status, [config('enum.assigned_status.ACCEPT'), config('enum.assigned_status.REJECT')]) &&
-            $this->status_id === config('enum.status_id.ASSIGN');    
+            $this->status_id === config('enum.status_id.ASSIGN');
     }
 
     /**
@@ -305,7 +306,8 @@ class Asset extends Depreciable
      *
      * @return bool
      */
-    public function checkIsAdmin() {
+    public function checkIsAdmin()
+    {
         $guard = app(Guard::class);
         $user = $guard->user();
         return $user->isAdmin();
@@ -335,7 +337,7 @@ class Asset extends Depreciable
         if ($this->is($target)) {
             throw new CheckinNotAllowed('You cannot check an asset in to itself.');
         }
-        
+
         $this->withdraw_from = $this->assigned_to;
         $this->status_id = $status_id;
         $this->assigned_status = $assigned_status;
@@ -344,7 +346,7 @@ class Asset extends Depreciable
         if ($name != null) {
             $this->name = $name;
         }
-        
+
         if ($this->save()) {
             if (is_int($admin)) {
                 $checkedInBy = User::findOrFail($admin);
@@ -1648,15 +1650,16 @@ class Asset extends Depreciable
      *
      * @return \Illuminate\Database\Query\Builder          Modified query builder
      */
-    public function scopeInCategory($query, $category_id)
+    public function scopeInCategory($query, $category_id, $isClient = false)
     {
         $data = $query->join('models as category_models', 'assets.model_id', '=', 'category_models.id')
             ->join('categories', 'category_models.category_id', '=', 'categories.id');
-        if(is_array($category_id)) {
-            $data = $data->whereIn('category_models.category_id',$category_id);
+        if (is_array($category_id)) {
+            $data = $data->whereIn('category_models.category_id', $category_id);
         } else {
             $data = $data->where('category_models.category_id', '=', $category_id);
         }
+        $data = $data->where('assets.is_external', '=', $isClient);
         return $data;
     }
 
@@ -1671,8 +1674,8 @@ class Asset extends Depreciable
     public function scopeInAssignedStatus($query, $assigned_status)
     {
         $data = $query;
-        if(is_array($assigned_status)) {
-            $data = $data->whereIn('assigned_status',$assigned_status);
+        if (is_array($assigned_status)) {
+            $data = $data->whereIn('assigned_status', $assigned_status);
         } else {
             $data = $data->where('assigned_status', '=', $assigned_status);
         }
@@ -1690,8 +1693,8 @@ class Asset extends Depreciable
     public function scopeInStatus($query, $status)
     {
         $data = $query;
-        if(is_array($status)) {
-            $data = $data->whereIn('status_id',$status);
+        if (is_array($status)) {
+            $data = $data->whereIn('status_id', $status);
         } else {
             $data = $data->where('status_id', '=', $status);
         }
@@ -1821,9 +1824,9 @@ class Asset extends Depreciable
      * @param Integer $id id of status labels
      * @return Builder Modified query builder
      */
-    public function scopeByStatusId($query, $id)
+    public function scopeByStatusId($query, $id, $is_external = false)
     {
-        return $query->where('status_id', $id);
+        return $query->where('status_id', $id)->where('is_external', '=', $is_external);
     }
 
     public function asset_history_details()
