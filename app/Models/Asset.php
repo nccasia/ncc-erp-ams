@@ -99,6 +99,8 @@ class Asset extends Depreciable
         'location_id'    => 'integer',
         'rtd_company_id' => 'integer',
         'supplier_id'    => 'integer',
+        'checkout_at' => 'datetime:Y-m-d H:i:s',
+        'checkin_at' => 'datetime:Y-m-d H:i:s',
     ];
 
     protected $rules = [
@@ -1671,14 +1673,17 @@ class Asset extends Depreciable
      *
      * @return \Illuminate\Database\Query\Builder          Modified query builder
      */
-    public function scopeInAssignedStatus($query, $assigned_status)
+    public function scopeInAssignedStatus($query, $assigned_status, $is_external = false)
     {
         $data = $query;
+
         if (is_array($assigned_status)) {
-            $data = $data->whereIn('assigned_status', $assigned_status);
+            $data = $data->whereIn('assets.assigned_status', $assigned_status);
         } else {
-            $data = $data->where('assigned_status', '=', $assigned_status);
+            $data = $data->where('assets.assigned_status', '=', $assigned_status);
         }
+
+        $data = $data->where('assets.is_external', '=', $is_external);
         return $data;
     }
 
@@ -1690,14 +1695,17 @@ class Asset extends Depreciable
      *
      * @return \Illuminate\Database\Query\Builder          Modified query builder
      */
-    public function scopeInStatus($query, $status)
+    public function scopeInStatus($query, $status, $is_external = false)
     {
         $data = $query;
+
         if (is_array($status)) {
-            $data = $data->whereIn('status_id', $status);
+            $data = $data->whereIn('assets.status_id', $status);
         } else {
-            $data = $data->where('status_id', '=', $status);
+            $data = $data->where('assets.status_id', '=', $status);
         }
+
+        $data = $data->where('assets.is_external', '=', $is_external);
         return $data;
     }
 

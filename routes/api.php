@@ -1546,63 +1546,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:' . config('ap
             ]
         );
 
-        Route::get(
-            'selectlist',
-            [
-                Api\ClientAssetsController::class,
-                'selectlist'
-            ]
-        )->name('assets.selectlist');
 
-        Route::get(
-            '{asset_id}/licenses',
-            [
-                Api\ClientAssetsController::class,
-                'licenses'
-            ]
-        )->name('api.assets.licenselist');
-
-        Route::get(
-            'bytag/{tag}',
-            [
-                Api\ClientAssetsController::class,
-                'showByTag'
-            ]
-        )->name('assets.show.bytag');
-
-        Route::get(
-            'bytag/{any}',
-            [
-                Api\ClientAssetsController::class,
-                'showByTag'
-            ]
-        )->name('api.assets.show.bytag')
-            ->where('any', '.*');
-
-        Route::get(
-            'byserial/{any}',
-            [
-                Api\ClientAssetsController::class,
-                'showBySerial'
-            ]
-        )->name('api.assets.show.byserial')
-            ->where('any', '.*');
-
-        Route::get(
-            'audit/{audit}',
-            [
-                Api\ClientAssetsController::class,
-                'index'
-            ]
-        )->name('api.asset.to-audit');
-
-        Route::post(
-            'audit',
-            [
-                Api\ClientAssetsController::class,
-                'audit'
-            ]
-        )->name('api.asset.audit');
 
         Route::post(
             'checkin',
@@ -1611,14 +1555,6 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:' . config('ap
                 'multiCheckin'
             ]
         )->name('api.asset.checkin');
-
-        Route::post(
-            'checkinbytag',
-            [
-                Api\ClientAssetsController::class,
-                'checkinbytag'
-            ]
-        )->name('api.asset.checkinbytag');
 
         Route::post(
             '{asset_id}/checkout',
