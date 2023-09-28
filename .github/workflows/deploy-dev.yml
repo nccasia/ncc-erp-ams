@@ -1,0 +1,15 @@
+name: Deploy NCC-ERP-AMS-BE to server
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull code from develop
+        run: | 
+          cd /home/nccsoft/NCC-ITTools
+          sudo git pull
