@@ -608,7 +608,6 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         Route::group(['prefix' => 'tools'], function () {
             Route::get('', [Api\ToolController::class, 'index'])->name('api.tools.index');
             Route::get('total-detail',[Api\ToolController::class,'getTotalDetail'])->name('api.tools.totalDetail');
-            Route::get('/checkout', [Api\ToolController::class, 'getToolsCheckout'])->name('api.tools.getToolsCheckout');
             Route::get('/assign', [Api\ToolController::class, 'assign'])->name('api.tools.assign');
             Route::post('', [Api\ToolController::class, 'store'])->name('api.tools.store');
             Route::get('/{id}', [Api\ToolController::class, 'show'])->name('api.tools.show');
