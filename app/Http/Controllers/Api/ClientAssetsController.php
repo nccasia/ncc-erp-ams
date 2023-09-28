@@ -39,40 +39,20 @@ class ClientAssetsController extends Controller
     public function getTotalDetail(Request $request)
     {
         $this->authorize('index', Asset::class);
-        $result = $this->clientAssetService->getTotalDetail($request->all());
+        $response = $this->clientAssetService->getTotalDetail($request->all());
 
         if ($request->has('IS_EXPIRE_PAGE') && $request->get('IS_EXPIRE_PAGE')) {
             $expire_asset = $this->assetExpiration($request);
         }
 
         if (isset($expire_asset)) {
-            $result = [];
-            if ($expire_asset['total']) {
-                $result_temp = [];
-
-                foreach ($expire_asset['rows'] as $asset) {
-                    $category_name = $asset['category']['name'];
-
-                    if (Arr::exists($result_temp, $category_name)) {
-                        $result_temp[$category_name]++;
-                    } else {
-                        $result_temp[$category_name] = 1;
-                    }
-                }
-
-                foreach ($result_temp as $key => $value) {
-                    $result[] = [
-                        "name" => $key,
-                        "total" => $value,
-                    ];
-                }
-            }
+            $response = $this->clientAssetService->getTotalDetailExpire($expire_asset);
         }
 
         return response()->json(
             Helper::formatStandardApiResponse(
                 'success',
-                $result,
+                $response,
                 null
             )
         );
@@ -104,14 +84,6 @@ class ClientAssetsController extends Controller
         $this->authorize('create', Asset::class);
         $asset = $this->clientAssetService->store($request->all());
 
-        if (!$asset) {
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                null,
-                $asset->getErrors()
-            ),  500);
-        }
-
         return response()->json(Helper::formatStandardApiResponse(
             'success',
             $asset,
@@ -123,21 +95,6 @@ class ClientAssetsController extends Controller
     {
         $this->authorize('update', Asset::class);
         $asset = $this->clientAssetService->update($request->all(), $id);
-
-        if ($asset === '404') {
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                null,
-                trans('admin/hardware/message.does_not_exist')
-            ), 500);
-        }
-
-        if (!$asset) {
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                null,
-            ), 500);
-        }
 
         return response()->json(Helper::formatStandardApiResponse(
             'success',
@@ -151,21 +108,6 @@ class ClientAssetsController extends Controller
         $this->authorize('update', Asset::class);
         $assets = $this->clientAssetService->update($request->all());
 
-        if ($assets === '404') {
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                null,
-                trans('admin/hardware/message.does_not_exist')
-            ), 500);
-        }
-
-        if (!$assets) {
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                null,
-            ), 500);
-        }
-
         return response()->json(Helper::formatStandardApiResponse(
             'success',
             $assets,
@@ -176,37 +118,19 @@ class ClientAssetsController extends Controller
     public function destroy($id)
     {
         $this->authorize('delete', Asset::class);
-
-        $result = $this->clientAssetService->destroy($id);
-
-        if ($result) {
-            return response()->json(Helper::formatStandardApiResponse(
-                'success',
-                null,
-                trans('admin/hardware/message.delete.success')
-            ));
-        }
+        $this->clientAssetService->destroy($id);
 
         return response()->json(Helper::formatStandardApiResponse(
-            'error',
+            'success',
             null,
-            trans('admin/hardware/message.does_not_exist')
-        ), 500);
+            trans('admin/hardware/message.delete.success')
+        ));
     }
 
     public function multiCheckout(AssetCheckoutRequest $request)
     {
         $this->authorize('checkout', Asset::class);
-
         $result = $this->clientAssetService->checkout($request->all());
-
-        if ($result['status'] === "error") {
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                $result['payload'],
-                trans('admin/hardware/message.checkout.error')
-            ), 500);
-        }
 
         return response()->json(Helper::formatStandardApiResponse(
             'success',
@@ -220,16 +144,6 @@ class ClientAssetsController extends Controller
         $this->authorize('checkin', Asset::class);
         $result = $this->clientAssetService->checkin($request->all());
 
-        if ($result['status'] === 'error') {
-            $message = $result['message'] ?? trans('admin/hardware/message.checkin.success');
-
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                $result['payload'],
-                $message
-            ), 500);
-        }
-
         return response()->json(Helper::formatStandardApiResponse(
             'success',
             $result['payload'],
@@ -241,16 +155,6 @@ class ClientAssetsController extends Controller
     {
         $this->authorize('checkin', Asset::class);
         $result = $this->clientAssetService->checkin($request->all(), $asset_id);
-
-        if ($result['status'] === 'error') {
-            $message = $result['message'] ?? trans('admin/hardware/message.checkin.success');
-
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                $result['payload'],
-                $message
-            ), 500);
-        }
 
         return response()->json(Helper::formatStandardApiResponse(
             'success',
@@ -264,16 +168,6 @@ class ClientAssetsController extends Controller
         $this->authorize('checkout', Asset::class);
 
         $result = $this->clientAssetService->checkout($request->all(), $asset_id);
-
-        if ($result['status'] === "error") {
-            $message = $result['message'] ?? trans('admin/hardware/message.checkout.error');
-
-            return response()->json(Helper::formatStandardApiResponse(
-                'error',
-                $result['payload'],
-                $message
-            ), 500);
-        }
 
         return response()->json(Helper::formatStandardApiResponse(
             'success',

@@ -81,30 +81,35 @@ class Handler extends ExceptionHandler
 
                 switch ($e->getStatusCode()) {
                     case '404':
-                       return response()->json(Helper::formatStandardApiResponse('error', null, $statusCode . ' endpoint not found'), 404);
+                        return response()->json(Helper::formatStandardApiResponse('error', null, $statusCode . ' endpoint not found'), 404);
                     case '429':
                         return response()->json(Helper::formatStandardApiResponse('error', null, 'Too many requests'), 429);
-                     case '405':
+                    case '405':
                         return response()->json(Helper::formatStandardApiResponse('error', null, 'Method not allowed'), 405);
                     default:
                         return response()->json(Helper::formatStandardApiResponse('error', null, $statusCode), $statusCode);
-
                 }
             }
         }
 
-
-        if ($this->isHttpException($e) && (isset($statusCode)) && ($statusCode == '404' )) {
+        if ($this->isHttpException($e) && (isset($statusCode)) && ($statusCode == '404')) {
             return response()->view('layouts/basic', [
                 'content' => view('errors/404')
-            ],$statusCode);
+            ], $statusCode);
+        }
+
+        if ($e instanceof AssetException) {
+            return response()->json(Helper::formatStandardApiResponse(
+                $e->getStatus(),
+                $e->getPayload(),
+                $e->getMessage(),
+            ), $e->getStatusCode());
         }
 
         return parent::render($request, $e);
-
     }
 
- /**
+    /**
      * Convert an authentication exception into an unauthenticated response.
      *
      * @param  \Illuminate\Http\Request  $request

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\AssetException;
 use App\Helpers\Helper;
 use App\Jobs\SendCheckinMail;
 use App\Jobs\SendCheckoutMail;
@@ -45,14 +46,35 @@ class ClientAssetService
     {
         $total_asset_by_model = $this->assetRepository->getTotalDetail($data, true);
 
-        $total_detail = $total_asset_by_model->map(function ($value, $key) {
+        return $total_asset_by_model->map(function ($value, $key) {
             return [
                 'name' => $key,
                 'total' => $value
             ];
         })->values()->toArray();
+    }
 
-        return $total_detail;
+    public function getTotalDetailExpire($expire_asset)
+    {
+        $total_asset_by_model_expire = [];
+
+        if ($expire_asset['total']) {
+            $category_asset_counts = [];
+
+            foreach ($expire_asset['rows'] as $asset) {
+                $category_name = $asset['category']['name'];
+                $category_asset_counts[$category_name] = ($category_asset_counts[$category_name] ?? 0) + 1;
+            }
+
+            foreach ($category_asset_counts  as $key => $value) {
+                $total_asset_by_model_expire[] = [
+                    "name" => $key,
+                    "total" => $value,
+                ];
+            }
+        }
+
+        return $total_asset_by_model_expire;
     }
 
     public function store(array $data)
@@ -62,7 +84,7 @@ class ClientAssetService
 
     public function update(array $data, $id = null)
     {
-        return $this->assetRepository->update($data, $id, true);
+        return $this->assetRepository->update($data, true, $id);
     }
 
     public function destroy($id)
@@ -80,11 +102,7 @@ class ClientAssetService
         $item = 0;
 
         if (!$asset) {
-            return Helper::formatStandardApiResponse(
-                'error',
-                null,
-                trans('admin/hardware/message.does_not_exist')
-            );
+            throw new AssetException(trans('admin/hardware/message.does_not_exist'), 'error', 404, null);
         }
 
         foreach ($asset as $value) {
@@ -92,8 +110,8 @@ class ClientAssetService
             $listAsset[$value['assignedTo']['id']][$item] = $value;
         }
 
-        if (!is_array($listAsset) || !isset($listAsset) || count($listAsset) === 0) {
-            return Helper::formatStandardApiResponse('error');
+        if (!is_array($listAsset) || !isset($listAsset) || !count($listAsset)) {
+            throw new AssetException(trans('admin/hardware/message.does_not_exist'), 'error', 404, null);
         }
 
         foreach ($listAsset as $userId => $assets) {
@@ -103,11 +121,7 @@ class ClientAssetService
             foreach ($assets as $asset) {
 
                 if (is_null($target = $asset->assignedTo)) {
-                    return Helper::formatStandardApiResponse(
-                        'error',
-                        ['asset' => e($asset->asset_tag)],
-                        trans('admin/hardware/message.checkin.already_checked_in')
-                    );
+                    throw new AssetException(trans('admin/hardware/message.checkin.already_checked_in'), 'error', 400, ['asset' => e($asset->asset_tag)]);
                 }
 
                 $checkin_at = null;
@@ -144,6 +158,10 @@ class ClientAssetService
                 SendCheckinMail::dispatch($dataUser, $dataUser['user_email']);
                 $status = "success";
             }
+
+            if ($status === 'error') {
+                throw new AssetException('Bad Request', 'error', 400);
+            }
         }
 
         return Helper::formatStandardApiResponse(
@@ -161,22 +179,15 @@ class ClientAssetService
         $countSuccess = 0;
 
         foreach ($assets as $asset_id) {
+
             $asset = $this->assetRepository->getAssetById($asset_id);
 
             if (!$asset) {
-                return Helper::formatStandardApiResponse(
-                    'error',
-                    null,
-                    trans('admin/hardware/message.does_not_exist')
-                );
+                throw new AssetException(trans('admin/hardware/message.does_not_exist'), 'error', 404);
             }
 
             if (!$asset->availableForCheckout()) {
-                return Helper::formatStandardApiResponse([
-                    'error',
-                    ['asset' => e($asset->asset_tag)],
-                    trans('admin/hardware/message.checkout.not_available')
-                ]);
+                throw new AssetException(trans('admin/hardware/message.checkout.not_available'), 'error', 400, ['asset' => e($asset->asset_tag)]);
             }
 
             $error_payload = [];
@@ -189,17 +200,13 @@ class ClientAssetService
                 if (Arr::exists($data, 'assigned_user')) {
                     $target = $this->userRepository->getUserById($data['assigned_user']);
                 }
-                $asset->location_id = (($target) && (isset($target->location_id))) ? $target->location_id : '';
+                $asset->location_id = $target->location_id ?? '';
                 $error_payload['target_id'] = $data['assigned_user'];
                 $error_payload['target_type'] = 'user';
             }
 
             if (!isset($target)) {
-                return Helper::formatStandardApiResponse(
-                    'error',
-                    $error_payload,
-                    'Checkout target for asset ' . e($asset->asset_tag) . ' is invalid - ' . $error_payload['target_type'] . ' does not exist.'
-                );
+                throw new AssetException('Checkout target for asset ' . e($asset->asset_tag) . ' is invalid ', 'error', $error_payload);
             }
 
             $checkout_at = $data['checkout_at'];
@@ -226,6 +233,10 @@ class ClientAssetService
             $status = "success";
             $dataUser = $this->setDataUser($data['assigned_user'], $asset->name, count($assets), true);
             SendCheckoutMail::dispatch($dataUser, $dataUser['user_email']);
+        }
+
+        if ($status === 'error') {
+            throw new AssetException('Bad Request', 'error', 400);
         }
 
         return Helper::formatStandardApiResponse(
@@ -262,7 +273,7 @@ class ClientAssetService
         $location_address = ($is_checkout) ? null : $location->name;
         $location_address = $this->formatLocationAddress($location, $location_address);
 
-        $data = [
+        return [
             'user_name' => $user_name,
             'asset_name' => $asset_name,
             'count' => $countAssets,
@@ -271,8 +282,6 @@ class ClientAssetService
             'time' => $current_time->format('d-m-Y'),
             'link' => config('client.my_assets.link'),
         ];
-
-        return $data;
     }
 
     private function formatLocationAddress($location, $location_address = null)
