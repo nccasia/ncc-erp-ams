@@ -206,7 +206,7 @@ class ClientAssetService
             }
 
             if (!isset($target)) {
-                throw new AssetException('Checkout target for asset ' . e($asset->asset_tag) . ' is invalid ', 'error', $error_payload);
+                throw new AssetException("Checkout target for asset $asset->asset_tag is invalid ", 'error', 400, $error_payload);
             }
 
             $checkout_at = $data['checkout_at'];

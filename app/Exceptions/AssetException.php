@@ -10,7 +10,7 @@ class AssetException extends Exception
     protected $payload;
     protected $statusCode;
 
-    public function __construct($errorMessage, $status, $statusCode, $payload = null)
+    public function __construct(string $errorMessage, string $status, int $statusCode, $payload = null)
     {
         parent::__construct($errorMessage);
         $this->status = $status;

@@ -92,10 +92,10 @@ class AssetRepository
 
         $assets->filterAssetByRole(Auth::user());
 
-        if (Arr::exists($data, 'WAITING_CHECKOUT') || Arr::exists($data, 'WAITING_CHECKIN')) {
-            $assets->where(function ($query) use ($data) {
-                $query->where('assets.assigned_status', '=', $data['WAITING_CHECKOUT'])
-                    ->orWhere('assets.assigned_status', '=', $data['WAITING_CHECKIN']);
+        if (Arr::exists($data, 'IS_WAITING_PAGE') && $data['IS_WAITING_PAGE']) {
+            $assets->where(function ($query) {
+                $query->where('assets.assigned_status', '=', config('enum.assigned_status.WAITINGCHECKOUT'))
+                    ->orWhere('assets.assigned_status', '=', config('enum.assigned_status.WAITINGCHECKIN'));
             });
         }
 

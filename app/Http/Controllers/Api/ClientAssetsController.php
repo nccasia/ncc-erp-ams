@@ -4,21 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Transformers\AssetsTransformer;
 use App\Services\ClientAssetService;
-use Illuminate\Support\Facades\Gate;
 use App\Helpers\Helper;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AssetCheckoutRequest;
 use App\Models\Asset;
-use App\Models\AssetModel;
-use App\Models\Company;
-use App\Models\CustomField;
-use App\Models\Setting;
-use Auth;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
-use Illuminate\Support\Arr;
-use Route;
 
 class ClientAssetsController extends Controller
 {
@@ -82,97 +74,136 @@ class ClientAssetsController extends Controller
     public function store(ImageUploadRequest $request)
     {
         $this->authorize('create', Asset::class);
-        $asset = $this->clientAssetService->store($request->all());
 
-        return response()->json(Helper::formatStandardApiResponse(
-            'success',
-            $asset,
-            trans('admin/hardware/message.create.success')
-        ));
+        try {
+            $asset = $this->clientAssetService->store($request->all());
+
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $asset,
+                trans('admin/hardware/message.create.success')
+            ));
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 
     public function update(ImageUploadRequest $request, $id)
     {
         $this->authorize('update', Asset::class);
-        $asset = $this->clientAssetService->update($request->all(), $id);
 
-        return response()->json(Helper::formatStandardApiResponse(
-            'success',
-            $asset,
-            trans('admin/hardware/message.update.success')
-        ));
+        try {
+            $asset = $this->clientAssetService->update($request->all(), $id);
+
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $asset,
+                trans('admin/hardware/message.update.success')
+            ));
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 
     public function multiUpdate(ImageUploadRequest $request)
     {
         $this->authorize('update', Asset::class);
-        $assets = $this->clientAssetService->update($request->all());
 
-        return response()->json(Helper::formatStandardApiResponse(
-            'success',
-            $assets,
-            trans('admin/hardware/message.update.success')
-        ));
+        try {
+            $assets = $this->clientAssetService->update($request->all());
+
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $assets,
+                trans('admin/hardware/message.update.success')
+            ));
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 
     public function destroy($id)
     {
         $this->authorize('delete', Asset::class);
-        $this->clientAssetService->destroy($id);
 
-        return response()->json(Helper::formatStandardApiResponse(
-            'success',
-            null,
-            trans('admin/hardware/message.delete.success')
-        ));
+        try {
+            $this->clientAssetService->destroy($id);
+
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                null,
+                trans('admin/hardware/message.delete.success')
+            ));
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 
     public function multiCheckout(AssetCheckoutRequest $request)
     {
         $this->authorize('checkout', Asset::class);
-        $result = $this->clientAssetService->checkout($request->all());
 
-        return response()->json(Helper::formatStandardApiResponse(
-            'success',
-            $result['payload'],
-            trans('admin/hardware/message.checkout.success')
-        ));
+        try {
+            $result = $this->clientAssetService->checkout($request->all());
+
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $result['payload'],
+                trans('admin/hardware/message.checkout.success')
+            ));
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 
     public function multiCheckin(Request $request)
     {
         $this->authorize('checkin', Asset::class);
-        $result = $this->clientAssetService->checkin($request->all());
 
-        return response()->json(Helper::formatStandardApiResponse(
-            'success',
-            $result['payload'],
-            trans('admin/hardware/message.checkin.success')
-        ));
+        try {
+            $result = $this->clientAssetService->checkin($request->all());
+
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $result['payload'],
+                trans('admin/hardware/message.checkin.success')
+            ));
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 
     public function checkin(Request $request, $asset_id)
     {
         $this->authorize('checkin', Asset::class);
-        $result = $this->clientAssetService->checkin($request->all(), $asset_id);
 
-        return response()->json(Helper::formatStandardApiResponse(
-            'success',
-            $result['payload'],
-            trans('admin/hardware/message.checkin.success')
-        ));
+        try {
+            $result = $this->clientAssetService->checkin($request->all(), $asset_id);
+
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $result['payload'],
+                trans('admin/hardware/message.checkin.success')
+            ));
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 
     public function checkout(AssetCheckoutRequest $request, $asset_id)
     {
         $this->authorize('checkout', Asset::class);
 
-        $result = $this->clientAssetService->checkout($request->all(), $asset_id);
+        try {
+            $result = $this->clientAssetService->checkout($request->all(), $asset_id);
 
-        return response()->json(Helper::formatStandardApiResponse(
-            'success',
-            $result['payload'],
-            trans('admin/hardware/message.checkout.success')
-        ));
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $result['payload'],
+                trans('admin/hardware/message.checkout.success')
+            ));
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
 }
