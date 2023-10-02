@@ -1385,6 +1385,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:'.config('app.
         Route::post('/checkin', [Api\DigitalSignaturesController::class, 'multiCheckin'])->name('api.digital_signatures.multiCheckin');
         Route::put('',[Api\DigitalSignaturesController::class,'multiUpdate'])->name('api.digital_signatures.multiUpdate');
         Route::get('/total-detail',[Api\DigitalSignaturesController::class,'getTotalDetail'])->name('api.digital_signatures.totalDetail');
+        Route::get('/assign', [Api\DigitalSignaturesController::class, 'assign'])->name('api.digital_signatures.assign');
     });
     Route::resource(
         'digital_signatures',

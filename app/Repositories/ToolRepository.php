@@ -2,14 +2,16 @@
 
 namespace App\Repositories;
 
+use App\Exceptions\ActionFailException;
 use App\Helpers\DateFormatter;
-use Illuminate\Http\Request;
 use App\Models\Tool;
+use Illuminate\Http\Response;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 
 class ToolRepository
 {
-    public function index(Request $request)
+    public function index($request)
     {
         $tools = Tool::select('tools.*')
             ->with(
@@ -39,7 +41,7 @@ class ToolRepository
         return $this->getDataTools($request, $tools, $allowed_columns);
     }
 
-    public function getTotalDetail(Request $request)
+    public function getTotalDetail($request)
     {
         $tools = Tool::select('tools.*')->with('user', 'supplier', 'assignedUser', 'location', 'category', 'tokenStatus');
         $tools = $this->filters($tools, $request);
@@ -58,7 +60,7 @@ class ToolRepository
         return $total_detail;
     }
 
-    public function getToolAssignList(Request $request)
+    public function getToolAssignList($request)
     {
         $user_id = Auth::id();
 
@@ -83,29 +85,33 @@ class ToolRepository
         return $this->getDataTools($request, $tools, $allowed_columns);
     }
 
-    public function store(Request $request)
+    public function store($request)
     {
         $tool = new Tool();
 
-        $data = $request->input();
+        $data = $request;
         $data['user_id'] = Auth::id();
         $tool->assigned_status = config('enum.assigned_status.DEFAULT');
         $tool->fill($data);
 
-        if ($tool->save()) {
-            return ['isSuccess' => true, 'data' => $tool];
-        } else {
-            return ['isSuccess' => false, 'data' => $tool->getErrors()];
-        }
+        if (!$tool->save()) {
+            throw new ActionFailException(
+                'error',
+                null,
+                $tool->getErrors(),
+                Response::HTTP_BAD_REQUEST
+            );
+        } 
+        return $tool;
     }
 
-    public function update(Request $request, $id, $type)
+    public function update($request, $id, $type)
     {
         $tool = Tool::find($id);
-        $tool->fill($request->all());
+        $tool->fill($request);
 
-        if ($request->has('assigned_status')) {
-            $tool->assigned_status = $request->get('assigned_status');
+        if (Arr::exists($request,'assigned_status')) {
+            $tool->assigned_status = $request['assigned_status'];
         }
 
         switch ($type) {
@@ -136,18 +142,31 @@ class ToolRepository
                 break;
         }
 
-        if ($tool->save()) {
-            return ['isSuccess' => true, 'data' => $tool];
-        } else {
-            return ['isSuccess' => false, 'data' => $tool->getErrors()];
-        }
+        if (!$tool->save()) {
+            throw new ActionFailException(
+                'error',
+                null,
+                $tool->getErrors(),
+                Response::HTTP_BAD_REQUEST
+            );
+        } 
+        return $tool;
     }
 
     public function delete($id)
     {
         $tool = Tool::findOrFail($id);
 
-        return $tool->delete();
+        $res = $tool->delete();
+        if(!$res) {
+            throw new ActionFailException(
+                'error', 
+                null, 
+                trans('admin/tools/message.does_not_exist'), 
+                Response::HTTP_BAD_REQUEST
+            );
+        }
+        return $res;
     }
 
     public function getToolById($id)
@@ -164,59 +183,59 @@ class ToolRepository
 
     private function filters($tools, $request)
     {
-        if ($request->filled('location_id')) {
-            $tools->where('tools.location_id', '=', $request->input('location_id'));
+        if (Arr::exists($request,'location_id')) {
+            $tools->where('tools.location_id', '=', $request['location_id']);
         }
 
-        if ($request->filled('category_id')) {
-            $tools->where('category_id', '=', $request->input('category_id'));
+        if (Arr::exists($request,'category_id')) {
+            $tools->where('category_id', '=', $request['category_id']);
         }
 
-        if ($request->filled('supplier_id')) {
-            $tools->where('supplier_id', '=', $request->input('supplier_id'));
+        if (Arr::exists($request,'supplier_id')) {
+            $tools->where('supplier_id', '=', $request['supplier_id']);
         }
 
-        if ($request->filled('manufacture_id')) {
-            $tools->where('manufacture_id', '=', $request->input('manufacture_id'));
+        if (Arr::exists($request,'manufacture_id')) {
+            $tools->where('manufacture_id', '=', $request['manufacture_id']);
         }
 
         $filter = [];
-        if ($request->filled('filter')) {
-            $filter = json_decode($request->input('filter'), true);
+        if (Arr::exists($request,'filter')) {
+            $filter = json_decode($request['filter'], true);
         }
 
         if ((!is_null($filter)) && (count($filter)) > 0) {
             $tools->ByFilter($filter);
-        } elseif ($request->filled('search')) {
-            $tools->TextSearch($request->input('search'));
+        } elseif (Arr::exists($request,'search')) {
+            $tools->TextSearch($request['search']);
         }
 
-        if ($request->filled('supplier_id')) {
-            $tools->BySupplier($request->input('supplier_id'));
+        if (Arr::exists($request,'supplier_id')) {
+            $tools->BySupplier($request['supplier_id']);
         }
 
-        if ($request->status_label) {
-            $tools->InStatus($request->input('status_label'));
+        if (Arr::exists($request,'status_label')) {
+            $tools->InStatus($request['status_label']);
         }
 
-        if ($request->filled('assigned_status')) {
-            $tools->InAssignedStatus($request->input('assigned_status'));
+        if (Arr::exists($request,'assigned_status')) {
+            $tools->InAssignedStatus($request['assigned_status']);
         }
 
-        if ($request->filled('purchaseDateFrom', 'purchaseDateTo')) {
-            $filterByDate = DateFormatter::formatDate($request->input('purchaseDateFrom'), $request->input('purchaseDateTo'));
+        if (Arr::exists($request,'purchaseDateFrom', 'purchaseDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request['purchaseDateFrom'], $request['purchaseDateTo']);
             $tools->whereBetween('tools.purchase_date', [$filterByDate]);
         }
 
-        if ($request->filled('expirationDateFrom', 'expirationDateTo')) {
-            $filterByDate = DateFormatter::formatDate($request->input('expirationDateFrom'), $request->input('expirationDateTo'));
+        if (Arr::exists($request,'expirationDateFrom', 'expirationDateTo')) {
+            $filterByDate = DateFormatter::formatDate($request['expirationDateFrom'], $request['expirationDateTo']);
             $tools->whereBetween('tools.expiration_date', [$filterByDate]);
         }
 
-        if ($request->filled('WAITING_CHECKOUT') || $request->filled('WAITING_CHECKIN')) {
+        if (Arr::exists($request,'WAITING_CHECKOUT') || Arr::exists($request,'WAITING_CHECKIN')) {
             $tools->where(function ($query) use ($request) {
-                $query->where('tools.assigned_status', '=', $request->input('WAITING_CHECKOUT'))
-                    ->orWhere('tools.assigned_status', '=', $request->input('WAITING_CHECKIN'));
+                $query->where('tools.assigned_status', '=', $request['WAITING_CHECKOUT'])
+                    ->orWhere('tools.assigned_status', '=', $request['WAITING_CHECKIN']);
             });
         }
         return $tools;
@@ -224,17 +243,23 @@ class ToolRepository
 
     private function getDataTools($request, $tools, $allowed_columns)
     {
-        $offset = (($tools) && ($request->get('offset') > $tools->count()))
+        $request_offset = $request['offset'] ? $request['offset'] : 0;
+        $offset = (($tools) && ($request_offset > $tools->count()))
             ? $tools->count()
-            : $request->get('offset', 0);
+            : $request_offset;
 
-        ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit')))
-            ? $limit = $request->input('limit')
+        ((config('app.max_results') >= $request['limit']) && (Arr::exists($request,'limit')))
+            ? $limit = $request['limit']
             : $limit = config('app.max_results');
 
-        $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
+        if (Arr::exists($request,'order')) {
+            $order = $request['order'] === 'asc' ? 'asc' : 'desc';
+        } else {
+            $order = 'asc';
+        }
+        
 
-        $sort = $request->input('sort');
+        $sort = $request['sort'] ?? 'id';
 
         $default_sort = in_array($sort, $allowed_columns) ? $sort : 'tools.created_at';
 

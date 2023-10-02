@@ -950,8 +950,9 @@ class AssetsController extends Controller
             $assets = $assets->where('created_at', '<=', $to);
         }
 
-        $assets = $assets->where('assets.assigned_to', '=', $user_id)->skip($offset)->take($limit)->get();
+        $assets = $assets->where('assets.assigned_to', '=', $user_id);
         $total = $assets->count();
+        $assets = $assets->skip($offset)->take($limit)->get();
 
         /**
          * Include additional associated relationships

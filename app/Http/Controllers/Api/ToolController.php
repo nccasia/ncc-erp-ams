@@ -9,6 +9,7 @@ use App\Models\Tool;
 use App\Services\ToolService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Throwable;
 
 class ToolController extends Controller
 {
@@ -21,7 +22,7 @@ class ToolController extends Controller
     public function index(Request $request)
     {
         $this->authorize('view', Tool::class);
-        $data = $this->toolService->index($request);
+        $data = $this->toolService->index($request->all());
         return (new ToolsTransformer)->transformTools($data['tools'], $data['total']);
     }
 
@@ -29,7 +30,7 @@ class ToolController extends Controller
     {
         $this->authorize('view', Tool::class);
 
-        $data = $this->toolService->getTotalDetail($request);
+        $data = $this->toolService->getTotalDetail($request->all());
 
         return response()->json(Helper::formatStandardApiResponse('success', $data, null));
     }
@@ -37,113 +38,156 @@ class ToolController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create', Tool::class);
+        try {
+            $data = $this->toolService->store($request->all());
 
-        $data = $this->toolService->store($request);
-
-        if ($data['isSuccess']) {
-            return response()->json(Helper::formatStandardApiResponse('success', $data['data'], trans('admin/tools/message.create.success')));
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    $data,
+                    trans('admin/tools/message.create.success')
+                ),
+                Response::HTTP_OK
+            );
+        } catch (Throwable $e) {
+            throw $e;
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, $data['data']), Response::HTTP_BAD_REQUEST);
     }
 
     public function update(Request $request, $id)
     {
         $this->authorize('update', Tool::class);
-
-        $data = $this->toolService->update($request, $id);
-
-        if (!$data['isSuccess']) {
-            return response()->json(Helper::formatStandardApiResponse('error', null, $data['data']), Response::HTTP_BAD_REQUEST);
+        try {
+            $data = $this->toolService->update($request->all(), $id);
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $data,
+                trans('admin/tools/message.update.success')
+            ), Response::HTTP_OK);
+        } catch (Throwable $e) {
+            throw $e;
         }
-        return response()->json(Helper::formatStandardApiResponse('success', $data['data'], trans('admin/tools/message.update.success')));
     }
 
     public function multiUpdate(Request $request)
     {
         $this->authorize('update', Tool::class);
-        $tools = $request->get('tools');
-        foreach ($tools as $id) {
-            $data = $this->toolService->update($request, $id);
-            if (!$data['isSuccess']) {
-                return response()->json(Helper::formatStandardApiResponse('error', null, $data['data']));
+        try {
+            $tools = $request->get('tools');
+            foreach ($tools as $id) {
+                $data = $this->toolService->update($request->all(), $id);
             }
+            return response()->json(Helper::formatStandardApiResponse(
+                'success',
+                $data,
+                trans('admin/tools/message.update.success')
+            ), Response::HTTP_OK);
+        } catch (Throwable $e) {
+            throw $e;
         }
-
-        return response()->json(Helper::formatStandardApiResponse('success', $data['data'], trans('admin/tools/message.update.success', ['signature' => "lol"])));
     }
 
     public function destroy($id)
     {
         $tool = $this->toolService->getToolById($id);
-
         $this->authorize('delete', $tool);
-
-        if ($this->toolService->delete($id)) {
-            return response()->json(Helper::formatStandardApiResponse('success', null, trans('admin/tools/message.delete.success')));
+        try {
+            $data = $this->toolService->delete($id);
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    null,
+                    trans('admin/tools/message.delete.success')
+                ),
+                Response::HTTP_OK
+            );
+        } catch (Throwable $e) {
+            throw $e;
         }
-        return response()->json(Helper::formatStandardApiResponse('error', null, trans('admin/tools/message.does_not_exist')), Response::HTTP_BAD_REQUEST);
     }
 
     public function checkout(Request $request, $tool_id)
     {
         $this->authorize('checkout', Tool::class);
-        $data = $this->toolService->checkout($request, $tool_id);
-        return response()->json(
-            Helper::formatStandardApiResponse(
-                $data['status'],
-                $data['payload'],
-                $data['messages']
-            ),
-            $data['status_code']
-        );
+        try {
+            $data = $this->toolService->checkout($request->all(), $tool_id);
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    $data,
+                    trans('admin/tools/message.checkout.success')
+                ),
+                Response::HTTP_OK
+            );
+        } catch (Throwable $e) {
+            throw $e;
+        }
     }
 
     public function multiCheckout(Request $request)
     {
         $this->authorize('checkout', Tool::class);
-        $data = $this->toolService->multipleCheckout($request);
-        return response()->json(
-            Helper::formatStandardApiResponse(
-                $data['status'],
-                $data['payload'],
-                $data['messages']
-            ),
-            $data['status_code']
-        );
+        try {
+            $tools = request('tools');
+            foreach ($tools as $tool_id) {
+                $data = $this->toolService->checkout($request->all(), $tool_id);
+            }
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    null,
+                    trans('admin/tools/message.checkout.success')
+                ),
+                Response::HTTP_OK
+            );
+        } catch (Throwable $e) {
+            throw $e;
+        }
     }
 
     public function checkIn(Request $request, $tool_id)
     {
         $this->authorize('checkin', Tool::class);
-        $data = $this->toolService->checkin($request, $tool_id);
-        return response()->json(
-            Helper::formatStandardApiResponse(
-                $data['status'],
-                $data['payload'],
-                $data['messages']
-            ),
-            $data['status_code']
-        );
+        try {
+            $data = $this->toolService->checkin($request->all(), $tool_id);
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    $data,
+                    trans('admin/tools/message.checkin.success')
+                ),
+                Response::HTTP_OK
+            );
+        } catch (Throwable $e) {
+            throw $e;
+        }
     }
 
     public function multiCheckin(Request $request)
     {
         $this->authorize('checkin', Tool::class);
-        $data = $this->toolService->multipleCheckin($request);
-        return response()->json(
-            Helper::formatStandardApiResponse(
-                $data['status'],
-                $data['payload'],
-                $data['messages']
-            ),
-            $data['status_code']
-        );
+        try {
+            $tools = request('tools');
+            foreach ($tools as $tool_id) {
+                $data = $this->toolService->checkin($request->all(), $tool_id);
+            }
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    'success',
+                    null,
+                    trans('admin/tools/message.checkin.success')
+                ),
+                Response::HTTP_OK
+            );
+        } catch (Throwable $e) {
+            throw $e;
+        }
     }
 
     public function assign(Request $request)
     {
         $this->authorize('view', Tool::class);
-        $data = $this->toolService->getToolAssignList($request);
+        $data = $this->toolService->getToolAssignList($request->all());
         return (new ToolsTransformer)->transformTools($data['tools'], $data['total']);
     }
 }

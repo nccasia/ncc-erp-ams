@@ -350,7 +350,7 @@ class ApiDigitalSignaturesCest
         $I->assertEquals('error', $response->status);
         $I->assertEquals($messages, $response->messages);
         $I->seeResponseContainsJson([
-            'signature' => $digital_signature_not_checkoutable->seri
+            'digital_signature' => $digital_signature_not_checkoutable->seri
         ]);
 
         $digital_signature_target_not_available = $this->digitalSignatureFactory();

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Exceptions\ActionFailException;
 use App\Repositories\ToolRepository;
-use Illuminate\Http\Request;
 use App\Models\Setting;
 use Carbon\Carbon;
 use App\Jobs\SendCheckinMailTool;
@@ -24,31 +24,32 @@ class ToolService
         $this->userRepository = $userRepository;
     }
 
-    public function index(Request $request)
+    public function index($request)
     {
         return $this->toolRepository->index($request);
     }
 
-    public function getTotalDetail(Request $request)
+    public function getTotalDetail($request)
     {
         return $this->toolRepository->getTotalDetail($request);
     }
 
-    public function getToolAssignList(Request $request)
+    public function getToolAssignList($request)
     {
         return $this->toolRepository->getToolAssignList($request);
     }
 
-    public function store(Request $request)
+    public function store($request)
     {
         return $this->toolRepository->store($request);
     }
 
-    public function update(Request $request, $id)
+    public function update($request, $id)
     {
         $tool = $this->toolRepository->getToolById($id);
         $origin_assigned_status = $tool->assigned_status;
-        $request_assigned_status = $request->get('assigned_status');
+        $request_assigned_status = $request['assigned_status'] ?? null;
+        $request_reason = $request['reason'] ?? "";
         $update_type = null;
         $user = null;
         if ($tool->assigned_to) {
@@ -57,7 +58,7 @@ class ToolService
 
         if (
             !$user
-            || !$request->has('assigned_status')
+            || !$request['assigned_status']
             || $origin_assigned_status === $request_assigned_status
         ) {
             return $this->toolRepository->update($request, $id, config('enum.update_type.DEFAULT'));
@@ -79,20 +80,19 @@ class ToolService
             if ($tool->withdraw_from) {
                 $is_confirm = 'đã từ chối thu hồi';
                 $subject = 'Mail từ chối thu hồi tool';
-                $reason = 'Lý do: ' . $request->get('reason');
+                $reason = 'Lý do: ' . $request_reason;
                 $update_type = config('enum.update_type.REJECT_CHECKIN');
                 $this->sendMailConfirm($user, $tool->name, $is_confirm, $subject, $reason);
             } else {
                 $is_confirm = 'đã từ chối nhận';
                 $subject = 'Mail từ chối nhận tool';
-                $reason = 'Lý do: ' . $request->get('reason');
+                $reason = 'Lý do: ' . $request_reason;
                 $update_type = config('enum.update_type.REJECT_CHECKOUT');
                 $this->sendMailConfirm($user, $tool, $is_confirm, $subject, $reason);
             }
         }
 
-        $result = $this->toolRepository->update($request, $id, $update_type);
-        return $result;
+        return $this->toolRepository->update($request, $id, $update_type);
     }
 
     public function delete($id)
@@ -100,162 +100,68 @@ class ToolService
         return $this->toolRepository->delete($id);
     }
 
-    public function checkout(Request $request, $tool_id)
+    public function checkout($request, $tool_id)
     {
         $tool = $this->toolRepository->getToolOrFailById($tool_id);
         if (!$tool->availableForCheckout()) {
-            return [
-                'status' => 'error',
-                'payload' => null,
-                'messages' => trans('admin/tools/message.checkout.not_available'),
-                'status_code' => Response::HTTP_BAD_REQUEST
-            ];
+            throw new ActionFailException(
+                'error',
+                null,
+                trans('admin/tools/message.checkout.not_available'),
+                Response::HTTP_BAD_REQUEST
+            );
         }
-        $target = $this->userRepository->getUserById($request->get('assigned_to'));
+        $target = $this->userRepository->getUserById($request['assigned_to']);
         $note = request('note', null);
-        $checkout_date = $request->get('checkout_at');
+        $checkout_date = $request['checkout_at'];
         $tool->status_id = config('enum.status_id.ASSIGN');
-        if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'), $note)) {
-            $this->sendMailCheckout($target, $tool);
-            return [
-                'status' => 'success',
-                'payload' => ['tool' => e($tool->name)],
-                'messages' => trans('admin/tools/message.checkout.success'),
-                'status_code' => Response::HTTP_OK
-            ];
+        if (!$tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'), $note)) {
+
+            throw new ActionFailException(
+                'error',
+                null,
+                $tool->getErrors(),
+                Response::HTTP_BAD_REQUEST
+            );
         }
-        return [
-            'status' => 'error',
-            'payload' => null,
-            'messages' => $tool->getErrors(),
-            'status_code' => Response::HTTP_BAD_REQUEST
-        ];
+        $this->sendMailCheckout($target, $tool->name);
+        return ['tool' => e($tool->name)];
     }
 
-    public function multipleCheckout(Request $request)
-    {
-        $tools = request('tools');
-        $checkout_date = $request->get('checkout_date');
-        $request->get('notes') ? $note = $request->get('notes') : $note = null;
-        $target = $this->userRepository->getUserById($request->get('assigned_to'));
-        foreach ($tools as $tool_id) {
-            $tool = $this->toolRepository->getToolOrFailById($tool_id);
-            if (!$tool->availableForCheckout()) {
-                return [
-                    'status' => 'error',
-                    'payload' => ['tool' => e($tool->name)],
-                    'messages' => trans('admin/tools/message.checkout.not_available'),
-                    'status_code' => Response::HTTP_BAD_REQUEST
-                ];
-            }
-
-            $tool->status_id = config('enum.status_id.ASSIGN');
-            if ($tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'), $note)) {
-                $this->sendMailCheckout($target, $tool);
-            } else {
-                return [
-                    'status' => 'error',
-                    'payload' => null,
-                    'messages' => trans('admin/tools/message.checkout.error'),
-                    'status_code' => Response::HTTP_BAD_REQUEST
-                ];
-            }
-        }
-        return [
-            'status' => 'success',
-            'payload' => null,
-            'messages' => trans('admin/tools/message.checkout.success'),
-            'status_code' => Response::HTTP_OK
-        ];
-    }
-
-    public function checkin(Request $request, $tool_id)
+    public function checkin($request, $tool_id)
     {
         $tool = $this->toolRepository->getToolOrFailById($tool_id);
         if (is_null($target = $tool->assigned_to)) {
-            return [
-                'status' => 'error',
-                'payload' => ['name' => e($tool->name)],
-                'messages' => trans('admin/tools/message.checkin.already_checked_in'),
-                'status_code' => Response::HTTP_BAD_REQUEST
-            ];
+            throw new ActionFailException(
+                'error',
+                ['name' => e($tool->name)],
+                trans('admin/tools/message.checkin.already_checked_in'),
+                Response::HTTP_BAD_REQUEST
+            );
         }
         if (!$tool->availableForCheckin()) {
-            return [
-                'status' => 'error',
-                'payload' => ['tool' => e($tool->name)],
-                'messages' => trans('admin/tools/message.checkin.not_available'),
-                'status_code' => Response::HTTP_BAD_REQUEST
-            ];
+            throw new ActionFailException(
+                'error',
+                ['tool' => e($tool->name)],
+                trans('admin/tools/message.checkin.not_available'),
+                Response::HTTP_BAD_REQUEST
+            );
         }
 
-        $checkin_date = $request->get('checkin_at');
-        $request->get('notes') ? $note = $request->get('notes') : $note = null;
+        $checkin_date = $request['checkin_at'] ?? "";
+        $note = $request['notes'] ?? "";
         $target = $this->userRepository->getUserById($tool->assigned_to);
 
-        if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
-            $this->sendMailCheckin($tool->assignedTo, $tool);
-            return [
-                'status' => 'success',
-                'payload' => ['tool' => e($tool->name)],
-                'messages' => trans('admin/tools/message.checkin.success'),
-                'status_code' => Response::HTTP_OK
-            ];
+        if (!$tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
+            throw new ActionFailException(
+                'error',
+                null,
+                $tool->getErrors(),
+                Response::HTTP_BAD_REQUEST
+            );
         }
-        return [
-            'status' => 'error',
-            'payload' => null,
-            'messages' => $tool->getErrors(),
-            'status_code' => Response::HTTP_BAD_REQUEST
-        ];
-    }
-
-    public function multipleCheckin(Request $request)
-    {
-        $tools = request('tools');
-        $checkin_date = $request->get('checkout_at');
-        $request->get('notes') ? $note = $request->get('notes') : $note = null;
-
-        foreach ($tools as $tool_id) {
-            $tool = $this->toolRepository->getToolOrFailById($tool_id);
-            if (is_null($target = $tool->assigned_to)) {
-                return [
-                    'status' => 'error',
-                    'payload' => ['name' => e($tool->name)],
-                    'messages' => trans('admin/tool/message.checkin.already_checked_in'),
-                    'status_code' => Response::HTTP_BAD_REQUEST
-                ];
-            }
-            if (!$tool->availableForCheckin()) {
-                return [
-                    'status' => 'error',
-                    'payload' => null,
-                    'messages' => ['assigned_users' => trans('admin/tools/message.checkout.error')],
-                    'status_code' => Response::HTTP_BAD_REQUEST
-                ];
-            }
-
-            $checkin_date = $request->get('checkin_at');
-            $request->get('notes') ? $note = $request->get('notes') : $note = null;
-            $target = $this->userRepository->getUserById($tool->assigned_to);
-
-            if ($tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
-                $this->sendMailCheckin($target, $tool);
-            } else {
-                return [
-                    'status' => 'error',
-                    'payload' => null,
-                    'messages' => trans('admin/tools/message.checkin.error'),
-                    'status_code' => Response::HTTP_BAD_REQUEST
-                ];
-            }
-        }
-        return [
-            'status' => 'success',
-            'payload' => null,
-            'messages' => trans('admin/tools/message.checkin.success'),
-            'status_code' => Response::HTTP_OK
-        ];
+        $this->sendMailCheckin($tool->assignedTo, $tool);
+        return ['tool' => e($tool->name)];
     }
 
     public function getToolById($id)
