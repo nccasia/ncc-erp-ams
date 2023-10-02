@@ -8,8 +8,18 @@ on:
 jobs:
   deploy:
     runs-on: self-hosted
+
     steps:
-      - name: Pull code from develop
-        run: | 
-          cd /home/nccsoft/NCC-ITTools
-          sudo git pull
+    - name: Setup SSH key
+      run: | 
+        eval "$(ssh-agent -s)" 
+        echo ${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | ssh-add - 
+
+    - name: Check if GitHub.com key exists 
+      run: | 
+        ssh -T git@github.com -o StrictHostKeyChecking=accept-new
+
+    - name: Pull code 
+      run: |
+        cd home/nccsoft/NCC-ITTools
+        git pull origin develop
