@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\AssetException;
 use App\Http\Transformers\AssetsTransformer;
 use App\Services\ClientAssetService;
 use App\Helpers\Helper;
@@ -78,10 +79,14 @@ class ClientAssetsController extends Controller
         try {
             $asset = $this->clientAssetService->store($request->all());
 
+            if (!$asset) {
+                throw new AssetException(__('general.server_error'), "error", 500);
+            }
+
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
                 $asset,
-                trans('admin/hardware/message.create.success')
+                __('admin/hardware/message.create.success')
             ));
         } catch (\Throwable $th) {
             throw $th;
@@ -95,10 +100,14 @@ class ClientAssetsController extends Controller
         try {
             $asset = $this->clientAssetService->update($request->all(), $id);
 
+            if (!$asset) {
+                throw new AssetException(__('general.server_error'), "error", 500);
+            }
+
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
                 $asset,
-                trans('admin/hardware/message.update.success')
+                __('admin/hardware/message.update.success')
             ));
         } catch (\Throwable $th) {
             throw $th;
@@ -112,10 +121,14 @@ class ClientAssetsController extends Controller
         try {
             $assets = $this->clientAssetService->update($request->all());
 
+            if (!$assets) {
+                throw new AssetException(__('general.server_error'), "error", 500);
+            }
+
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
                 $assets,
-                trans('admin/hardware/message.update.success')
+                __('admin/hardware/message.update.success')
             ));
         } catch (\Throwable $th) {
             throw $th;
@@ -127,12 +140,16 @@ class ClientAssetsController extends Controller
         $this->authorize('delete', Asset::class);
 
         try {
-            $this->clientAssetService->destroy($id);
+            $asset = $this->clientAssetService->destroy($id);
+
+            if (!$asset) {
+                throw new AssetException(__('general.server_error'), "error", 500);
+            }
 
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
                 null,
-                trans('admin/hardware/message.delete.success')
+                __('admin/hardware/message.delete.success')
             ));
         } catch (\Throwable $th) {
             throw $th;
@@ -144,12 +161,16 @@ class ClientAssetsController extends Controller
         $this->authorize('checkout', Asset::class);
 
         try {
-            $result = $this->clientAssetService->checkout($request->all());
+            $assets = $this->clientAssetService->checkout($request->all());
+
+            if (!$assets) {
+                throw new AssetException(__('general.server_error'), "error", 500);
+            }
 
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
-                $result['payload'],
-                trans('admin/hardware/message.checkout.success')
+                $assets['payload'],
+                __('admin/hardware/message.checkout.success')
             ));
         } catch (\Throwable $th) {
             throw $th;
@@ -161,12 +182,16 @@ class ClientAssetsController extends Controller
         $this->authorize('checkin', Asset::class);
 
         try {
-            $result = $this->clientAssetService->checkin($request->all());
+            $assets = $this->clientAssetService->checkin($request->all());
+
+            if (!$assets) {
+                throw new AssetException(__('general.server_error'), "error", 500);
+            }
 
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
-                $result['payload'],
-                trans('admin/hardware/message.checkin.success')
+                $assets['payload'],
+                __('admin/hardware/message.checkin.success')
             ));
         } catch (\Throwable $th) {
             throw $th;
@@ -178,12 +203,16 @@ class ClientAssetsController extends Controller
         $this->authorize('checkin', Asset::class);
 
         try {
-            $result = $this->clientAssetService->checkin($request->all(), $asset_id);
+            $asset = $this->clientAssetService->checkin($request->all(), $asset_id);
+
+            if (!$asset) {
+                throw new AssetException(__('general.server_error'), "error", 500);
+            }
 
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
-                $result['payload'],
-                trans('admin/hardware/message.checkin.success')
+                $asset['payload'],
+                __('admin/hardware/message.checkin.success')
             ));
         } catch (\Throwable $th) {
             throw $th;
@@ -195,12 +224,16 @@ class ClientAssetsController extends Controller
         $this->authorize('checkout', Asset::class);
 
         try {
-            $result = $this->clientAssetService->checkout($request->all(), $asset_id);
+            $asset = $this->clientAssetService->checkout($request->all(), $asset_id);
+
+            if (!$asset) {
+                throw new AssetException(__('general.server_error'), "error", 500);
+            }
 
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
-                $result['payload'],
-                trans('admin/hardware/message.checkout.success')
+                $asset['payload'],
+                __('admin/hardware/message.checkout.success')
             ));
         } catch (\Throwable $th) {
             throw $th;
