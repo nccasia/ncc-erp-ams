@@ -92,7 +92,7 @@ class Handler extends ExceptionHandler
             }
         }
 
-        if ($e instanceof ActionFailException) {
+        if ($e instanceof TaskReturnError) {
             $messages = json_decode($e->getMessage()) ?? $e->getMessage();
             return response()->json(
                 Helper::formatStandardApiResponse(

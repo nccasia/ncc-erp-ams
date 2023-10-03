@@ -4,7 +4,7 @@ namespace App\Exceptions;
 
 use Exception;
 
-class ActionFailException extends Exception
+class TaskReturnError extends Exception
 {
     private $status;
     private $payload;

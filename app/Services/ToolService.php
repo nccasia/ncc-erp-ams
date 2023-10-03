@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\ActionFailException;
+use App\Exceptions\TaskReturnError;
 use App\Repositories\ToolRepository;
 use App\Models\Setting;
 use Carbon\Carbon;
@@ -66,32 +66,18 @@ class ToolService
 
         if ($request_assigned_status == config('enum.assigned_status.ACCEPT')) {
             if ($tool->withdraw_from) {
-                $is_confirm = 'đã xác nhận thu hồi';
-                $subject = 'Mail xác nhận thu hồi tool';
                 $update_type = config('enum.update_type.ACCEPT_CHECKIN');
-                $this->sendMailConfirm($user, $tool->name, $is_confirm, $subject);
             } else {
-                $is_confirm = 'đã xác nhận cấp phát';
-                $subject = 'Mail xác nhận cấp phát tool';
                 $update_type = config('enum.update_type.ACCEPT_CHECKOUT');
-                $this->sendMailConfirm($user, $tool->name, $is_confirm, $subject);
             }
         } elseif ($request_assigned_status == config('enum.assigned_status.REJECT')) {
             if ($tool->withdraw_from) {
-                $is_confirm = 'đã từ chối thu hồi';
-                $subject = 'Mail từ chối thu hồi tool';
-                $reason = 'Lý do: ' . $request_reason;
                 $update_type = config('enum.update_type.REJECT_CHECKIN');
-                $this->sendMailConfirm($user, $tool->name, $is_confirm, $subject, $reason);
             } else {
-                $is_confirm = 'đã từ chối nhận';
-                $subject = 'Mail từ chối nhận tool';
-                $reason = 'Lý do: ' . $request_reason;
                 $update_type = config('enum.update_type.REJECT_CHECKOUT');
-                $this->sendMailConfirm($user, $tool, $is_confirm, $subject, $reason);
             }
         }
-
+        $this->sendMail($user,$tool,$update_type,$request_reason);
         return $this->toolRepository->update($request, $id, $update_type);
     }
 
@@ -104,7 +90,7 @@ class ToolService
     {
         $tool = $this->toolRepository->getToolOrFailById($tool_id);
         if (!$tool->availableForCheckout()) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 null,
                 trans('admin/tools/message.checkout.not_available'),
@@ -117,14 +103,14 @@ class ToolService
         $tool->status_id = config('enum.status_id.ASSIGN');
         if (!$tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'), $note)) {
 
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 null,
                 $tool->getErrors(),
                 Response::HTTP_BAD_REQUEST
             );
         }
-        $this->sendMailCheckout($target, $tool->name);
+        $this->sendMail($target, $tool, config("enum.mail_type.CHECKOUT"));
         return ['tool' => e($tool->name)];
     }
 
@@ -132,7 +118,7 @@ class ToolService
     {
         $tool = $this->toolRepository->getToolOrFailById($tool_id);
         if (is_null($target = $tool->assigned_to)) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 ['name' => e($tool->name)],
                 trans('admin/tools/message.checkin.already_checked_in'),
@@ -140,7 +126,7 @@ class ToolService
             );
         }
         if (!$tool->availableForCheckin()) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 ['tool' => e($tool->name)],
                 trans('admin/tools/message.checkin.not_available'),
@@ -153,14 +139,14 @@ class ToolService
         $target = $this->userRepository->getUserById($tool->assigned_to);
 
         if (!$tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 null,
                 $tool->getErrors(),
                 Response::HTTP_BAD_REQUEST
             );
         }
-        $this->sendMailCheckin($tool->assignedTo, $tool);
+        $this->sendMail($target, $tool, config("enum.mail_type.CHECKIN"));
         return ['tool' => e($tool->name)];
     }
 
@@ -169,51 +155,54 @@ class ToolService
         return $this->toolRepository->getToolById($id);
     }
 
-    private function sendMailCheckout($assigned_user, $tool_name)
+    public function sendMail($user, $tool, $type, $request_reason = "")
     {
-        $user_email = $assigned_user->email;
-        $user_name = $assigned_user->first_name . ' ' . $assigned_user->last_name;
-        $current_time = Carbon::now();
         $data = [
-            'user_name' => $user_name,
-            'tool_name' => $tool_name,
+            'user_name' => $user->full_name,
+            'tool_name' => $tool->name,
             'count' => 1,
-            'time' => $current_time->format('d-m-Y'),
+            'time' => Carbon::now()->format('d-m-Y'),
             'link' => config('client.my_assets.link'),
+            'is_confirm' => "",
+            'subject' => "",
+            'reason' => ""
         ];
-        SendCheckoutMailTool::dispatch($data, $user_email);
-    }
-
-    private function sendMailCheckin($assigned_user, $tool_name)
-    {
-        $user_email = $assigned_user->email;
-        $user_name = $assigned_user->first_name . ' ' . $assigned_user->last_name;
-        $current_time = Carbon::now();
-        $data = [
-            'user_name' => $user_name,
-            'tool_name' => $tool_name,
-            'count' => 1,
-            'time' => $current_time->format('d-m-Y'),
-            'link' => config('client.my_assets.link'),
-        ];
-        SendCheckinMailTool::dispatch($data, $user_email);
-    }
-
-    private function sendMailConfirm($assigned_user, $tool_name, $is_confirm, $subject, $reason = "")
-    {
         $it_ncc_email = Setting::first()->admin_cc_email;
-        $user_name = $assigned_user->first_name . ' ' . $assigned_user->last_name;
-        $current_time = Carbon::now();
-        $data = [
-            'user_name' => $user_name,
-            'tool_name' => $tool_name,
-            'tools_count' => 1,
-            'is_confirm' => $is_confirm,
-            'subject' => $subject,
-            'reason' => $reason,
-            'time' => $current_time->format('d-m-Y'),
-            'link' => config('client.my_assets.link'),
-        ];
-        SendConfirmMailTool::dispatch($data, $it_ncc_email);
+        $mail_class = null;
+        $mail_sent = null;
+        switch ($type) {
+            case config("enum.mail_type.CHECKIN"):
+                $mail_sent = $user->email;
+                $mail_class = SendCheckinMailTool::class;
+                break;
+            case config("enum.mail_type.CHECKOUT"):
+                $mail_sent = $user->email;
+                $mail_class = SendCheckoutMailTool::class;
+                break;
+            case config('enum.update_type.ACCEPT_CHECKIN'):
+                $data["is_confirm"] = 'đã xác nhận thu hồi';
+                $data["subject"] = 'Mail xác nhận thu hồi tool';
+                $mail_sent = $it_ncc_email;
+                $mail_class = SendConfirmMailTool::class;
+            case config('enum.update_type.ACCEPT_CHECKOUT'):
+                $data["is_confirm"] = 'đã xác nhận cấp phát';
+                $data["subject"] = 'Mail xác nhận cấp phát tool';
+                $mail_sent = $it_ncc_email;
+                $mail_class = SendConfirmMailTool::class;
+            case config('enum.update_type.REJECT_CHECKIN'):
+                $data['is_confirm'] = 'đã từ chối thu hồi';
+                $data["subject"] = 'Mail từ chối thu hồi tool';
+                $data['reason'] = 'Lý do: ' . $request_reason;
+                $mail_sent = $it_ncc_email;
+                $mail_class = SendConfirmMailTool::class;
+            case config("enum.update_type.REJECT_CHECKOUT"):
+                $data['is_confirm'] = 'đã từ chối nhận';
+                $data["subject"] = 'Mail từ chối nhận tool';
+                $data['reason'] = 'Lý do: ' . $request_reason;
+                $mail_sent = $it_ncc_email;
+                $mail_class = SendConfirmMailTool::class;
+        }
+
+        $mail_class::dispatch($data, $mail_sent);
     }
 }

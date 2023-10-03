@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Exceptions\ActionFailException;
+use App\Exceptions\TaskReturnError;
 use App\Helpers\DateFormatter;
 use App\Models\DigitalSignatures;
 use Illuminate\Http\Response;
@@ -89,7 +89,7 @@ class DigitalSignatureRepository
         $digitalSignatures->fill($request);
 
         if (!$digitalSignatures->save()) {
-            throw new ActionFailException('error', null, $digitalSignatures->getErrors(), Response::HTTP_BAD_REQUEST);
+            throw new TaskReturnError('error', null, $digitalSignatures->getErrors(), Response::HTTP_BAD_REQUEST);
         }
         return $digitalSignatures;
     }
@@ -139,7 +139,7 @@ class DigitalSignatureRepository
         }
 
         if (!$digitalSignature->save()) {
-            throw new ActionFailException('error', null, $digitalSignature->getErrors(), Response::HTTP_BAD_REQUEST);
+            throw new TaskReturnError('error', null, $digitalSignature->getErrors(), Response::HTTP_BAD_REQUEST);
         }
         return $digitalSignature;
     }
@@ -149,7 +149,7 @@ class DigitalSignatureRepository
         $digitalSignature = DigitalSignatures::findOrFail($id);
         $res = $digitalSignature->delete();
         if(!$res) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error', 
                 null, 
                 trans('admin/tools/message.does_not_exist'), 

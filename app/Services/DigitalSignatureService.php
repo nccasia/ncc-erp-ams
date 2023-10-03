@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\ActionFailException;
+use App\Exceptions\TaskReturnError;
 use App\Jobs\SendCheckinMailDigitalSignature;
 use App\Jobs\SendCheckoutMailDigitalSignature;
 use App\Jobs\SendConfirmCheckinMail;
@@ -73,42 +73,20 @@ class DigitalSignatureService
             return $this->digitalSignatureRepository->update($request, $id, config('enum.update_type.DEFAULT'));
         }
 
-        $it_ncc_email = Setting::first()->admin_cc_email;
-        $user_name = $user->first_name . ' ' . $user->last_name;
-        $current_time = Carbon::now();
-        $data = [
-            'user_name' => $user_name,
-            'is_confirm' => '',
-            'seri' => $digitalSignature->seri,
-            'time' => $current_time->format('d-m-Y'),
-            'reason' => '',
-            'signatures_count' => 1
-        ];
-
         if ($request_assigned_status == config('enum.assigned_status.ACCEPT')) {
             if ($digitalSignature->withdraw_from) {
-                $data['is_confirm'] = 'đã xác nhận thu hồi';
                 $update_type = config('enum.update_type.ACCEPT_CHECKIN');
-                SendConfirmCheckinMail::dispatch($data, $it_ncc_email);
             } else {
-                $data['is_confirm'] = 'đã xác nhận cấp phát';
                 $update_type = config('enum.update_type.ACCEPT_CHECKOUT');
-                SendConfirmCheckoutMail::dispatch($data, $it_ncc_email);
             }
         } elseif ($request_assigned_status == config('enum.assigned_status.REJECT')) {
             if ($digitalSignature->withdraw_from) {
-                $data['is_confirm'] = 'đã từ chối thu hồi';
-                $data['reason'] = 'Lý do: ' . $request_reason;
                 $update_type = config('enum.update_type.REJECT_CHECKIN');
-                SendRejectCheckinMail::dispatch($data, $it_ncc_email);
             } else {
-                $data['is_confirm'] = 'đã từ chối nhận';
-                $data['reason'] = 'Lý do: ' . $request_reason;
                 $update_type = config('enum.update_type.REJECT_CHECKOUT');
-                SendRejectCheckoutMail::dispatch($data, $it_ncc_email);
             }
         }
-
+        $this->sendMail($user, $digitalSignature, $update_type, $request_reason);
         return $this->digitalSignatureRepository->update($request, $id, $update_type);
     }
 
@@ -116,7 +94,7 @@ class DigitalSignatureService
     {
         $digitalSignature = $this->digitalSignatureRepository->getDigitalSignatureById($digital_signature_id);
         if (!$digitalSignature->availableForCheckout()) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 ["digital_signature" => $digitalSignature->seri],
                 trans('admin/digital_signatures/message.checkout.not_available'),
@@ -128,14 +106,14 @@ class DigitalSignatureService
         $checkout_date = $request['checkout_date'];
         $digitalSignature->status_id = config('enum.status_id.ASSIGN');
         if (!$digitalSignature->checkOut($target, $checkout_date, $note, $digitalSignature->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 null,
                 trans('admin/digital_signatures/message.checkout.error'),
                 Response::HTTP_BAD_REQUEST
             );
         }
-        $this->sendCheckoutMail($target, $digitalSignature);
+        $this->sendMail($target, $digitalSignature, config("enum.mail_type.CHECKOUT"));
         return ['digital_signature' => $digitalSignature->seri];
     }
 
@@ -143,7 +121,7 @@ class DigitalSignatureService
     {
         $signature = $this->digitalSignatureRepository->getDigitalSignatureById($signature_id);
         if (is_null($target = $signature->assigned_to)) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 ['signature' => e($signature->seri)],
                 trans('admin/digital_signatures/message.checkin.already_checked_in'),
@@ -151,7 +129,7 @@ class DigitalSignatureService
             );
         }
         if (!$signature->availableForCheckin()) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 ['signature' => e($signature->seri)],
                 trans('admin/digital_signatures/message.checkin.not_available'),
@@ -164,14 +142,14 @@ class DigitalSignatureService
         $target = $this->userRepository->getUserById($signature->assigned_to);
 
         if (!$signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 null,
                 trans('admin/digital_signatures/message.checkin.error'),
                 Response::HTTP_BAD_REQUEST
             );
         }
-        $this->sendCheckinMail($target, $signature);
+        $this->sendMail($target, $signature, config("enum.mail_type.CHECKIN"));
         return ['digital_signature' => e($signature->seri)];
     }
 
@@ -180,33 +158,52 @@ class DigitalSignatureService
         return $this->digitalSignatureRepository->delete($id);
     }
 
-    public function sendCheckoutMail($user, $signature)
+    public function sendMail($user, $signature, $type, $request_reason = "")
     {
         $data = [
-            'user_name' => $user->first_name . ' ' . $user->last_name,
+            'user_name' => $user->full_name,
             'signature_name' => $signature->name,
+            'seri' => $signature->seri,
             'signatures_count' => 1,
             'count' => 1,
             'location_address' => null,
             'time' => Carbon::now()->format('d-m-Y'),
             'link' => config('client.my_assets.link'),
+            'reason' => '',
+            'is_confirm' => '',
         ];
+        $it_ncc_email = Setting::first()->admin_cc_email;
+        $mail_class = null;
+        $mail_sent = null;
+        switch ($type) {
+            case config("enum.mail_type.CHECKIN"):
+                $mail_sent = $user->email;
+                $mail_class = SendCheckinMailDigitalSignature::class;
+                break;
+            case config("enum.mail_type.CHECKOUT"):
+                $mail_sent = $user->email;
+                $mail_class = SendCheckoutMailDigitalSignature::class;
+                break;
+            case config('enum.update_type.ACCEPT_CHECKIN'):
+                $data['is_confirm'] = 'đã xác nhận thu hồi';
+                $mail_sent = $it_ncc_email;
+                $mail_class = SendConfirmCheckinMail::class;
+            case config('enum.update_type.ACCEPT_CHECKOUT'):
+                $data['is_confirm'] = 'đã xác nhận cấp phát';
+                $mail_sent = $it_ncc_email;
+                $mail_class = SendConfirmCheckoutMail::class;
+            case config('enum.update_type.REJECT_CHECKIN'):
+                $data['is_confirm'] = 'đã từ chối thu hồi';
+                $data['reason'] = 'Lý do: ' . $request_reason;
+                $mail_sent = $it_ncc_email;
+                $mail_class = SendRejectCheckinMail::class;
+            case config("enum.update_type.REJECT_CHECKOUT"):
+                $data['is_confirm'] = 'đã từ chối nhận';
+                $data['reason'] = 'Lý do: ' . $request_reason;
+                $mail_sent = $it_ncc_email;
+                $mail_class = SendRejectCheckoutMail::class;
+        }
 
-        SendCheckoutMailDigitalSignature::dispatch($data, $user->email);
-    }
-
-    public function sendCheckinMail($user, $signature)
-    {
-        $data = [
-            'user_name' => $user->first_name . ' ' . $user->last_name,
-            'signature_name' => $signature->name,
-            'signatures_count' => 1,
-            'count' => 1,
-            'location_address' => null,
-            'time' => Carbon::now()->format('d-m-Y'),
-            'link' => config('client.my_assets.link'),
-        ];
-
-        SendCheckinMailDigitalSignature::dispatch($data, $user->email);
+        $mail_class::dispatch($data, $mail_sent);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Repositories;
 
-use App\Exceptions\ActionFailException;
+use App\Exceptions\TaskReturnError;
 use App\Helpers\DateFormatter;
 use App\Models\Tool;
 use Illuminate\Http\Response;
@@ -95,7 +95,7 @@ class ToolRepository
         $tool->fill($data);
 
         if (!$tool->save()) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 null,
                 $tool->getErrors(),
@@ -143,7 +143,7 @@ class ToolRepository
         }
 
         if (!$tool->save()) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error',
                 null,
                 $tool->getErrors(),
@@ -159,7 +159,7 @@ class ToolRepository
 
         $res = $tool->delete();
         if(!$res) {
-            throw new ActionFailException(
+            throw new TaskReturnError(
                 'error', 
                 null, 
                 trans('admin/tools/message.does_not_exist'), 
