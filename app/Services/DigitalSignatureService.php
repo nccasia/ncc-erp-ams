@@ -188,20 +188,24 @@ class DigitalSignatureService
                 $data['is_confirm'] = 'đã xác nhận thu hồi';
                 $mail_sent = $it_ncc_email;
                 $mail_class = SendConfirmCheckinMail::class;
+                break;
             case config('enum.update_type.ACCEPT_CHECKOUT'):
                 $data['is_confirm'] = 'đã xác nhận cấp phát';
                 $mail_sent = $it_ncc_email;
                 $mail_class = SendConfirmCheckoutMail::class;
+                break;
             case config('enum.update_type.REJECT_CHECKIN'):
                 $data['is_confirm'] = 'đã từ chối thu hồi';
                 $data['reason'] = 'Lý do: ' . $request_reason;
                 $mail_sent = $it_ncc_email;
                 $mail_class = SendRejectCheckinMail::class;
+                break;
             case config("enum.update_type.REJECT_CHECKOUT"):
                 $data['is_confirm'] = 'đã từ chối nhận';
                 $data['reason'] = 'Lý do: ' . $request_reason;
                 $mail_sent = $it_ncc_email;
                 $mail_class = SendRejectCheckoutMail::class;
+                break;
         }
 
         $mail_class::dispatch($data, $mail_sent);

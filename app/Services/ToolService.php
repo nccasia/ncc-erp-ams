@@ -184,23 +184,27 @@ class ToolService
                 $data["subject"] = 'Mail xác nhận thu hồi tool';
                 $mail_sent = $it_ncc_email;
                 $mail_class = SendConfirmMailTool::class;
+                break;
             case config('enum.update_type.ACCEPT_CHECKOUT'):
                 $data["is_confirm"] = 'đã xác nhận cấp phát';
                 $data["subject"] = 'Mail xác nhận cấp phát tool';
                 $mail_sent = $it_ncc_email;
                 $mail_class = SendConfirmMailTool::class;
+                break;
             case config('enum.update_type.REJECT_CHECKIN'):
                 $data['is_confirm'] = 'đã từ chối thu hồi';
                 $data["subject"] = 'Mail từ chối thu hồi tool';
                 $data['reason'] = 'Lý do: ' . $request_reason;
                 $mail_sent = $it_ncc_email;
                 $mail_class = SendConfirmMailTool::class;
+                break;
             case config("enum.update_type.REJECT_CHECKOUT"):
                 $data['is_confirm'] = 'đã từ chối nhận';
                 $data["subject"] = 'Mail từ chối nhận tool';
                 $data['reason'] = 'Lý do: ' . $request_reason;
                 $mail_sent = $it_ncc_email;
                 $mail_class = SendConfirmMailTool::class;
+                break;
         }
 
         $mail_class::dispatch($data, $mail_sent);
