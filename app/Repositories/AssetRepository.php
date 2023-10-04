@@ -163,6 +163,10 @@ class AssetRepository
             $assets = $assets->where('created_at', '<=', $to);
         }
 
+        if (Arr::exists($data, 'rtd_location_id')) {
+            $assets->where('assets.rtd_location_id', '=', $data['rtd_location_id']);
+        }
+
         $assets = $assets->where('assets.is_external', '=', $is_external);
 
         if (Arr::exists($filter, 'order_number')) {
