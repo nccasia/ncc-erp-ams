@@ -92,7 +92,7 @@ class Handler extends ExceptionHandler
             }
         }
 
-        if ($e instanceof TaskReturnError) {
+        if ($e instanceof SystemException) {
             $messages = json_decode($e->getMessage()) ?? $e->getMessage();
             return response()->json(
                 Helper::formatStandardApiResponse(

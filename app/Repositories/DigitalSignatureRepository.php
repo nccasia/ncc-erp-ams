@@ -2,8 +2,9 @@
 
 namespace App\Repositories;
 
-use App\Exceptions\TaskReturnError;
+use App\Exceptions\SystemException;
 use App\Helpers\DateFormatter;
+use App\Helpers\FilterHelper;
 use App\Models\DigitalSignatures;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
@@ -89,7 +90,7 @@ class DigitalSignatureRepository
         $digitalSignatures->fill($request);
 
         if (!$digitalSignatures->save()) {
-            throw new TaskReturnError('error', null, $digitalSignatures->getErrors(), Response::HTTP_BAD_REQUEST);
+            throw new SystemException('error', null, $digitalSignatures->getErrors(), Response::HTTP_BAD_REQUEST);
         }
         return $digitalSignatures;
     }
@@ -139,7 +140,7 @@ class DigitalSignatureRepository
         }
 
         if (!$digitalSignature->save()) {
-            throw new TaskReturnError('error', null, $digitalSignature->getErrors(), Response::HTTP_BAD_REQUEST);
+            throw new SystemException('error', null, $digitalSignature->getErrors(), Response::HTTP_BAD_REQUEST);
         }
         return $digitalSignature;
     }
@@ -149,7 +150,7 @@ class DigitalSignatureRepository
         $digitalSignature = DigitalSignatures::findOrFail($id);
         $res = $digitalSignature->delete();
         if(!$res) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error', 
                 null, 
                 trans('admin/tools/message.does_not_exist'), 
@@ -241,7 +242,7 @@ class DigitalSignatureRepository
             ? $limit = $request['limit']
             : $limit = config('app.max_results');
 
-        $order = $request['order'] === 'asc' ? 'asc' : 'desc';
+        $order = FilterHelper::getOrder($request);
         $sort = $request['sort'];
 
         $default_sort = in_array($sort, $allowed_columns)

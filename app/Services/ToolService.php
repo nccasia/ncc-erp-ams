@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\TaskReturnError;
+use App\Exceptions\SystemException;
 use App\Repositories\ToolRepository;
 use App\Models\Setting;
 use Carbon\Carbon;
@@ -90,7 +90,7 @@ class ToolService
     {
         $tool = $this->toolRepository->getToolOrFailById($tool_id);
         if (!$tool->availableForCheckout()) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 null,
                 trans('admin/tools/message.checkout.not_available'),
@@ -103,7 +103,7 @@ class ToolService
         $tool->status_id = config('enum.status_id.ASSIGN');
         if (!$tool->checkOut($target, $checkout_date, $tool->name, config('enum.assigned_status.WAITINGCHECKOUT'), $note)) {
 
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 null,
                 $tool->getErrors(),
@@ -118,7 +118,7 @@ class ToolService
     {
         $tool = $this->toolRepository->getToolOrFailById($tool_id);
         if (is_null($target = $tool->assigned_to)) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 ['name' => e($tool->name)],
                 trans('admin/tools/message.checkin.already_checked_in'),
@@ -126,7 +126,7 @@ class ToolService
             );
         }
         if (!$tool->availableForCheckin()) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 ['tool' => e($tool->name)],
                 trans('admin/tools/message.checkin.not_available'),
@@ -139,7 +139,7 @@ class ToolService
         $target = $this->userRepository->getUserById($tool->assigned_to);
 
         if (!$tool->checkIn($target, $checkin_date, $tool->name, config('enum.assigned_status.WAITINGCHECKIN'), $note)) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 null,
                 $tool->getErrors(),

@@ -2,8 +2,9 @@
 
 namespace App\Repositories;
 
-use App\Exceptions\TaskReturnError;
+use App\Exceptions\SystemException;
 use App\Helpers\DateFormatter;
+use App\Helpers\FilterHelper;
 use App\Models\Tool;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
@@ -95,7 +96,7 @@ class ToolRepository
         $tool->fill($data);
 
         if (!$tool->save()) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 null,
                 $tool->getErrors(),
@@ -143,7 +144,7 @@ class ToolRepository
         }
 
         if (!$tool->save()) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 null,
                 $tool->getErrors(),
@@ -159,7 +160,7 @@ class ToolRepository
 
         $res = $tool->delete();
         if(!$res) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error', 
                 null, 
                 trans('admin/tools/message.does_not_exist'), 
@@ -252,11 +253,7 @@ class ToolRepository
             ? $limit = $request['limit']
             : $limit = config('app.max_results');
 
-        if (Arr::exists($request,'order')) {
-            $order = $request['order'] === 'asc' ? 'asc' : 'desc';
-        } else {
-            $order = 'asc';
-        }
+        $order = FilterHelper::getOrder($request);
         
 
         $sort = $request['sort'] ?? 'id';

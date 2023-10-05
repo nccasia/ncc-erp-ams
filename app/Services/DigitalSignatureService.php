@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Exceptions\TaskReturnError;
+use App\Exceptions\SystemException;
 use App\Jobs\SendCheckinMailDigitalSignature;
 use App\Jobs\SendCheckoutMailDigitalSignature;
 use App\Jobs\SendConfirmCheckinMail;
@@ -94,7 +94,7 @@ class DigitalSignatureService
     {
         $digitalSignature = $this->digitalSignatureRepository->getDigitalSignatureById($digital_signature_id);
         if (!$digitalSignature->availableForCheckout()) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 ["digital_signature" => $digitalSignature->seri],
                 trans('admin/digital_signatures/message.checkout.not_available'),
@@ -106,7 +106,7 @@ class DigitalSignatureService
         $checkout_date = $request['checkout_date'];
         $digitalSignature->status_id = config('enum.status_id.ASSIGN');
         if (!$digitalSignature->checkOut($target, $checkout_date, $note, $digitalSignature->name, config('enum.assigned_status.WAITINGCHECKOUT'))) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 null,
                 trans('admin/digital_signatures/message.checkout.error'),
@@ -121,7 +121,7 @@ class DigitalSignatureService
     {
         $signature = $this->digitalSignatureRepository->getDigitalSignatureById($signature_id);
         if (is_null($target = $signature->assigned_to)) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 ['signature' => e($signature->seri)],
                 trans('admin/digital_signatures/message.checkin.already_checked_in'),
@@ -129,7 +129,7 @@ class DigitalSignatureService
             );
         }
         if (!$signature->availableForCheckin()) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 ['signature' => e($signature->seri)],
                 trans('admin/digital_signatures/message.checkin.not_available'),
@@ -142,7 +142,7 @@ class DigitalSignatureService
         $target = $this->userRepository->getUserById($signature->assigned_to);
 
         if (!$signature->checkIn($target, $checkin_date, $note, $signature->name, config('enum.assigned_status.WAITINGCHECKIN'))) {
-            throw new TaskReturnError(
+            throw new SystemException(
                 'error',
                 null,
                 trans('admin/digital_signatures/message.checkin.error'),
