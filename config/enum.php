@@ -36,4 +36,15 @@ return [
     "NOT_ACTIVE" => 0,
     "ASSIGN" => 1
   ],
+  "update_type" => [
+    "DEFAULT" => 0,
+    "ACCEPT_CHECKOUT" => 1,
+    "ACCEPT_CHECKIN" => 2,
+    "REJECT_CHECKOUT" => 3,
+    "REJECT_CHECKIN" => 4
+  ],
+  "mail_type" => [
+    "CHECKIN" => "checkin",
+    "CHECKOUT" => "checkout"
+  ]
 ];

@@ -92,6 +92,18 @@ class Handler extends ExceptionHandler
             }
         }
 
+        if ($e instanceof SystemException) {
+            $messages = json_decode($e->getMessage()) ?? $e->getMessage();
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    $e->getStatus(),
+                    $e->getPayload(),
+                    $messages
+                ),
+                $e->getStatusCode()
+            );
+        }
+
         if ($this->isHttpException($e) && (isset($statusCode)) && ($statusCode == '404')) {
             return response()->view('layouts/basic', [
                 'content' => view('errors/404')

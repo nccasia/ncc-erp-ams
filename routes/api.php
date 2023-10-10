@@ -1516,8 +1516,9 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:' . config('ap
         Route::post('/checkout', [Api\DigitalSignaturesController::class, 'multiCheckout'])->name('api.digital_signatures.multiCheckout');
         Route::post('/{id}/checkin', [Api\DigitalSignaturesController::class, 'checkIn'])->name('api.digital_signatures.checkIn');
         Route::post('/checkin', [Api\DigitalSignaturesController::class, 'multiCheckin'])->name('api.digital_signatures.multiCheckin');
-        Route::put('', [Api\DigitalSignaturesController::class, 'multiUpdate'])->name('api.digital_signatures.multiUpdate');
-        Route::get('/total-detail', [Api\DigitalSignaturesController::class, 'getTotalDetail'])->name('api.digital_signatures.totalDetail');
+        Route::put('',[Api\DigitalSignaturesController::class,'multiUpdate'])->name('api.digital_signatures.multiUpdate');
+        Route::get('/total-detail',[Api\DigitalSignaturesController::class,'getTotalDetail'])->name('api.digital_signatures.totalDetail');
+        Route::get('/assign', [Api\DigitalSignaturesController::class, 'assign'])->name('api.digital_signatures.assign');
     });
 
     Route::group(['prefix' => 'client-hardware'], function () {
