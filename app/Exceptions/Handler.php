@@ -110,6 +110,14 @@ class Handler extends ExceptionHandler
             ], $statusCode);
         }
 
+        if ($e instanceof AssetException) {
+            return response()->json(Helper::formatStandardApiResponse(
+                $e->getStatus(),
+                $e->getPayload(),
+                $e->getMessage(),
+            ), $e->getStatusCode());
+        }
+
         return parent::render($request, $e);
     }
 
