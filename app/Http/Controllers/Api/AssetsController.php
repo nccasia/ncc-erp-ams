@@ -229,6 +229,7 @@ class AssetsController extends Controller
         $this->authorize('index', Asset::class);
 
         $assets = Company::scopeCompanyables(Asset::select('assets.*'), 'company_id', 'assets');
+
         $assets = $this->filters($assets, $request);
 
         $total_asset_by_model = $assets->selectRaw('c.name as category_name , count(*) as total')
@@ -359,6 +360,8 @@ class AssetsController extends Controller
             $to = Carbon::createFromFormat('Y-m-d', $request->to)->endOfDay()->toDateTimeString();
             $assets = $assets->where('created_at', '<=', $to);
         }
+
+        $assets = $assets->where('assets.is_external', '=', false);
 
         return $assets;
     }
@@ -512,6 +515,8 @@ class AssetsController extends Controller
         if ($request->filled('depreciation_id')) {
             $assets->ByDepreciationId($request->input('depreciation_id'));
         }
+
+        $assets = $assets->where('assets.is_external', '=', false);
 
         $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
 
@@ -1005,6 +1010,8 @@ class AssetsController extends Controller
         if ($request->filled('assetStatusType') && $request->input('assetStatusType') === 'RTD') {
             $assets = $assets->RTD();
         }
+
+        $assets = $assets->where('assets.is_external', '=', false);
 
         if ($request->filled('search')) {
             $assets = $assets->AssignedSearch($request->input('search'));
