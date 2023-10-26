@@ -130,8 +130,8 @@ class ApiModelsCest
         $I->assertEquals($temp_assetmodel->name, $response->payload->name); // assetmodel name updated
 
         // Some necessary manual copying
-        $temp_assetmodel->created_at = Carbon::parse($response->payload->created_at);
-        $temp_assetmodel->updated_at = Carbon::parse($response->payload->updated_at);
+        $temp_assetmodel->created_at = $response->payload->created_at;
+        $temp_assetmodel->updated_at = $response->payload->updated_at;
         $temp_assetmodel->id = $assetmodel->id;
         // verify
         $I->sendGET('/models/'.$assetmodel->id);

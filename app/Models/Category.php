@@ -97,7 +97,7 @@ class Category extends SnipeModel
     public function isDeletable()
     {
         return Gate::allows('delete', $this)
-                && ($this->itemCount() == 0);
+            && ($this->itemCount() == 0);
     }
 
     /**
@@ -178,6 +178,10 @@ class Category extends SnipeModel
                 return $this->consumables()->count();
             case 'license':
                 return $this->licenses()->count();
+            case 'tool':
+                return $this->tools()->count();
+            case 'taxtoken':
+                return $this->digital_signatures()->count();
         }
 
         return '0';

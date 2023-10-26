@@ -106,8 +106,8 @@ class ApiLocationsCest
         $I->assertEquals($temp_location->name, $response->payload->name); // location name updated
 
         // Some necessary manual copying
-        $temp_location->created_at = Carbon::parse($response->payload->created_at->datetime);
-        $temp_location->updated_at = Carbon::parse($response->payload->updated_at->datetime);
+        $temp_location->created_at = $response->payload->created_at->datetime;
+        $temp_location->updated_at = $response->payload->updated_at->datetime;
         $temp_location->id = $location->id;
 
         // verify

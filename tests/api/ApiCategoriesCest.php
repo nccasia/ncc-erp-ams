@@ -104,8 +104,8 @@ class ApiCategoriesCest
         $I->assertEquals($category->id, $response->payload->id); // category id does not change
         $I->assertEquals($temp_category->name, $response->payload->name); // category name updated
         // Some manual copying to compare against
-        $temp_category->created_at = Carbon::parse($response->payload->created_at);
-        $temp_category->updated_at = Carbon::parse($response->payload->updated_at);
+        $temp_category->created_at = $response->payload->created_at;
+        $temp_category->updated_at = $response->payload->updated_at;
         $temp_category->id = $category->id;
 
         // verify

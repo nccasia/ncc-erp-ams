@@ -218,8 +218,8 @@ class ApiAccessoriesCest
         $I->assertEquals($temp_accessory->company_id, $response->payload->company_id); // company_id updated
         $I->assertEquals($temp_accessory->name, $response->payload->name); // accessory name updated
         $I->assertEquals($temp_accessory->location_id, $response->payload->location_id); // accessory location_id updated
-        $temp_accessory->created_at = Carbon::parse($response->payload->created_at);
-        $temp_accessory->updated_at = Carbon::parse($response->payload->updated_at);
+        $temp_accessory->created_at = $response->payload->created_at;
+        $temp_accessory->updated_at = $response->payload->updated_at;
         $temp_accessory->id = $accessory->id;
         // verify
         $I->sendGET('/accessories/accessories/' . $accessory->id);

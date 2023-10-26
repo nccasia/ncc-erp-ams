@@ -190,8 +190,8 @@ class ApiUsersCest
         $I->assertEquals($temp_user->location_id, $response->payload->location->id); // user location_id updated
         $newUser = User::where('username', $temp_user->username)->first();
         $I->assertEquals($groups, $newUser->groups()->pluck('id')->toArray());
-        $temp_user->created_at = Carbon::parse($response->payload->created_at->datetime);
-        $temp_user->updated_at = Carbon::parse($response->payload->updated_at->datetime);
+        $temp_user->created_at = $response->payload->created_at->datetime;
+        $temp_user->updated_at = $response->payload->updated_at->datetime;
         $temp_user->id = $user->id;
         // verify
         $I->sendGET('/users/'.$user->id);

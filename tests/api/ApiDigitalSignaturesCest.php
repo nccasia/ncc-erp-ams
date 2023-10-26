@@ -102,7 +102,9 @@ class ApiDigitalSignaturesCest
     {
         $I->wantTo('Get digital signature by id');
 
-        $digital_signature = DigitalSignatures::factory()->create();
+        $digital_signature = DigitalSignatures::factory()->create([
+            'name' => '123'
+        ]);
 
         $I->sendGet('/digital_signatures/' . $digital_signature->id);
         $I->seeResponseIsJson();
@@ -285,7 +287,9 @@ class ApiDigitalSignaturesCest
         $I->wantTo('Delete a digital singature');
 
         // create
-        $digital_signature = DigitalSignatures::factory()->create();
+        $digital_signature = DigitalSignatures::factory()->create([
+            'name' => "234"
+        ]);
         $I->assertInstanceOf(DigitalSignatures::class, $digital_signature);
 
         // delete
@@ -350,7 +354,7 @@ class ApiDigitalSignaturesCest
         $I->assertEquals('error', $response->status);
         $I->assertEquals($messages, $response->messages);
         $I->seeResponseContainsJson([
-            'signature' => $digital_signature_not_checkoutable->seri
+            'digital_signature' => $digital_signature_not_checkoutable->seri
         ]);
 
         $digital_signature_target_not_available = $this->digitalSignatureFactory();
