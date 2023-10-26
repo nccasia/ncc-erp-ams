@@ -23,10 +23,11 @@ class ApiToolCest
         $I->haveHttpHeader('Content-Type', 'application/json');
     }
 
-    protected function createATool($assigned_status = 0, $assigned_to = null, $assigned_type = null, $status_id = 5, $withdraw_from = null,)
+    protected function createATool($name = "default", $assigned_status = 0, $assigned_to = null, $assigned_type = null, $status_id = 5, $withdraw_from = null)
     {
         return
             Tool::factory()->create([
+                'name' => $name,
                 'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
                 'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years', date_default_timezone_get())->format('Y-m-d H:i:s'),
                 'assigned_status' => $assigned_status,
@@ -169,7 +170,7 @@ class ApiToolCest
 
         //set up data
         $data =  [
-            'name' => $this->faker->name(),
+            'name' => "toool",
             'supplier_id' => Supplier::factory()->create()->id,
             'user_id' => User::factory()->create()->id,
             'assigned_status' => 0,
@@ -199,7 +200,7 @@ class ApiToolCest
         $I->wantTo('Update a tool with PUT');
 
         // create
-        $tool = $this->createATool();
+        $tool = $this->createATool("123");
         $I->assertInstanceOf(Tool::class, $tool);
 
         $data = [
@@ -233,7 +234,7 @@ class ApiToolCest
     {
         $I->wantTo('Delete a tool');
         // create
-        $tool = $this->createATool();
+        $tool = $this->createATool("234");
         $I->assertInstanceOf(Tool::class, $tool);
 
         $I->sendDELETE('/tools/' . $tool->id);
@@ -251,9 +252,9 @@ class ApiToolCest
         $I->wantTo('checkout tool');
 
         //prepare data
-        $toolPrepareCheckout = $this->createATool();
+        $toolPrepareCheckout = $this->createATool("312");
         $user = User::factory()->create();
-        $toolCheckedout = $this->createATool(0, $user->id);
+        $toolCheckedout = $this->createATool("412", 0, $user->id);
 
         //Scenario: tool checked out before
         $I->sendPost("/tools/{$toolCheckedout->id}/checkout", [
@@ -287,8 +288,8 @@ class ApiToolCest
         $I->wantTo('checkout multiple tool');
 
         $user = User::factory()->create();
-        $tool1 = $this->createATool();
-        $tool2 = $this->createATool();
+        $tool1 = $this->createATool("512");
+        $tool2 = $this->createATool("612");
 
         $I->sendPOST('/tools/multicheckout', [
             'assigned_to' => $user->id,
@@ -316,6 +317,7 @@ class ApiToolCest
 
         //Accept checkout
         $toolCheckedoutApprove = $this->createATool(
+            "712",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
@@ -332,6 +334,7 @@ class ApiToolCest
 
         //Decline checkout
         $toolCheckedoutDecline = $this->createATool(
+            "812",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
@@ -359,11 +362,13 @@ class ApiToolCest
 
         //Approve
         $toolCheckedoutApprove1 = $this->createATool(
+            "912",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
         );
         $toolCheckedoutApprove2 = $this->createATool(
+            "1012",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
@@ -384,11 +389,13 @@ class ApiToolCest
 
         //Decline
         $toolCheckedoutDecline1 = $this->createATool(
+            "1112",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
         );
         $toolCheckedoutDecline2 = $this->createATool(
+            "1212",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
@@ -421,6 +428,7 @@ class ApiToolCest
 
         //Invalid Checkin
         $toolInvalidCheckin = $this->createATool(
+            "1312",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User',
@@ -435,6 +443,7 @@ class ApiToolCest
 
         //Valid Checkin
         $toolValidCheckin = $this->createATool(
+            "1412",
             config("enum.assigned_status.ACCEPT"),
             $user->id,
             'App\Models\User',
@@ -454,6 +463,7 @@ class ApiToolCest
         $user = User::factory()->create();
 
         $toolCheckin1 = $this->createATool(
+            "1512",
             config("enum.assigned_status.ACCEPT"),
             $user->id,
             'App\Models\User',
@@ -461,6 +471,7 @@ class ApiToolCest
             $user->id
         );
         $toolCheckin2 = $this->createATool(
+            "1612",
             config("enum.assigned_status.ACCEPT"),
             $user->id,
             'App\Models\User',
@@ -489,6 +500,7 @@ class ApiToolCest
 
         //Accept Checkin
         $toolAcceptCheckin = $this->createATool(
+            "1712",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',
@@ -507,6 +519,7 @@ class ApiToolCest
 
         //Decline checkin
         $toolDeclineCheckin = $this->createATool(
+            "1812",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',
@@ -534,6 +547,7 @@ class ApiToolCest
         $user = User::factory()->create();
         //Accept Checkin
         $toolAcceptCheckin1 = $this->createATool(
+            "1912",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',
@@ -541,6 +555,7 @@ class ApiToolCest
             $user->id
         );
         $toolAcceptCheckin2 = $this->createATool(
+            "2012",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',
@@ -564,6 +579,7 @@ class ApiToolCest
 
         //Decline multiple tools
         $toolDeclineCheckin1 = $this->createATool(
+            "2112",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',
@@ -571,6 +587,7 @@ class ApiToolCest
             $user->id
         );
         $toolDeclineCheckin2 = $this->createATool(
+            "2212",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',

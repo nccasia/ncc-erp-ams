@@ -116,8 +116,8 @@ class ApiComponentsCest
         $I->assertEquals($temp_component->company_id, $response->payload->company_id); // company_id updated
         $I->assertEquals($temp_component->name, $response->payload->name); // component name updated
         $I->assertEquals($temp_component->location_id, $response->payload->location_id); // component location_id updated
-        $temp_component->created_at = Carbon::parse($response->payload->created_at);
-        $temp_component->updated_at = Carbon::parse($response->payload->updated_at);
+        $temp_component->created_at = $response->payload->created_at;
+        $temp_component->updated_at = $response->payload->updated_at;
         $temp_component->id = $component->id;
         // verify
         $I->sendGET('/components/'.$component->id);
