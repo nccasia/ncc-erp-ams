@@ -93,8 +93,8 @@ class ApiCompaniesCest
         $I->assertEquals($company->id, $response->payload->id); // company id does not change
         $I->assertEquals($temp_company->name, $response->payload->name); // company name updated
         // Some manual copying to compare against
-        $temp_company->created_at = Carbon::parse($response->payload->created_at->datetime);
-        $temp_company->updated_at = Carbon::parse($response->payload->updated_at->datetime);
+        $temp_company->created_at = $response->payload->created_at->datetime;
+        $temp_company->updated_at = $response->payload->updated_at->datetime;
         $temp_company->id = $company->id;
 
         // verify
