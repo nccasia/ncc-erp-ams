@@ -87,15 +87,15 @@ class Location extends SnipeModel
      * @var array
      */
     protected $searchableRelations = [
-      'parent' => ['name'],
+        'parent' => ['name'],
     ];
 
     public function isDeletable()
     {
         return Gate::allows('delete', $this)
-                && ($this->assignedAssets()->count() === 0)
-                && ($this->assets()->count() === 0)
-                && ($this->users()->count() === 0);
+            && ($this->assignedAssets()->count() === 0)
+            && ($this->assets()->count() === 0)
+            && ($this->users()->count() === 0);
     }
 
     public function users()
@@ -108,8 +108,8 @@ class Location extends SnipeModel
         return $this->hasMany(\App\Models\Asset::class, 'location_id')
             ->whereHas('assetstatus', function ($query) {
                 $query->where('status_labels.deployable', '=', 1)
-                        ->orWhere('status_labels.pending', '=', 1)
-                        ->orWhere('status_labels.archived', '=', 0);
+                    ->orWhere('status_labels.pending', '=', 1)
+                    ->orWhere('status_labels.archived', '=', 0);
             });
     }
 
@@ -126,7 +126,7 @@ class Location extends SnipeModel
            In all likelyhood, we need to denorm an "effective_location" column
            into Assets to make this slightly less miserable.
         */
-        return $this->hasMany(\App\Models\Asset::class, 'rtd_location_id');
+        return $this->hasMany(\App\Models\Asset::class, 'rtd_location_id')->where('assets.is_external', '=', false);
     }
 
     public function rtd_consumables()
@@ -141,12 +141,17 @@ class Location extends SnipeModel
 
     public function rtd_tools()
     {
-        return $this->hasMany(Tool::class,'location_id');
+        return $this->hasMany(Tool::class, 'location_id');
     }
 
     public function rtd_digital_signatures()
     {
-        return $this->hasMany(DigitalSignatures::class,'location_id');
+        return $this->hasMany(DigitalSignatures::class, 'location_id');
+    }
+
+    public function rtd_client_assets()
+    {
+        return $this->hasMany(\App\Models\Asset::class, 'rtd_location_id')->where('assets.is_external', '=', true);
     }
 
     public function parent()
@@ -189,17 +194,17 @@ class Location extends SnipeModel
     {
         $results = [];
 
-        if (! array_key_exists($parent_id, $locations_with_children)) {
+        if (!array_key_exists($parent_id, $locations_with_children)) {
             return [];
         }
 
         foreach ($locations_with_children[$parent_id] as $location) {
-            $location->use_text = $prefix.' '.$location->name;
-            $location->use_image = ($location->image) ? url('/').'/uploads/locations/'.$location->image : null;
+            $location->use_text = $prefix . ' ' . $location->name;
+            $location->use_image = ($location->image) ? url('/') . '/uploads/locations/' . $location->image : null;
             $results[] = $location;
             //now append the children. (if we have any)
             if (array_key_exists($location->id, $locations_with_children)) {
-                $results = array_merge($results, self::indenter($locations_with_children, $location->id, $prefix.'--'));
+                $results = array_merge($results, self::indenter($locations_with_children, $location->id, $prefix . '--'));
             }
         }
 

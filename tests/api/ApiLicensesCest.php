@@ -165,8 +165,8 @@ class ApiLicensesCest
         $I->assertEquals(trans('admin/licenses/message.update.success'), $response->messages);
         $I->assertEquals($license->id, $response->payload->id); // license id does not change
         $I->assertEquals($temp_license->name, $response->payload->name); // license name
-        $temp_license->created_at = Carbon::parse($response->payload->created_at);
-        $temp_license->updated_at = Carbon::parse($response->payload->updated_at);
+        $temp_license->created_at = $response->payload->created_at;
+        $temp_license->updated_at = $response->payload->updated_at;
         $temp_license->id = $license->id;
         // verify
         $I->sendGET('/licenses/'.$license->id);

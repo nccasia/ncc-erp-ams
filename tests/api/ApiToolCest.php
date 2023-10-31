@@ -7,6 +7,7 @@ use App\Models\Supplier;
 use App\Models\Tool;
 use App\Models\User;
 use Faker\Factory;
+use Carbon\Carbon;
 
 class ApiToolCest
 {
@@ -22,12 +23,13 @@ class ApiToolCest
         $I->haveHttpHeader('Content-Type', 'application/json');
     }
 
-    protected function createATool($assigned_status = 0, $assigned_to = null, $assigned_type = null, $status_id = 5, $withdraw_from = null, )
+    protected function createATool($name = "default", $assigned_status = 0, $assigned_to = null, $assigned_type = null, $status_id = 5, $withdraw_from = null)
     {
         return
             Tool::factory()->create([
+                'name' => $name,
                 'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
-                'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years' ,date_default_timezone_get())->format('Y-m-d H:i:s'),
+                'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years', date_default_timezone_get())->format('Y-m-d H:i:s'),
                 'assigned_status' => $assigned_status,
                 'assigned_to' => $assigned_to,
                 'assigned_type' => $assigned_type,
@@ -42,6 +44,24 @@ class ApiToolCest
         $I->wantTo('Get a list of tools');
         // call
         $I->sendGET('/tools?limit=10&offset=0&order=desc&sort=id');
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
+    public function totalDetailTools(ApiTester $I)
+    {
+        $I->wantTo('Get total detail for tools index');
+
+        $filter = '?limit=10&offset=0&order=desc&sort=id'
+            . '&assigned_status[0]=' . config('enum.assigned_status.DEFAULT')
+            . '&status_label[0]=' . config('enum.status_id.READY_TO_DEPLOY')
+            . '&purchaseDateFrom=' . Carbon::now()->subDays(5)
+            . '&purchaseDateTo=' . Carbon::now()->addDays(5)
+            . '&expirationDateFrom=' . Carbon::now()->subMonths(2)
+            . '&expirationDateTo=' . Carbon::now()->addMonths(2)
+            . '&supplier=' . Supplier::all()->random(1)->first()->id
+            . '&search=' . 'Token';
+        $I->sendGET('/tools/total-detail' . $filter);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
     }
@@ -68,7 +88,7 @@ class ApiToolCest
         }
 
         $response = json_decode($I->grabResponse());
-        if($response->total) {
+        if ($response->total) {
             $stringToCheckWaitingCheckin = '"assigned_status:"' . config("enum.assigned_status.WAITINGCHECKIN");
             $stringToCheckWaitingCheckout = '"assigned_status:"' . config("enum.assigned_status.WAITINGCHECKOUT");
             $I->assertStringContainsString(
@@ -90,7 +110,7 @@ class ApiToolCest
     public function sortToolByColumn(ApiTester $I)
     {
         $I->wantTo('Sort Tool By Column');
-        
+
         //Sort by assigned to
         $this->sort($I, 'assigned_to', 'desc');
 
@@ -127,7 +147,7 @@ class ApiToolCest
 
         //Filter By Status_label
         $this->filter($I, 'status_label', config("enum.status_id.ASSIGN"));
-            
+
         //Filter By Supplier_id
         $this->filter($I, 'supplier_id', Supplier::factory()->create()->id);
 
@@ -147,16 +167,16 @@ class ApiToolCest
     public function createTool(ApiTester $I)
     {
         $I->wantTo('Create a new Tool');
-        
+
         //set up data
         $data =  [
-            'name' => $this->faker->name(),
+            'name' => "toool",
             'supplier_id' => Supplier::factory()->create()->id,
             'user_id' => User::factory()->create()->id,
             'assigned_status' => 0,
             'assigned_to' => null,
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
-            'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years' ,date_default_timezone_get())->format('Y-m-d H:i:s'),
+            'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years', date_default_timezone_get())->format('Y-m-d H:i:s'),
             'purchase_cost' => $this->faker->randomFloat(2, '299.99', '2999.99'),
             'notes'   => 'Created by DB seeder',
             'status_id' => 5,
@@ -169,7 +189,7 @@ class ApiToolCest
         $I->sendPOST('/tools', $data);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
-        
+
         $response = json_decode($I->grabResponse());
         $I->assertEquals($data['name'], $response->payload->name);
         $I->assertEquals($data['purchase_cost'], $response->payload->purchase_cost);
@@ -180,7 +200,7 @@ class ApiToolCest
         $I->wantTo('Update a tool with PUT');
 
         // create
-        $tool = $this->createATool();
+        $tool = $this->createATool("123");
         $I->assertInstanceOf(Tool::class, $tool);
 
         $data = [
@@ -190,7 +210,7 @@ class ApiToolCest
             'assigned_status' => 0,
             'assigned_to' => null,
             'purchase_date' => $this->faker->dateTimeBetween('-1 years', 'now', date_default_timezone_get())->format('Y-m-d H:i:s'),
-            'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years' ,date_default_timezone_get())->format('Y-m-d H:i:s'),
+            'expiration_date' => $this->faker->dateTimeBetween('+1 days', '+30 years', date_default_timezone_get())->format('Y-m-d H:i:s'),
             'purchase_cost' => $this->faker->randomFloat(2, '299.99', '2999.99'),
             'notes'   => 'Created by DB seeder',
             'status_id' => 5,
@@ -198,9 +218,9 @@ class ApiToolCest
             'qty' => $this->faker->numberBetween(5, 10),
             'location_id' => Location::factory()->create()->id,
         ];
-        
 
-        $I->sendPut('/tools/'.$tool->id, $data);
+
+        $I->sendPut('/tools/' . $tool->id, $data);
 
         $response = json_decode($I->grabResponse());
         $I->assertEquals('Updated Tool name', $response->payload->name);
@@ -209,16 +229,15 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
-
     }
     public function deleteTool(ApiTester $I)
     {
         $I->wantTo('Delete a tool');
         // create
-        $tool = $this->createATool();
+        $tool = $this->createATool("234");
         $I->assertInstanceOf(Tool::class, $tool);
 
-        $I->sendDELETE('/tools/'.$tool->id);
+        $I->sendDELETE('/tools/' . $tool->id);
         $I->seeResponseIsJson();
         $I->seeResponseCodeIs(200);
 
@@ -231,14 +250,14 @@ class ApiToolCest
     public function checkoutTool(ApiTester $I)
     {
         $I->wantTo('checkout tool');
-        
+
         //prepare data
-        $toolPrepareCheckout = $this->createATool();
+        $toolPrepareCheckout = $this->createATool("312");
         $user = User::factory()->create();
-        $toolCheckedout = $this->createATool(0, $user->id);
+        $toolCheckedout = $this->createATool("412", 0, $user->id);
 
         //Scenario: tool checked out before
-        $I->sendPost("/tools/{$toolCheckedout->id}/checkout",[
+        $I->sendPost("/tools/{$toolCheckedout->id}/checkout", [
             "assigned_to" => $user->id,
             "checkout_at" => "2023-08-07T15:10",
             "note" => "",
@@ -249,7 +268,7 @@ class ApiToolCest
         $I->assertNull($response->payload);
 
         //Scenario: checkout
-        $I->sendPost("/tools/{$toolPrepareCheckout->id}/checkout",[
+        $I->sendPost("/tools/{$toolPrepareCheckout->id}/checkout", [
             "assigned_to" => $user->id,
             "checkout_at" => "2023-08-07T15:10",
             "note" => "",
@@ -269,8 +288,8 @@ class ApiToolCest
         $I->wantTo('checkout multiple tool');
 
         $user = User::factory()->create();
-        $tool1 = $this->createATool();
-        $tool2 = $this->createATool();
+        $tool1 = $this->createATool("512");
+        $tool2 = $this->createATool("612");
 
         $I->sendPOST('/tools/multicheckout', [
             'assigned_to' => $user->id,
@@ -283,7 +302,7 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.checkout.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         $I->assertNull($response->payload);
-        
+
         //verify
         $tool1 = Tool::find($tool1->id);
         $tool2 = Tool::find($tool2->id);
@@ -298,10 +317,11 @@ class ApiToolCest
 
         //Accept checkout
         $toolCheckedoutApprove = $this->createATool(
+            "712",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
-        );       
+        );
 
         $I->sendPUT("/tools/{$toolCheckedoutApprove->id}", [
             'assigned_status' => config("enum.assigned_status.ACCEPT"),
@@ -314,6 +334,7 @@ class ApiToolCest
 
         //Decline checkout
         $toolCheckedoutDecline = $this->createATool(
+            "812",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
@@ -341,11 +362,13 @@ class ApiToolCest
 
         //Approve
         $toolCheckedoutApprove1 = $this->createATool(
+            "912",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
         );
         $toolCheckedoutApprove2 = $this->createATool(
+            "1012",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
@@ -360,17 +383,19 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         $I->assertStringContainsString(
-            $response->payload->name, 
+            $response->payload->name,
             $toolCheckedoutApprove1->name . $toolCheckedoutApprove2->name
         );
-        
+
         //Decline
         $toolCheckedoutDecline1 = $this->createATool(
+            "1112",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
         );
         $toolCheckedoutDecline2 = $this->createATool(
+            "1212",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User'
@@ -403,6 +428,7 @@ class ApiToolCest
 
         //Invalid Checkin
         $toolInvalidCheckin = $this->createATool(
+            "1312",
             config("enum.assigned_status.WAITINGCHECKOUT"),
             $user->id,
             'App\Models\User',
@@ -417,6 +443,7 @@ class ApiToolCest
 
         //Valid Checkin
         $toolValidCheckin = $this->createATool(
+            "1412",
             config("enum.assigned_status.ACCEPT"),
             $user->id,
             'App\Models\User',
@@ -436,6 +463,7 @@ class ApiToolCest
         $user = User::factory()->create();
 
         $toolCheckin1 = $this->createATool(
+            "1512",
             config("enum.assigned_status.ACCEPT"),
             $user->id,
             'App\Models\User',
@@ -443,13 +471,14 @@ class ApiToolCest
             $user->id
         );
         $toolCheckin2 = $this->createATool(
+            "1612",
             config("enum.assigned_status.ACCEPT"),
             $user->id,
             'App\Models\User',
             config("enum.status_id.ASSIGN"),
             $user->id
         );
-        
+
         $I->sendPOST("tools/multicheckin", [
             'assigned_user' => [$user->id, $user->id],
             'checkin_at' => "2023-08-08T13:17",
@@ -471,6 +500,7 @@ class ApiToolCest
 
         //Accept Checkin
         $toolAcceptCheckin = $this->createATool(
+            "1712",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',
@@ -482,20 +512,21 @@ class ApiToolCest
         $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
         $I->assertEquals('success', $response->status);
         $I->assertEquals(config("enum.assigned_status.DEFAULT"), $response->payload->assigned_status);
-        
+
         //verify accept checkin
         $toolAcceptCheckin = Tool::find($toolAcceptCheckin->id);
         $I->assertNull($toolAcceptCheckin->assigned_to);
 
         //Decline checkin
         $toolDeclineCheckin = $this->createATool(
+            "1812",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',
             config("enum.status_id.ASSIGN"),
             $user->id
         );
-        $I->sendPUT("/tools/{$toolDeclineCheckin->id}",[
+        $I->sendPUT("/tools/{$toolDeclineCheckin->id}", [
             'reason' => $this->faker->text(),
             'assigned_status' => config("enum.assigned_status.REJECT"),
         ]);
@@ -516,42 +547,15 @@ class ApiToolCest
         $user = User::factory()->create();
         //Accept Checkin
         $toolAcceptCheckin1 = $this->createATool(
+            "1912",
             config("enum.assigned_status.WAITINGCHECKIN"),
-            $user->id,'App\Models\User',
+            $user->id,
+            'App\Models\User',
             config("enum.status_id.ASSIGN"),
             $user->id
         );
         $toolAcceptCheckin2 = $this->createATool(
-            config("enum.assigned_status.WAITINGCHECKIN"),
-            $user->id,
-            'App\Models\User',
-            config("enum.status_id.ASSIGN"),
-            $user->id
-        );
-        
-        $I->sendPUT("/tools",[
-            'assigned_status' => config("enum.assigned_status.ACCEPT"),
-            'tools' => [$toolAcceptCheckin1->id, $toolAcceptCheckin2->id],
-        ]);
-        $response = json_decode($I->grabResponse());
-        $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
-        $I->assertEquals('success', $response->status);
-        
-        //verify approve success
-        $toolAcceptCheckin1 = Tool::find($toolAcceptCheckin1->id);
-        $toolAcceptCheckin2 = Tool::find($toolAcceptCheckin2->id);
-        $I->assertNull($toolAcceptCheckin1->assigned_to);
-        $I->assertNull($toolAcceptCheckin2->assigned_to);
-        
-        //Decline multiple tools
-        $toolDeclineCheckin1 = $this->createATool(
-            config("enum.assigned_status.WAITINGCHECKIN"),
-            $user->id,
-            'App\Models\User',
-            config("enum.status_id.ASSIGN"),
-            $user->id
-        );
-        $toolDeclineCheckin2 = $this->createATool(
+            "2012",
             config("enum.assigned_status.WAITINGCHECKIN"),
             $user->id,
             'App\Models\User',
@@ -559,7 +563,39 @@ class ApiToolCest
             $user->id
         );
 
-        $I->sendPUT("/tools",[
+        $I->sendPUT("/tools", [
+            'assigned_status' => config("enum.assigned_status.ACCEPT"),
+            'tools' => [$toolAcceptCheckin1->id, $toolAcceptCheckin2->id],
+        ]);
+        $response = json_decode($I->grabResponse());
+        $I->assertEquals(trans('admin/tools/message.update.success'), $response->messages);
+        $I->assertEquals('success', $response->status);
+
+        //verify approve success
+        $toolAcceptCheckin1 = Tool::find($toolAcceptCheckin1->id);
+        $toolAcceptCheckin2 = Tool::find($toolAcceptCheckin2->id);
+        $I->assertNull($toolAcceptCheckin1->assigned_to);
+        $I->assertNull($toolAcceptCheckin2->assigned_to);
+
+        //Decline multiple tools
+        $toolDeclineCheckin1 = $this->createATool(
+            "2112",
+            config("enum.assigned_status.WAITINGCHECKIN"),
+            $user->id,
+            'App\Models\User',
+            config("enum.status_id.ASSIGN"),
+            $user->id
+        );
+        $toolDeclineCheckin2 = $this->createATool(
+            "2212",
+            config("enum.assigned_status.WAITINGCHECKIN"),
+            $user->id,
+            'App\Models\User',
+            config("enum.status_id.ASSIGN"),
+            $user->id
+        );
+
+        $I->sendPUT("/tools", [
             'assigned_status' => config("enum.assigned_status.REJECT"),
             'tools' => [$toolDeclineCheckin1->id, $toolDeclineCheckin2->id],
         ]);

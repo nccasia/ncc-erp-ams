@@ -79,11 +79,32 @@ class ApiDigitalSignaturesCest
         $I->seeResponseCodeIs(200);
     }
 
+    public function totalDetailDigitalSingatures(ApiTester $I)
+    {
+        $I->wantTo('Get a list of digital signatures');
+
+        // call
+        $filter = '?limit=10&offset=0&order=desc&sort=id'
+            . '&assigned_status[0]=' . config('enum.assigned_status.DEFAULT')
+            . '&status_label[0]=' . config('enum.status_id.READY_TO_DEPLOY')
+            . '&purchaseDateFrom=' . Carbon::now()->subDays(5)
+            . '&purchaseDateTo=' . Carbon::now()->addDays(5)
+            . '&expirationDateFrom=' . Carbon::now()->subMonths(2)
+            . '&expirationDateTo=' . Carbon::now()->addMonths(2)
+            . '&supplier=' . Supplier::all()->random(1)->first()->id
+            . '&search=' . 'Token';
+        $I->sendGET('/digital_signatures/total-detail' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+    }
+
     public function getDigitalSignatureById(ApiTester $I)
     {
         $I->wantTo('Get digital signature by id');
 
-        $digital_signature = DigitalSignatures::factory()->create();
+        $digital_signature = DigitalSignatures::factory()->create([
+            'name' => '123'
+        ]);
 
         $I->sendGet('/digital_signatures/' . $digital_signature->id);
         $I->seeResponseIsJson();
@@ -266,7 +287,9 @@ class ApiDigitalSignaturesCest
         $I->wantTo('Delete a digital singature');
 
         // create
-        $digital_signature = DigitalSignatures::factory()->create();
+        $digital_signature = DigitalSignatures::factory()->create([
+            'name' => "234"
+        ]);
         $I->assertInstanceOf(DigitalSignatures::class, $digital_signature);
 
         // delete
@@ -331,7 +354,7 @@ class ApiDigitalSignaturesCest
         $I->assertEquals('error', $response->status);
         $I->assertEquals($messages, $response->messages);
         $I->seeResponseContainsJson([
-            'signature' => $digital_signature_not_checkoutable->seri
+            'digital_signature' => $digital_signature_not_checkoutable->seri
         ]);
 
         $digital_signature_target_not_available = $this->digitalSignatureFactory();

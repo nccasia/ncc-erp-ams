@@ -6,9 +6,11 @@ use App\Models\Category;
 use App\Models\Company;
 use App\Models\Consumable;
 use App\Models\Location;
+use App\Models\Supplier;
 use App\Models\User;
 use Faker\Factory;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ApiConsumablesCest
 {
@@ -40,6 +42,24 @@ class ApiConsumablesCest
         $consumable = Consumable::orderByDesc('created_at')->take(10)->get()->shuffle()->first();
 
         $I->seeResponseContainsJson($I->removeTimestamps((new ConsumablesTransformer)->transformConsumable($consumable)));
+    }
+
+    public function totalDetailAccessories(ApiTester $I)
+    {
+        $I->wantTo('Get total detail of consumables');
+
+        $filter = '?limit=10&offset=0&order=desc&sort=id'
+            . '&assigned_status[0]=' . config('enum.assigned_status.DEFAULT')
+            . '&status_label[0]=' . config('enum.status_id.READY_TO_DEPLOY')
+            . '&purchaseDateFrom=' . Carbon::now()->subDays(5)
+            . '&purchaseDateTo=' . Carbon::now()->addDays(5)
+            . '&expirationDateFrom=' . Carbon::now()->subMonths(2)
+            . '&expirationDateTo=' . Carbon::now()->addMonths(2)
+            . '&supplier=' . Supplier::all()->random(1)->first()->id
+            . '&search=' . 'Token';
+        $I->sendGET('/consumables/total-detail' . $filter);
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
     }
 
     protected function sort($I, $column, $order)
@@ -192,8 +212,8 @@ class ApiConsumablesCest
         $I->assertEquals($temp_consumable->company_id, $response->payload->company_id); // company_id updated
         $I->assertEquals($temp_consumable->name, $response->payload->name); // consumable name updated
         $I->assertEquals($temp_consumable->location_id, $response->payload->location_id); // consumable location_id updated
-        $temp_consumable->created_at = Carbon::parse($response->payload->created_at);
-        $temp_consumable->updated_at = Carbon::parse($response->payload->updated_at);
+        $temp_consumable->created_at = $response->payload->created_at;
+        $temp_consumable->updated_at = $response->payload->updated_at;
         $temp_consumable->id = $consumable->id;
         // verify
         $I->sendGET('/consumables/'.$consumable->id);

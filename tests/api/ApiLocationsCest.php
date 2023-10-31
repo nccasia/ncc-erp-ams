@@ -106,8 +106,8 @@ class ApiLocationsCest
         $I->assertEquals($temp_location->name, $response->payload->name); // location name updated
 
         // Some necessary manual copying
-        $temp_location->created_at = Carbon::parse($response->payload->created_at->datetime);
-        $temp_location->updated_at = Carbon::parse($response->payload->updated_at->datetime);
+        $temp_location->created_at = $response->payload->created_at->datetime;
+        $temp_location->updated_at = $response->payload->updated_at->datetime;
         $temp_location->id = $location->id;
 
         // verify
@@ -141,5 +141,18 @@ class ApiLocationsCest
         $I->sendGET('/locations/'.$location->id);
         $I->seeResponseCodeIs(200);
         $I->seeResponseIsJson();
+    }
+
+    public function getSelectListTest(ApiTester $I)
+    {
+        $I->wantTo("Test get select list");
+        $locations = Location::orderBy('name', 'ASC')->limit(10)->get();
+        // call
+        $I->sendGET('/locations/selectlist');     
+        $I->seeResponseIsJson();
+        $I->seeResponseCodeIs(200);
+        $I->seeResponseContainsJson([
+            "id" => $locations->pluck('id')->random(1)->first()
+        ]);
     }
 }
