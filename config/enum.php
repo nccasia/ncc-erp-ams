@@ -1,9 +1,16 @@
 <?php
 
 return [
-  "w2_request_type" => [
-    "DEVICE" => "Device Request",
-    "EQUIPMENT" => "Office Equipment Request",
+  "w2" => [
+    "request_type" => [
+      "DEVICE" => "Device Request",
+      "EQUIPMENT" => "Office Equipment Request",
+    ],
+    "request_status" => [
+      "PENDING" => 0,
+      "APPROVED" => 1,
+      "REJECTED"  => 2,
+    ],
   ],
   "request_status" => [
       "PENDING" => "Pending",

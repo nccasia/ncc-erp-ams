@@ -1,53 +1,50 @@
 <?php
 
 use App\Domains\W2\Services\W2Service;
+use App\Exceptions\W2Exception;
 use App\Http\Controllers\Api\W2Controller;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request as Psr7Request;
+use GuzzleHttp\Psr7\Response;
 use Mockery;
 use Psr\Http\Message\ResponseInterface;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ApiW2Cest
 {
     protected $mockApiHost;
     protected $client;
-    protected $fake_user = [];
+    protected $w2_secret_key;
 
     public function _before(ApiTester $I)
     {
-        $this->mockApiHost = getenv('W2_API');
+        $this->mockApiHost = getenv('W2_API') ?? "";
+        $this->w2_secret_key = getenv('W2_SECRET_KEY' ?? "");
         $this->client = new Client();
-        //todo
-        $this->fake_user = [
-            'userNameOrEmailAddress' => env("W2_USER", ""),
-            'password' => env("W2_USER_PASS", ""),
-            'rememberClient' => false
-        ];
+        Auth::shouldReceive('user')->andReturn((object) ['email' => 'test@example.com']);
     }
 
     public function testGetRequestList(ApiTester $I)
     {
-        //setting mock response
         $this->client = Mockery::mock(new Client());
         $expectedResponse = $this->setupExpectedResponse();
-
-        //Token
-        //todo
-        $mockedToken = $this->createMockResponse(json_encode($expectedResponse["tokenFake"]), 200);
-        $this->client->shouldReceive('post')
-            ->with($this->mockApiHost . "/getToken", [
-                'json' => $this->fake_user
-            ])
-            ->andReturn($mockedToken);
-
-        //Request List
-        //todo
         $mockedRequestList = $this->createMockResponse(json_encode($expectedResponse["requestListFake"]), 200);
-        $this->client->shouldReceive('get')
-            ->with($this->mockApiHost . "/requests/list-all", [
+
+        $this->client->shouldReceive("post")
+            ->with($this->mockApiHost . "/get-list-tasks-by-email", [
                 'headers' => [
-                    'Authorization' => 'Bearer ' . $expectedResponse["tokenFake"]["token"],
-                ]
+                    'X-Secret-Key' => $this->w2_secret_key,
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode([
+                    "MaxResultCount" => 10,
+                    "SkipCount" => 0,
+                    "Status" => [0, 1, 2],
+                    "RequestName" => ["Device Request"],
+                    "Email" => "test@example.com"
+                ])
             ])
             ->andReturn($mockedRequestList);
 
@@ -64,9 +61,167 @@ class ApiW2Cest
         $I->assertStringContainsString('"userRequestName":"Le Van A"', $response);
         $I->assertStringContainsString('"userRequestName":"Nguyen Van B"', $response);
         $I->assertStringNotContainsString('"userRequestName":"Doan Thi C"', $response);
-        $I->assertStringContainsString('"type":"' . config("enum.w2_request_type.DEVICE") . '"', $response);
-        $I->assertStringContainsString('"type":"' . config("enum.w2_request_type.EQUIPMENT") . '"', $response);
+        $I->assertStringContainsString('"type":"' . config("enum.w2.request_type.DEVICE") . '"', $response);
         $I->assertStringNotContainsString('"type":"WFH Request"', $response);
+    }
+
+    public function testApproveRequestSuccess(ApiTester $I)
+    {
+        //setting mock response
+        $this->client = Mockery::mock(new Client());
+        $expectedResponse = $this->setupExpectedResponse();
+        $mockedRequestList = $this->createMockResponse(
+            json_encode($expectedResponse["ApproveRequestFake"]["success"]),
+            200
+        );
+
+        $this->client->shouldReceive("post")
+            ->with($this->mockApiHost . "/approve-task", [
+                'headers' => [
+                    'X-Secret-Key' => $this->w2_secret_key,
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode([
+                    "id" => "abc",
+                    "email" => "test@example.com",
+                ])
+            ])
+            ->andReturn($mockedRequestList);
+
+        //Prepare
+        $service = new W2Service($this->client);
+        $controller = new W2Controller($service);
+        $request = new Request();
+        $request->merge(["id" => "abc"]);
+
+        $response = $controller->approveRequest($request);
+        $I->assertInstanceOf("Illuminate\Http\JsonResponse", $response);
+
+        //compare
+        $response = json_decode($response->getContent(), true);
+        $I->assertEquals("success", $response['status']);
+        $I->assertEquals("Approve Request Successfully!", $response['messages']);
+        $I->assertEquals("abc", $response['payload']['id']);
+    }
+
+    public function testApproveRequestFail(ApiTester $I)
+    {
+        // setting mock response
+        $this->client = Mockery::mock(new Client());
+        $expectedResponse = $this->setupExpectedResponse();
+
+        $exception = $this->createMockException(
+            "Exception:MyTaskNotValid",
+            $expectedResponse["ApproveRequestFake"]["error"]
+        );
+
+        $this->client->shouldReceive("post")
+            ->with($this->mockApiHost . "/approve-task", [
+                'headers' => [
+                    'X-Secret-Key' => $this->w2_secret_key,
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode([
+                    "id" => "abc",
+                    "email" => "test@example.com",
+                ])
+            ])
+            ->andThrowExceptions([$exception]);
+
+        // Prepare
+        $service = new W2Service($this->client);
+        $controller = new W2Controller($service);
+        $request = new Request();
+        $request->merge(["id" => "abc"]);
+
+        // Compare
+        try {
+            $controller->approveRequest($request);
+        } catch (W2Exception $e) {
+            $I->assertEquals("Exception:MyTaskNotValid", $e->getMessage());
+            $I->assertNull($e->getPayload());
+            $I->assertEquals(400, $e->getStatusCode());
+        }
+    }
+
+    public function testRejectRequestSuccess(ApiTester $I)
+    {
+        //setting mock response
+        $this->client = Mockery::mock(new Client());
+        $expectedResponse = $this->setupExpectedResponse();
+        $mockedRequestList = $this->createMockResponse(
+            json_encode($expectedResponse["RejectRequestFake"]["success"]),
+            200
+        );
+
+        $this->client->shouldReceive("post")
+            ->with($this->mockApiHost . "/reject-task", [
+                'headers' => [
+                    'X-Secret-Key' => $this->w2_secret_key,
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode([
+                    "id" => "abc",
+                    "email" => "test@example.com",
+                    "reason" => "hi",
+                ])
+            ])
+            ->andReturn($mockedRequestList);
+
+        //Prepare
+        $service = new W2Service($this->client);
+        $controller = new W2Controller($service);
+        $request = new Request();
+        $request->merge(["id" => "abc", "reason" => "hi"]);
+
+        //compare
+        $response = $controller->rejectRequest($request);
+        $I->assertInstanceOf("Illuminate\Http\JsonResponse", $response);
+
+        $response = json_decode($response->getContent(), true);
+        $I->assertEquals("success", $response['status']);
+        $I->assertEquals("Reject Request Successfully!", $response['messages']);
+        $I->assertEquals("abc", $response['payload']['id']);
+    }
+
+    public function testRejectRequestFail(ApiTester $I)
+    {
+        //setting mock response
+        $this->client = Mockery::mock(new Client());
+        $expectedResponse = $this->setupExpectedResponse();
+        $exception = $this->createMockException(
+            "Exception:MyTaskNotValid",
+            $expectedResponse["ApproveRequestFake"]["error"]
+        );
+
+        $this->client->shouldReceive("post")
+            ->with($this->mockApiHost . "/reject-task", [
+                'headers' => [
+                    'X-Secret-Key' => $this->w2_secret_key,
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode([
+                    "id" => "abc",
+                    "email" => "test@example.com",
+                    "reason" => "hi",
+                ])
+            ])
+            ->andThrowExceptions([$exception]);
+
+        //Prepare
+        $service = new W2Service($this->client);
+        $controller = new W2Controller($service);
+        $request = new Request();
+        $request->merge(["id" => "abc", "reason" => "hi"]);
+
+        //compare
+        try {
+            $controller->rejectRequest($request);
+        } catch (W2Exception $e) {
+            $I->assertEquals("Exception:MyTaskNotValid", $e->getMessage());
+            $I->assertNull($e->getPayload());
+            $I->assertEquals(400, $e->getStatusCode());
+        }
     }
 
     protected function createMockResponse($body, $statusCode, $headers = [])
@@ -78,68 +233,89 @@ class ApiW2Cest
         return $response;
     }
 
+    protected function createMockException(string $message, array $expectedResponse)
+    {
+        return new RequestException(
+            $message,
+            new Psr7Request('POST', $this->mockApiHost . "/approve-task"),
+            new Response(400, [], json_encode($expectedResponse))
+        );
+    }
+
     protected function setupExpectedResponse()
     {
         return [
-            "tokenFake" => [
-                "token" => "eycaa2AEC"
-            ],
             "requestListFake" => [
-                "totalCount" => 3,
+                "totalCount" => 2,
                 "items" => [
                     [
-                        "id" => "3a0d2e0d-d8a0-d421-b1b6-88cfdfe8246d",
+                        "id" => "3a0e817b-bc56-c9e1-ebd9-94a70bd752ce",
+                        "workflowInstanceId" => "3a0e7d0a-8b2f-9e2e-1f29-acb934518746",
                         "workflowDefinitionId" => "3a057e11-7cde-1749-5c03-60520662a1f5",
-                        "workflowDefinitionDisplayName" => "Device Request",
-                        "userRequestName" => "Le Van A",
-                        "createdAt" => "2023-08-22T06:14:05.216389Z",
-                        "lastExecutedAt" => "2023-08-22T06:15:04.966491Z",
-                        "status" => "Pending",
-                        "stakeHolders" => [
-                            "IT Department"
+                        "email" => "haibon@example.abc",
+                        "status" => 1,
+                        "name" => "Device Request",
+                        "description" => "Sender Email and assign email",
+                        "dynamicActionData" => null,
+                        "reason" => null,
+                        "creationTime" => "2023-10-27T04:05:23.162274Z",
+                        "otherActionSignals" => null,
+                        "emailTo" => [
+                            "hi@example.abc"
                         ],
-                        "currentStates" => [
-                            "IT reviews"
-                        ],
-                        "creatorId" => null
+                        "author" => "81676b37-5ab2-469a-b04b-63aaedb34b40",
+                        "authorName" => "Le Van A",
                     ],
                     [
-                        "id" => "3a0d2d98-ae28-c417-1e3a-dd07eecbd951",
+                        "id" => "3a0e817b-bc56-c9e1-ebd9-94a70bd752ce",
+                        "workflowInstanceId" => "3a0e7d0a-8b2f-9e2e-1f29-acb934518746",
                         "workflowDefinitionId" => "3a057e11-7cde-1749-5c03-60520662a1f5",
-                        "workflowDefinitionDisplayName" => "Office Equipment Request",
-                        "userRequestName" => "Nguyen Van B",
-                        "createdAt" => "2023-08-22T04:06:06.632796Z",
-                        "lastExecutedAt" => "2023-08-22T04:14:39.904948Z",
-                        "status" => "Pending",
-                        "stakeHolders" => [
-                            "IT Department"
+                        "email" => "haiba@example.abc",
+                        "status" => 0,
+                        "name" => "Device Request",
+                        "description" => "Sender Email and assign email",
+                        "dynamicActionData" => null,
+                        "reason" => null,
+                        "creationTime" => "2023-10-27T04:05:23.162274Z",
+                        "otherActionSignals" => null,
+                        "emailTo" => [
+                            "hi2@example.abc"
                         ],
-                        "currentStates" => [
-                            "IT reviews"
-                        ],
-                        "creatorId" => null
-                    ],
-                    [
-                        "id" => "3a0d2d06-f2a6-5478-14b3-cdeea3b5b113",
-                        "workflowDefinitionId" => "3a059dc6-a381-3cc5-b6ff-7a6559d1adf7",
-                        "workflowDefinitionDisplayName" => "WFH Request",
-                        "userRequestName" => "Doan Thi C",
-                        "createdAt" => "2023-08-22T01:26:55.910164Z",
-                        "lastExecutedAt" => "2023-08-22T01:27:01.454301Z",
-                        "status" => "Pending",
-                        "stakeHolders" => [
-                            "Hieu Nguyen Nam",
-                            "Trung Do Trong",
-                            "Tung Tran Huy",
-                            "Trung Hoang Dinh"
-                        ],
-                        "currentStates" => [
-                            "PM makes decision"
-                        ],
-                        "creatorId" => null
+                        "author" => "81676b37-5ab2-469a-b04b-63aaedb34b41",
+                        "authorName" => "Nguyen Van B",
                     ],
                 ]
-            ]
+            ],
+            "ApproveRequestFake" => [
+                "success" => [
+                    "id" => "abc",
+                    "message" => "Approve Request Successfully!"
+                ],
+                "error" => [
+                    "error" => [
+                        "code" => null,
+                        "message" => "Exception:MyTaskNotValid",
+                        "details" => null,
+                        "data" => [],
+                        "validationErrors" => null
+                    ]
+                ],
+            ],
+            "RejectRequestFake" => [
+                "success" => [
+                    "id" => "abc",
+                    "message" => "Reject Request Successfully!"
+                ],
+                "error" => [
+                    "error" => [
+                        "code" => null,
+                        "message" => "Exception:MyTaskNotValid",
+                        "details" => null,
+                        "data" => [],
+                        "validationErrors" => null
+                    ]
+                ],
+            ],
         ];
     }
 }

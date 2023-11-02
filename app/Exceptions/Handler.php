@@ -66,6 +66,22 @@ class Handler extends ExceptionHandler
             return response()->json(Helper::formatStandardApiResponse('error', null, 'invalid JSON'), 422);
         }
 
+        if ($this->isHttpException($e)) {
+
+            $statusCode = $e->getStatusCode();
+
+            switch ($e->getStatusCode()) {
+                case '404':
+                    return response()->json(Helper::formatStandardApiResponse('error', null, $statusCode . ' endpoint not found'), 404);
+                case '429':
+                    return response()->json(Helper::formatStandardApiResponse('error', null, 'Too many requests'), 429);
+                case '405':
+                    return response()->json(Helper::formatStandardApiResponse('error', null, 'Method not allowed'), 405);
+                default:
+                    return response()->json(Helper::formatStandardApiResponse('error', null, $statusCode), $statusCode);
+            }
+        }
+
 
         // Handle Ajax requests that fail because the model doesn't exist
         if ($request->ajax() || $request->wantsJson()) {
@@ -73,22 +89,6 @@ class Handler extends ExceptionHandler
             if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
                 $className = last(explode('\\', $e->getModel()));
                 return response()->json(Helper::formatStandardApiResponse('error', null, $className . ' not found'), 200);
-            }
-
-            if ($this->isHttpException($e)) {
-
-                $statusCode = $e->getStatusCode();
-
-                switch ($e->getStatusCode()) {
-                    case '404':
-                        return response()->json(Helper::formatStandardApiResponse('error', null, $statusCode . ' endpoint not found'), 404);
-                    case '429':
-                        return response()->json(Helper::formatStandardApiResponse('error', null, 'Too many requests'), 429);
-                    case '405':
-                        return response()->json(Helper::formatStandardApiResponse('error', null, 'Method not allowed'), 405);
-                    default:
-                        return response()->json(Helper::formatStandardApiResponse('error', null, $statusCode), $statusCode);
-                }
             }
         }
 
@@ -99,6 +99,17 @@ class Handler extends ExceptionHandler
                     $e->getStatus(),
                     $e->getPayload(),
                     $messages
+                ),
+                $e->getStatusCode()
+            );
+        }
+
+        if ($e instanceof W2Exception) {
+            return response()->json(
+                Helper::formatStandardApiResponse(
+                    $e->getStatus(),
+                    $e->getPayload(),
+                    $e->getMessage(),
                 ),
                 $e->getStatusCode()
             );
