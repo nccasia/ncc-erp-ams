@@ -224,6 +224,73 @@ class ApiW2Cest
         }
     }
 
+    public function testGetRequestDetail(ApiTester $I)
+    {
+        //setting mock response
+        $this->client = Mockery::mock(new Client());
+        $expectedResponse = $this->setupExpectedResponse();
+        $mockedRequestList = $this->createMockResponse(
+            json_encode($expectedResponse["RequestDetail"]),
+            200
+        );
+
+        $id = "abc";
+        $this->client->shouldReceive("get")
+            ->with($this->mockApiHost . "/{$id}/detail-by-id", [
+                'headers' => [
+                    'X-Secret-Key' => $this->w2_secret_key,
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode([]),
+            ])
+            ->andReturn($mockedRequestList);
+
+        //Prepare
+        $service = new W2Service($this->client);
+        $controller = new W2Controller($service);
+        // $request = new Request();
+
+        $response = $controller->getRequestDetailById("abc");
+        //compare
+        $response = json_decode(json_encode($response), true);
+        $I->assertEquals("xyz@example.com", $response['emailTo'][0]);
+        $I->assertEquals("ncc-it", $response['input']['Request']['Project']);
+        $I->assertEquals("qqq@example.com", $response['input']['RequestUser']['email']);
+        $I->assertEquals("IT Reviews", $response['tasks']['description']);
+    }
+
+    public function testGetOffliceList(ApiTester $I)
+    {
+        //setting mock response
+        $this->client = Mockery::mock(new Client());
+        $expectedResponse = $this->setupExpectedResponse();
+        $mockedRequestList = $this->createMockResponse(
+            json_encode($expectedResponse["OfficeLists"]),
+            200
+        );
+
+        $this->client->shouldReceive("get")
+            ->with($this->mockApiHost . "/offices", [
+                'headers' => [
+                    'X-Secret-Key' => $this->w2_secret_key,
+                    'Content-Type' => 'application/json',
+                ],
+                'body' => json_encode([]),
+            ])
+            ->andReturn($mockedRequestList);
+
+        //Prepare
+        $service = new W2Service($this->client);
+        $controller = new W2Controller($service);
+        $request = new Request();
+
+        $response = $controller->getListOffices($request);
+        $I->assertEquals("abc@example.com", $response[0]->headOfOfficeEmail);
+        $I->assertEquals("aaa@example.com", $response[1]->headOfOfficeEmail);
+        $I->assertEquals("HN1", $response[0]->code);
+        $I->assertEquals("HN2", $response[1]->code);
+    }
+
     protected function createMockResponse($body, $statusCode, $headers = [])
     {
         $response = Mockery::mock(ResponseInterface::class);
@@ -316,6 +383,63 @@ class ApiW2Cest
                     ]
                 ],
             ],
+            "RequestDetail" => [
+                "tasks" => [
+                    "id" => "3a0ea14e-8534-d77f-f221-1cf666678fc2",
+                    "workflowInstanceId" => "3a0ea14c-7ede-1748-a81f-58e7ae1c0949",
+                    "workflowDefinitionId" => "3a057e11-7cde-1749-5c03-60520662a1f5",
+                    "email" => null,
+                    "status" => 0,
+                    "name" => "Device Request",
+                    "description" => "IT Reviews",
+                    "dynamicActionData" => null,
+                    "reason" => null,
+                    "creationTime" => "2023-11-02T08:23:50.83733Z",
+                    "otherActionSignals" => [],
+                    "emailTo" => null,
+                    "author" => "3a06705a-d5db-5e6c-da06-d1012e46d0e9",
+                    "authorName" => null,
+                    "updatedBy" => "anc@example.com"
+                ],
+                "emailTo" => [
+                    "xyz@example.com",
+                    "zzz@example.com",
+                ],
+                "otherActionSignals" => null,
+                "input" => [
+                    "Request" => [
+                        "CurrentOffice" => "HN2",
+                        "Project" => "ncc-it",
+                        "Device" => "Test request device w2-dev",
+                        "Reason" => "Test request device w2-dev"
+                    ],
+                    "RequestUser" => [
+                        "email" => "qqq@example.com",
+                        "targetStaffEmail" => null,
+                        "name" => "Q B C",
+                        "project" => null,
+                        "pm" => "weq@example.com",
+                        "headOfOfficeEmail" => "afg@example.com",
+                        "projectCode" => "ncc-it",
+                        "branchName" => "Hà Nội 2",
+                        "branchCode" => "HN2",
+                        "id" => "3a06705a-d5db-5e6c-da06-d1012e46d0e9"
+                    ],
+                    "EmailTemplate" => ""
+                ],
+            ],
+            "OfficeLists" => [
+                [
+                    "displayName" => "Hà Nội 1",
+                    "code" => "HN1",
+                    "headOfOfficeEmail" => "abc@example.com"
+                ],
+                [
+                    "displayName" => "Hà Nội 2",
+                    "code" => "HN2",
+                    "headOfOfficeEmail" => "aaa@example.com"
+                ],
+            ]
         ];
     }
 }

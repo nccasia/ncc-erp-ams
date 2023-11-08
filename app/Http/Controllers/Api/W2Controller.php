@@ -61,4 +61,22 @@ class W2Controller extends Controller
             throw $th;
         }
     }
+
+    public function getRequestDetailById(string $id)
+    {
+        try {
+            return $this->w2Service->getRequestDetailById($id);
+        } catch (Throwable $th) {
+            throw $th;
+        }
+    }
+
+    public function getListOffices()
+    {
+        try {
+            return $this->w2Service->getListOffices();
+        } catch (Throwable $th) {
+            throw $th;
+        }
+    }
 }

@@ -136,4 +136,14 @@ class W2Service
 
         return $this->callApiToW2("/reject-task", "post", $body);
     }
+
+    public function getListOffices()
+    {
+        return $this->callApiToW2("/offices", "get");
+    }
+
+    public function getRequestDetailById(string $id)
+    {
+        return $this->callApiToW2("/{$id}/detail-by-id", "get");
+    }
 }
