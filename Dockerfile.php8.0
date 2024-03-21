@@ -74,7 +74,6 @@ RUN chown -R www-data:www-data /var/www/html/public
 EXPOSE 80
 
 ENTRYPOINT  sleep 20 && \
-            yes | php artisan migrate && \
             php artisan key:generate && \
             php artisan passport:keys && \
             php-fpm -D -R -y /etc/php-fpm.d/www.conf &&\
