@@ -1,0 +1,80 @@
+FROM php:8.0.6-fpm
+ARG ENV_FILE
+ENV PHP_EXTRA_CONFIGURE_ARGS \
+  --enable-fpm \
+  --with-fpm-user=www-data \
+  --with-fpm-group=www-data \
+  --enable-intl \
+  --enable-opcache \
+  --enable-zip \
+  --enable-calendar
+
+# Install some must-haves
+
+RUN export DEBIAN_FRONTEND=noninteractive; \
+    export DEBCONF_NONINTERACTIVE_SEEN=true; \
+    echo 'tzdata tzdata/Areas select Etc' | debconf-set-selections; \
+    echo 'tzdata tzdata/Zones/Etc select UTC' | debconf-set-selections; \
+    apt-get update -qqy \
+    && apt-get install -qqy --no-install-recommends \
+    apt-utils \
+    patch \
+    curl \
+    wget  \
+    vim \
+    git \
+    cron \
+    supervisor \
+    gcc \
+    make \
+    autoconf \
+    libc-dev \
+    pkg-config \
+    libmcrypt-dev \
+    ca-certificates \
+    unzip \
+    dnsutils \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+RUN curl -sSLf \
+        -o /usr/local/bin/install-php-extensions \
+        https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions && \
+    chmod +x /usr/local/bin/install-php-extensions
+
+RUN install-php-extensions curl ldap pdo_mysql  gd xml mbstring zip bcmath
+
+COPY ./php/php-fpm.d/zzz-www.conf /etc/php-fpm.d/www.conf
+COPY ./php/php.ini /usr/local/etc/php/php.ini
+
+RUN apt-get update  \
+    && apt-get install -y software-properties-common \
+    && apt install gnupg2 -y \
+    && apt-get install -y nginx \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
+
+RUN curl -sS https://getcomposer.org/installer | php
+RUN mv composer.phar /usr/bin/composer
+
+RUN rm /etc/nginx/sites-enabled/default
+RUN rm /etc/nginx/sites-available/default
+
+COPY . /var/www/html
+
+WORKDIR /var/www/html
+
+RUN composer install
+
+RUN echo "CREATE_LOG" >> /var/www/html/storage/logs/laravel.log
+
+RUN chown -R www-data:www-data /var/www/html/storage
+RUN chown -R www-data:www-data /var/www/html/public
+
+EXPOSE 80
+
+ENTRYPOINT yes | php artisan migrate && \
+            php artisan key:generate &&\
+            php-fpm -D -R -y /etc/php-fpm.d/www.conf &&\
+            nginx -g 'daemon off;' &&\
+            tail -f /var/www/html/storage/logs/laravel.log
