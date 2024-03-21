@@ -73,8 +73,10 @@ RUN chown -R www-data:www-data /var/www/html/public
 
 EXPOSE 80
 
-ENTRYPOINT yes | php artisan migrate && \
-            php artisan key:generate &&\
+ENTRYPOINT  sleep 20 && \
+            yes | php artisan migrate && \
+            php artisan key:generate && \
+            php artisan passport:keys && \
             php-fpm -D -R -y /etc/php-fpm.d/www.conf &&\
             nginx -g 'daemon off;' &&\
             tail -f /var/www/html/storage/logs/laravel.log
