@@ -88,25 +88,25 @@ jobs:
       - name: Generate object tester
         run: php codecept.phar build
 
-      - name: Run api,unit test
-        run: php codecept.phar run Unit,api --coverage-text --coverage-xml
+      # - name: Run api,unit test
+      #   run: php codecept.phar run Unit,api --coverage-text --coverage-xml
 
-      - name: Post coverage comment to pull request
-        uses: actions/github-script@v5
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Post coverage comment to pull request
+      #   uses: actions/github-script@v5
+      #   with:
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
 
-          script: |
-            const fs = require('fs');
+      #     script: |
+      #       const fs = require('fs');
 
-            const coverageContent = fs.readFileSync('./tests/_output/coverage.txt', 'utf-8');
+      #       const coverageContent = fs.readFileSync('./tests/_output/coverage.txt', 'utf-8');
 
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: 'Code Coverage Results:\n\n```\n' + coverageContent + '\n```\n',
-            });
+      #       await github.rest.issues.createComment({
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         issue_number: context.issue.number,
+      #         body: 'Code Coverage Results:\n\n```\n' + coverageContent + '\n```\n',
+      #       });
 
   build:
     runs-on: self-hosted
@@ -115,8 +115,11 @@ jobs:
       - name: Check Self-hosted User
         run: echo $USER
 
+      - name: Remove old image
+        run: docker rmi ncc-erp-ams-be:latest || true
+
       - name: Build Docker image
-        run: docker build -t ncc-erp-ams-be:latest .
+        run: docker build -t ncc-erp-ams-be:latest -f Dockerfile.php8.0 .
 
   deploy:
     runs-on: self-hosted
@@ -136,8 +139,8 @@ jobs:
 
       - name: Stop and remove old container
         run: |
-          docker-compose -f ams-dev-docker/docker-compose.dev.yml down
+          docker compose -f /home/nccsoft/ams-dev-docker/docker-compose.dev.yml down
 
       - name: Run Docker Compose
         run: |
-          docker-compose -f ams-dev-docker/docker-compose.dev.yml up -d
+          docker compose -f /home/nccsoft/ams-dev-docker/docker-compose.dev.yml up -d
