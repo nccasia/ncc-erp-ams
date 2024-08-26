@@ -90,22 +90,22 @@ jobs:
       - name: Generate object tester
         run: php codecept.phar build
 
-      # - name: Run api,unit test
-      #   run: php codecept.phar run Unit,api --coverage-text --coverage-xml
+      - name: Run api,unit test
+        run: php codecept.phar run Unit,api --coverage-text --coverage-xml
 
-      # - name: Post coverage comment to pull request
-      #   uses: actions/github-script@v5
-      #   with:
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     script: |
-      #       const fs = require('fs');
-      #       const coverageContent = fs.readFileSync('./tests/_output/coverage.txt', 'utf-8');
-      #       await github.rest.issues.createComment({
-      #         owner: context.repo.owner,
-      #         repo: context.repo.repo,
-      #         issue_number: context.issue.number,
-      #         body: 'Code Coverage Results:\n\n```\n' + coverageContent + '\n```\n',
-      #       });
+      - name: Post coverage comment to pull request
+        uses: actions/github-script@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const coverageContent = fs.readFileSync('./tests/_output/coverage.txt', 'utf-8');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: 'Code Coverage Results:\n\n```\n' + coverageContent + '\n```\n',
+            });
 
   build:
     runs-on: self-hosted
