@@ -1516,8 +1516,8 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:' . config('ap
         Route::post('/checkout', [Api\DigitalSignaturesController::class, 'multiCheckout'])->name('api.digital_signatures.multiCheckout');
         Route::post('/{id}/checkin', [Api\DigitalSignaturesController::class, 'checkIn'])->name('api.digital_signatures.checkIn');
         Route::post('/checkin', [Api\DigitalSignaturesController::class, 'multiCheckin'])->name('api.digital_signatures.multiCheckin');
-        Route::put('',[Api\DigitalSignaturesController::class,'multiUpdate'])->name('api.digital_signatures.multiUpdate');
-        Route::get('/total-detail',[Api\DigitalSignaturesController::class,'getTotalDetail'])->name('api.digital_signatures.totalDetail');
+        Route::put('', [Api\DigitalSignaturesController::class, 'multiUpdate'])->name('api.digital_signatures.multiUpdate');
+        Route::get('/total-detail', [Api\DigitalSignaturesController::class, 'getTotalDetail'])->name('api.digital_signatures.totalDetail');
         Route::get('/assign', [Api\DigitalSignaturesController::class, 'assign'])->name('api.digital_signatures.assign');
     });
 
@@ -1634,4 +1634,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:' . config('ap
     );
     //End Route Client Asset
 
+    //Route call to W2
+    Route::group(['prefix' => 'w2-requests'], function () {
+        Route::get('/', [Api\W2Controller::class, 'getListRequest']);
+        Route::post('approve-request', [Api\W2Controller::class, 'approveRequest']);
+        Route::post('reject-request', [Api\W2Controller::class, 'rejectRequest']);
+        Route::get('{id}/request-detail-by-id', [Api\W2Controller::class, 'getRequestDetailById']);
+        Route::get('list-offices', [Api\W2Controller::class, 'getListOffices']);
+    });
+    //End Route call to W2
 }); // end API routes
