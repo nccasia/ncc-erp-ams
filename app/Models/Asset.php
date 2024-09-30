@@ -10,6 +10,7 @@ use App\Exceptions\CheckinNotAllowed;
 use App\Http\Traits\UniqueSerialTrait;
 use App\Http\Traits\UniqueUndeletedTrait;
 use App\Models\Traits\Acceptable;
+use App\Models\Customers;
 use App\Models\Traits\Searchable;
 use App\Presenters\Presentable;
 use AssetPresenter;
@@ -253,7 +254,14 @@ class Asset extends Depreciable
         return $this->belongsTo(Category::class, 'category_id')->where('category_type', '=', 'asset');
     }
 
-
+    public function customers()
+    {
+        return $this->belongsTo(\App\Models\Customers::class, 'customer_id');
+    }
+    public function projects()
+    {
+        return $this->belongsTo(\App\Models\Projects::class, 'project_id');
+    }
     public function finfast_request_asset()
     {
         return $this->hasOne(FinfastRequestAsset::class);
@@ -1848,4 +1856,5 @@ class Asset extends Depreciable
         if ($found != null) return true;
         return false;
     }
+    
 }

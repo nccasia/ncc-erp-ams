@@ -261,6 +261,15 @@ class AssetRepository
         $asset->location_id = $data['location_id'] ?? null;
         $asset->is_external = $is_external;
 
+            // Gán giá trị cho customer_id nếu có
+        if (Arr::exists($data, 'customer_id')) {
+            $asset->customer_id = $data['customer_id'];
+        }
+
+        // Gán giá trị cho project_id nếu có
+        if (Arr::exists($data, 'project_id')) {
+            $asset->project_id = $data['project_id'];
+        }
         if (Arr::exists($data, 'status_id')) {
             $asset->status_id = $data['status_id'];
         }

@@ -12,7 +12,8 @@ use App\Models\Asset;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
-
+use App\Models\Customers;
+use App\Models\Projects;
 class ClientAssetsController extends Controller
 {
     private $clientAssetService;
@@ -75,14 +76,55 @@ class ClientAssetsController extends Controller
     public function store(ImageUploadRequest $request)
     {
         $this->authorize('create', Asset::class);
-
         try {
-            $asset = $this->clientAssetService->store($request->all());
+            $data = [
+                'asset_tag' => $request->get('asset_tag'),
+                'model_id' => $request->get('model_id'),
+                'rtd_location_id' => $request->get('rtd_location_id'),
+                'location_id' => $request->get('location_id'),
+                'status_id' => $request->get('status_id'),
+                'supplier_id' => $request->get('supplier_id'),
+                'warranty_months' => $request->get('warranty_months'),
+                'notes' => $request->get('notes'),
+            ];
+    
+            $customerData = json_decode($request->get('customer'), true);
 
+            if ($customerData && isset($customerData['id'])) {
+                $customerId = (int) $customerData['id'];
+                $customer = Customers::find($customerId);
+                if (!$customer) {
+                    $newCustomer = new Customers();
+                    $newCustomer->name = $customerData['name'];  
+                    $newCustomer->save();
+                    $data['customer_id'] = $customerId;
+            
+                } 
+                else {
+                    $data['customer_id'] = $customerId;
+                }
+            }
+            $projectData = json_decode($request->get('project'), true);
+            if ($projectData && isset($projectData['id'])) {
+                $projectId = (int) $projectData['id'];
+                $project = Projects::find($projectId);
+                
+                if (!$project) {
+                    $newProject = new Projects();
+                    $newProject->name = $projectData['name'];  
+                    $newProject->save();
+                    
+                    $data['project_id'] = $projectId;
+                } else {
+                    $data['project_id'] = $projectId;
+                }
+            }
+            $asset = $this->clientAssetService->store($data);
+            
             if (!$asset) {
                 throw new AssetException(__('general.server_error'), "error", 500);
             }
-
+    
             return response()->json(Helper::formatStandardApiResponse(
                 'success',
                 $asset,
@@ -92,7 +134,6 @@ class ClientAssetsController extends Controller
             throw $th;
         }
     }
-
     public function update(ImageUploadRequest $request, $id)
     {
         $this->authorize('update', Asset::class);

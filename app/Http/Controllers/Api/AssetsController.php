@@ -23,6 +23,8 @@ use App\Models\License;
 use App\Models\Location;
 use App\Models\Setting;
 use App\Models\User;
+use App\Models\Customers;
+use App\Models\Projects;
 use Auth;
 use Carbon\Carbon;
 use DB;
@@ -67,7 +69,7 @@ class AssetsController extends Controller
     public function index(Request $request, $audit = null)
     {
         \Log::debug(Route::currentRouteName());
-
+        
         /**
          * This looks MAD janky (and it is), but the AssetsController@index does a LOT of heavy lifting throughout the 
          * app. This bit here just makes sure that someone without permission to view assets doesn't 
@@ -132,12 +134,12 @@ class AssetsController extends Controller
                 'model.category',
                 'model.manufacturer',
                 'model.fieldset',
-                'supplier'
+                'supplier',
+                'customers',
+                'projects'
             );
         $assets = $this->filters($assets, $request);
-
         $request->filled('order_number') ? $assets = $assets->where('assets.order_number', '=', e($request->get('order_number'))) : '';
-
         // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
         // case we override with the actual count, so we should return 0 items.
         $offset = (($assets) && ($request->get('offset') > $assets->count())) ? $assets->count() : $request->get('offset', 0);
@@ -1081,7 +1083,35 @@ class AssetsController extends Controller
         $asset->rtd_location_id         = $request->get('rtd_location_id', null);
         $asset->location_id             = $request->get('location_id', null);
         $asset->assigned_status         = $request->get('assigned_status', 0);
+        
+        $customerData = json_decode($request->get('customer'), true);
+        if ($customerData) {
+            $customerId = (int)$customerData['id'];
+            $customer = Customers::find($customerId); 
+            if ($customer) {
+                $asset->customer_id = $customerId;
+            } else {
+                $newCustomer = new Customers();
+                $newCustomer->name = $customerData['name'];
+                $newCustomer->save();
+                $asset->customer_id = $customerId;
+            }
+        }
 
+        $projectData = json_decode($request->get('project'), true);
+        if ($projectData) {
+            $projectId = (int)$projectData['id'];
+            $project = Projects::find($projectId); 
+            if ($project) {
+                $asset->project_id = $projectId;
+            } 
+            else {
+                $newProject = new Projects();
+                $newProject->name = $projectData['name'];
+                $newProject->save();
+                $asset->project_id = $projectId;
+            }
+        }
         /**
          * this is here just legacy reasons. Api\AssetController
          * used image_source  once to allow encoded image uploads.

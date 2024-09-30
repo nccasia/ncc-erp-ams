@@ -30,6 +30,18 @@ class AssetsTransformer
             'name' => e($asset->name),
             'asset_tag' => e($asset->asset_tag),
             'serial' => e($asset->serial),
+            'customers' => ($asset->customers) ? [
+                'id' => (int) $asset->customers->id,
+                'name'=> e($asset->customers->name),
+                'created_at'=> e($asset->customers->created_at),
+                'updated_at'=> e($asset->customers->updated_at),
+            ]: null,
+            'projects' => ($asset->projects) ? [
+                'id' => (int) $asset->projects->id,
+                'name'=> e($asset->projects->name),
+                'created_at'=> e($asset->projects->created_at),
+                'updated_at'=> e($asset->projects->updated_at),
+            ]: null,
             'model' => ($asset->model) ? [
                 'id' => (int) $asset->model->id,
                 'name'=> e($asset->model->name),
