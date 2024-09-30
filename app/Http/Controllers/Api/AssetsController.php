@@ -1075,7 +1075,7 @@ class AssetsController extends Controller
         $asset->depreciate              = '0';
         $asset->status_id               = $request->get('status_id', 0);
         $asset->warranty_months         = $request->get('warranty_months', null);
-        $asset->purchase_cost           = Helper::ParseCurrency($request->get('purchase_cost')); // this is the API's store method, so I don't know that I want to do this? Confusing. FIXME (or not?!)
+        $asset->purchase_cost           = Helper::ParseCurrency($request->get('purchase_cost'));
         $asset->purchase_date           = $request->get('purchase_date', null);
         $asset->assigned_to             = $request->get('assigned_to', null);
         $asset->supplier_id             = $request->get('supplier_id', 0);
@@ -1083,7 +1083,8 @@ class AssetsController extends Controller
         $asset->rtd_location_id         = $request->get('rtd_location_id', null);
         $asset->location_id             = $request->get('location_id', null);
         $asset->assigned_status         = $request->get('assigned_status', 0);
-        
+        $asset->isCustomerRenting       = filter_var($request->get('isCustomerRenting', false), FILTER_VALIDATE_BOOLEAN);
+
         $customerData = json_decode($request->get('customer'), true);
         if ($customerData) {
             $customerId = (int)$customerData['id'];

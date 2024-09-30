@@ -270,6 +270,10 @@ class AssetRepository
         if (Arr::exists($data, 'project_id')) {
             $asset->project_id = $data['project_id'];
         }
+        if (Arr::exists($data, 'isCustomerRenting')) {
+            $asset->isCustomerRenting = $data['isCustomerRenting'];
+        }
+
         if (Arr::exists($data, 'status_id')) {
             $asset->status_id = $data['status_id'];
         }

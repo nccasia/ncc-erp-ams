@@ -42,6 +42,7 @@ class AssetsTransformer
                 'created_at'=> e($asset->projects->created_at),
                 'updated_at'=> e($asset->projects->updated_at),
             ]: null,
+            'isCustomerRenting' => (bool)($asset->isCustomerRenting),
             'model' => ($asset->model) ? [
                 'id' => (int) $asset->model->id,
                 'name'=> e($asset->model->name),

@@ -87,7 +87,9 @@ class ClientAssetsController extends Controller
                 'warranty_months' => $request->get('warranty_months'),
                 'notes' => $request->get('notes'),
             ];
-    
+
+            $data['isCustomerRenting'] = filter_var($request->get('isCustomerRenting', false), FILTER_VALIDATE_BOOLEAN);
+
             $customerData = json_decode($request->get('customer'), true);
 
             if ($customerData && isset($customerData['id'])) {
