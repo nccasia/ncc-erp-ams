@@ -373,6 +373,7 @@ class Asset extends Depreciable
         return false;
     }
 
+    
     /**
      * Checks the asset out to the target
      *
