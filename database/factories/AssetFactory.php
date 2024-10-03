@@ -53,6 +53,9 @@ class AssetFactory extends Factory
             'assigned_type' => null,
             'next_audit_date' => null,
             'last_checkout' => null,
+            'customer' => $this->faker->company,
+            'project' => $this->faker->word,
+            'isCustomerRenting' => $this->faker->boolean,
         ];
     }
 
