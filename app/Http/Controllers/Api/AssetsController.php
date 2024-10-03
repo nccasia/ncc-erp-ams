@@ -1081,7 +1081,9 @@ class AssetsController extends Controller
         $asset->rtd_location_id         = $request->get('rtd_location_id', null);
         $asset->location_id             = $request->get('location_id', null);
         $asset->assigned_status         = $request->get('assigned_status', 0);
-
+        $asset->customer                = $request->get('customer', null);
+        $asset->project                 = $request->get('project', null);
+        $asset->isCustomerRenting       = filter_var($request->get('isCustomerRenting', false), FILTER_VALIDATE_BOOLEAN);
         /**
          * this is here just legacy reasons. Api\AssetController
          * used image_source  once to allow encoded image uploads.

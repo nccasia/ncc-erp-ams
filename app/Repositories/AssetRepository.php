@@ -246,6 +246,7 @@ class AssetRepository
 
     public function setValueForModel($asset, array $data, $is_external)
     {
+ 
         $asset->model_id = (int) ($data['model_id'] ?? '');
         $asset->name = $data['name'] ?? '';
         $asset->serial = $data['serial'] ?? '';
@@ -276,6 +277,16 @@ class AssetRepository
         if (Arr::exists($data, 'model_id')) {
             $model = AssetModel::find((int) $data['model_id']);
             $asset->model()->associate($model);
+        }
+        if (Arr::exists($data, 'customer')) {
+            $asset->customer = $data['customer'];
+        }
+        // Gán giá trị cho project_id nếu có
+        if (Arr::exists($data, 'project')) {
+            $asset->project = $data['project'];
+        }
+        if (Arr::exists($data, 'isCustomerRenting')) {
+            $asset->isCustomerRenting = filter_var($data['isCustomerRenting'], FILTER_VALIDATE_BOOLEAN);
         }
 
         return $asset;
