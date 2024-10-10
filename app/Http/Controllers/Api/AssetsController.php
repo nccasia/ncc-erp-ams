@@ -252,7 +252,7 @@ class AssetsController extends Controller
     {
         $filter_non_deprecable_assets = false;
         $filter = [];
-
+        
         if ($request->filled('filter')) {
             $filter = json_decode($request->input('filter'), true);
         }
@@ -360,7 +360,22 @@ class AssetsController extends Controller
             $to = Carbon::createFromFormat('Y-m-d', $request->to)->endOfDay()->toDateTimeString();
             $assets = $assets->where('created_at', '<=', $to);
         }
+        if ($request->filled('customer') && $request->input('customer') != 0) {
+            $assets->where('customer', 'LIKE', '%' . $request->input('customer') . '%');
+        }
 
+        if ($request->filled('project') && $request->input('project') != 0) {
+            $assets->where('assets.project', 'LIKE', '%' . $request->input('project') . '%');
+        }
+        if ($request->filled('isCustomerRenting') && $request->input('isCustomerRenting') != 0) {
+            $assets->where('assets.isCustomerRenting', filter_var($request->get('isCustomerRenting', false), FILTER_VALIDATE_BOOLEAN));
+        }
+        $categoryNameFilter = $request->input('categoryName');
+        if (!empty($categoryNameFilter) && $request->input('categoryName') != 0) {
+            $assets->whereHas('model.category', function ($query) use ($categoryNameFilter) {
+                $query->where('name', 'LIKE', "%{$categoryNameFilter}%");
+            });
+        }
         $assets = $assets->where('assets.is_external', '=', false);
 
         return $assets;
