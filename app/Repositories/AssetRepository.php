@@ -178,7 +178,25 @@ class AssetRepository
         } elseif (Arr::exists($data, 'search')) {
             $assets->TextSearch($data['search']);
         }
+        if (Arr::exists($data, 'customer') && $data['customer'] != 0) {
+            $assets->where('customer', 'LIKE', '%' . $data['customer'] . '%');
+        }
+        
 
+        if (Arr::exists($data, 'project') && $data['project'] != 0) {
+            $assets->where('project', 'LIKE', '%' . $data['project'] . '%');
+        }
+        
+        if (Arr::exists($data, 'isCustomerRenting') && $data['isCustomerRenting'] != 0) {
+            $assets->where('isCustomerRenting', filter_var($data['isCustomerRenting'], FILTER_VALIDATE_BOOLEAN));
+        }
+        
+        $categoryNameFilter = $data['categoryName'] ?? null;
+        if (!empty($categoryNameFilter) && $categoryNameFilter != 0) {
+            $assets->whereHas('model.category', function ($query) use ($categoryNameFilter) {
+                $query->where('name', 'LIKE', "%{$categoryNameFilter}%");
+            });
+        }
         $assets = $this->sortAssets($assets, $data);
 
         return $assets;
