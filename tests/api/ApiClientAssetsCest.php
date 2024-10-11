@@ -87,6 +87,9 @@ class ApiClientAssetsCest
             'status_id' => $temp_asset->status_id,
             'supplier_id' => $temp_asset->supplier_id,
             'warranty_months' => $temp_asset->warranty_months,
+            'customer' => $temp_asset->customer,
+            'project' => $temp_asset->project,
+            'isCustomerRenting' => $temp_asset->isCustomerRenting,
         ];
 
         // create
