@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api;
 // use Illuminate\Http\Request;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\CustomerProjectController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+
 Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:' . config('app.api_throttle_per_minute') . ',1']], function () {
 
 
@@ -30,7 +32,7 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:' . config('ap
             404
         );
     });
-
+    Route::get('customer-project', [CustomerProjectController::class , 'index',]);
 
     /**
      * Account routes

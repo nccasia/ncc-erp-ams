@@ -29,6 +29,11 @@ class AssetsTransformer
             'id' => (int) $asset->id,
             'name' => e($asset->name),
             'asset_tag' => e($asset->asset_tag),
+            'customer' => e($asset->customer),
+            'project' => e($asset->project),
+            'customer_code' => e($asset->customer_code),
+            'project_code' => e($asset->project_code),
+            'isCustomerRenting' => (bool)($asset->isCustomerRenting),
             'serial' => e($asset->serial),
             'model' => ($asset->model) ? [
                 'id' => (int) $asset->model->id,
