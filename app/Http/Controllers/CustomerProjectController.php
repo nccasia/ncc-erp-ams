@@ -14,25 +14,12 @@ class CustomerProjectController extends Controller
     }
 
     public function index()
-    {
-        try {
-            $customerResponse = $this->projectService->getCustomers();
-            $projectResponse = $this->projectService->getProjects();
-         
-            if ($customerResponse->successful() && $projectResponse->successful()) {
-                return response()->json([
-                    'customers' => $customerResponse->json(),
-                    'projects' => $projectResponse->json(),
-                ]);
-            }
-
-            return response()->json(['error' => 'Failed to fetch data from API'], 500);
-
-        } catch (\Exception $e) {
+    { 
+        $customerResponse = $this->projectService->getCustomers();
+        $projectResponse = $this->projectService->getProjects();
             return response()->json([
-                'error' => 'Error fetching data from API',
-                'message' => $e->getMessage(),
-            ], 500);
-        }
+                'customers' => $customerResponse->json(),
+                'projects' => $projectResponse->json(),
+            ]);
     }
 }

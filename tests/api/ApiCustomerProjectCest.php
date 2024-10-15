@@ -14,13 +14,13 @@ class ApiCustomerProjectCest
         $I->amBearerAuthenticated($I->getToken($this->user));
 
         Http::fake([
-            env('CUSTOMER_API_URL') => Http::response([
+            env('BASE_API_PROJECT_URL') . '/GetAllClients' => Http::response([
                 'customers' => [
                     ['id' => 1, 'name' => 'Customer 1'],
                     ['id' => 2, 'name' => 'Customer 2'],
                 ],
             ], 200),
-            env('PROJECT_API_URL') => Http::response([
+            env('BASE_API_PROJECT_URL') . '/GetAllProjects' => Http::response([
                 'projects' => [
                     ['id' => 1, 'name' => 'Project 1'],
                     ['id' => 2, 'name' => 'Project 2'],
@@ -40,12 +40,14 @@ class ApiCustomerProjectCest
         $I->seeResponseCodeIs(200);
 
         $I->seeResponseContainsJson([
-            'customers' => [],
-            'projects' => []
+            'customers' => [
+                ['id' => 1, 'name' => 'Customer 1'],
+                ['id' => 2, 'name' => 'Customer 2'],
+            ],
+            'projects' => [
+                ['id' => 1, 'name' => 'Project 1'],
+                ['id' => 2, 'name' => 'Project 2'],
+            ],
         ]);
-        $response = json_decode($I->grabResponse(), true);
-
-        $I->assertNotEmpty($response['customers'], 'Customer list should not be empty.');
-        $I->assertNotEmpty($response['projects'], 'Project list should not be empty.');
     }
 }
