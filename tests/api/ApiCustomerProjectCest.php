@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 
 class ApiCustomerProjectCest
 {
@@ -11,6 +12,21 @@ class ApiCustomerProjectCest
         $this->user = User::factory()->create();
         $I->haveHttpHeader('Accept', 'application/json');
         $I->amBearerAuthenticated($I->getToken($this->user));
+
+        Http::fake([
+            env('CUSTOMER_API_URL') => Http::response([
+                'customers' => [
+                    ['id' => 1, 'name' => 'Customer 1'],
+                    ['id' => 2, 'name' => 'Customer 2'],
+                ],
+            ], 200),
+            env('PROJECT_API_URL') => Http::response([
+                'projects' => [
+                    ['id' => 1, 'name' => 'Project 1'],
+                    ['id' => 2, 'name' => 'Project 2'],
+                ],
+            ], 200),
+        ]);
     }
 
     /** @test */

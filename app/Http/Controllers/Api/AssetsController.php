@@ -1098,6 +1098,8 @@ class AssetsController extends Controller
         $asset->assigned_status         = $request->get('assigned_status', 0);
         $asset->customer                = $request->get('customer', null);
         $asset->project                 = $request->get('project', null);
+        $asset->customer_code           = $request->get('customer_code', null);
+        $asset->project_code            = $request->get('project_code', null);
         $asset->isCustomerRenting       = filter_var($request->get('isCustomerRenting', false), FILTER_VALIDATE_BOOLEAN);
         /**
          * this is here just legacy reasons. Api\AssetController

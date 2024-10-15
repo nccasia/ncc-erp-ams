@@ -299,9 +299,14 @@ class AssetRepository
         if (Arr::exists($data, 'customer')) {
             $asset->customer = $data['customer'];
         }
-        // Gán giá trị cho project_id nếu có
         if (Arr::exists($data, 'project')) {
             $asset->project = $data['project'];
+        }
+        if (Arr::exists($data, 'customer_code')) {
+            $asset->customer = $data['customer_code'];
+        }
+        if (Arr::exists($data, 'project_code')) {
+            $asset->project = $data['project_code'];
         }
         if (Arr::exists($data, 'isCustomerRenting')) {
             $asset->isCustomerRenting = filter_var($data['isCustomerRenting'], FILTER_VALIDATE_BOOLEAN);
