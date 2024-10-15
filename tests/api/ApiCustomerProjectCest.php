@@ -14,13 +14,13 @@ class ApiCustomerProjectCest
         $I->amBearerAuthenticated($I->getToken($this->user));
 
         Http::fake([
-            env('BASE_API_PROJECT_URL') . '/GetAllClients' => Http::response([
+            'GetAllClients' => Http::response([
                 'customers' => [
                     ['id' => 1, 'name' => 'Customer 1'],
                     ['id' => 2, 'name' => 'Customer 2'],
                 ],
             ], 200),
-            env('BASE_API_PROJECT_URL') . '/GetAllProjects' => Http::response([
+            'GetAllProjects' => Http::response([
                 'projects' => [
                     ['id' => 1, 'name' => 'Project 1'],
                     ['id' => 2, 'name' => 'Project 2'],
