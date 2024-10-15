@@ -41,8 +41,11 @@ class ApiAssetsCest
             . '&rtd_location_id=' . Location::all()->random(1)->first()->id
             . '&model_id=' . AssetModel::all()->random(1)->first()->id
             . '&assigned_to=' . User::all()->random(1)->first()->id
-            . '&assigned_type=' . 'App/Models/User';
-
+            . '&assigned_type=' . 'App/Models/User'
+            . '&customer=' . urlencode('C 3')
+            . '&project=' . urlencode('P 6')
+            . '&isCustomerRenting=' . (rand(0, 1))
+            . '&categoryName=' . 'Desktops';
         return $filter;
     }
 
@@ -155,6 +158,9 @@ class ApiAssetsCest
             'status_id' => $temp_asset->status_id,
             'supplier_id' => $temp_asset->supplier_id,
             'warranty_months' => $temp_asset->warranty_months,
+            'customer' => $temp_asset->customer,
+            'project' => $temp_asset->project,
+            'isCustomerRenting' => $temp_asset->isCustomerRenting,
         ];
 
         // create
@@ -200,6 +206,9 @@ class ApiAssetsCest
             'supplier_id' => $temp_asset->supplier_id,
             'warranty_months' => $temp_asset->warranty_months,
             'requestable' => $temp_asset->requestable,
+            'customer' => $temp_asset->customer,
+            'project' => $temp_asset->project,
+            'isCustomerRenting' => $temp_asset->isCustomerRenting,
         ];
 
         $I->assertNotEquals($asset->name, $data['name']);

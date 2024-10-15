@@ -178,7 +178,25 @@ class AssetRepository
         } elseif (Arr::exists($data, 'search')) {
             $assets->TextSearch($data['search']);
         }
+        if (Arr::exists($data, 'customer') && $data['customer'] != 0) {
+            $assets->where('customer', 'LIKE', '%' . $data['customer'] . '%');
+        }
+        
 
+        if (Arr::exists($data, 'project') && $data['project'] != 0) {
+            $assets->where('project', 'LIKE', '%' . $data['project'] . '%');
+        }
+        
+        if (Arr::exists($data, 'isCustomerRenting') && $data['isCustomerRenting'] != 0) {
+            $assets->where('isCustomerRenting', filter_var($data['isCustomerRenting'], FILTER_VALIDATE_BOOLEAN));
+        }
+        
+        $categoryNameFilter = $data['categoryName'] ?? null;
+        if (!empty($categoryNameFilter) && $categoryNameFilter != 0) {
+            $assets->whereHas('model.category', function ($query) use ($categoryNameFilter) {
+                $query->where('name', 'LIKE', "%{$categoryNameFilter}%");
+            });
+        }
         $assets = $this->sortAssets($assets, $data);
 
         return $assets;
@@ -246,6 +264,7 @@ class AssetRepository
 
     public function setValueForModel($asset, array $data, $is_external)
     {
+ 
         $asset->model_id = (int) ($data['model_id'] ?? '');
         $asset->name = $data['name'] ?? '';
         $asset->serial = $data['serial'] ?? '';
@@ -276,6 +295,21 @@ class AssetRepository
         if (Arr::exists($data, 'model_id')) {
             $model = AssetModel::find((int) $data['model_id']);
             $asset->model()->associate($model);
+        }
+        if (Arr::exists($data, 'customer')) {
+            $asset->customer = $data['customer'];
+        }
+        if (Arr::exists($data, 'project')) {
+            $asset->project = $data['project'];
+        }
+        if (Arr::exists($data, 'customer_code')) {
+            $asset->customer = $data['customer_code'];
+        }
+        if (Arr::exists($data, 'project_code')) {
+            $asset->project = $data['project_code'];
+        }
+        if (Arr::exists($data, 'isCustomerRenting')) {
+            $asset->isCustomerRenting = filter_var($data['isCustomerRenting'], FILTER_VALIDATE_BOOLEAN);
         }
 
         return $asset;
