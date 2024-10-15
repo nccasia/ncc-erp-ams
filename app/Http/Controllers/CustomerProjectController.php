@@ -2,34 +2,23 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\ProjectService;
 use Illuminate\Http\Request;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\RequestException;
-use Illuminate\Support\Facades\Http;
+
 class CustomerProjectController extends Controller
 {
+    protected $projectService;
+    public function __construct(ProjectService $projectService)
+    {
+        $this->projectService = $projectService;
+    }
+
     public function index()
     {
-        $customerApiUrl = env('CUSTOMER_API_URL');
-        $projectApiUrl = env('PROJECT_API_URL');
-        $secretKey = env('SECRET_KEY');
         try {
-            
-           $customerResponse = Http::withHeaders([
-            'X-Secret-Key' => $secretKey,
-            'Accept' => 'application/json',
-                ])->withOptions([
-                    'verify' => false,
-                ])->get($customerApiUrl);
-
-
-            $projectResponse = Http::withHeaders([
-                'X-Secret-Key' => $secretKey,
-                'Accept' => 'application/json',
-                ])->withOptions([
-                    'verify' => false,
-                ])->get($projectApiUrl);
-
+            $customerResponse = $this->projectService->getCustomers();
+            $projectResponse = $this->projectService->getProjects();
+         
             if ($customerResponse->successful() && $projectResponse->successful()) {
                 return response()->json([
                     'customers' => $customerResponse->json(),
